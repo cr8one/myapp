@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { SignOutButton } from "@/components/sign-out-button"
+import { Sidebar } from "@/components/sidebar"
 
 export default async function DashboardLayout({
   children,
@@ -22,7 +23,10 @@ export default async function DashboardLayout({
           <SignOutButton />
         </div>
       </header>
-      <main>{children}</main>
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
     </div>
   )
 }
