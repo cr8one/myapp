@@ -1,11 +1,9 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 type User = {
   id: string
   name: string
@@ -15,31 +13,36 @@ type User = {
   phone?: string
   createdAt: string
 }
-
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [department, setDepartment] = useState("")
   const [position, setPosition] = useState("")
   const [phone, setPhone] = useState("")
-
+  const [searchQuery, setSearchQuery] = useState("")
   const fetchUsers = async () => {
     const res = await fetch("/api/users")
     const data = await res.json()
     setUsers(data)
   }
-
   useEffect(() => {
     fetchUsers()
   }, [])
-
+  const filteredUsers = users.filter((user) => {
+    const q = searchQuery.toLowerCase()
+    return (
+      user.name?.toLowerCase().includes(q) ||
+      user.email.toLowerCase().includes(q) ||
+      user.department?.toLowerCase().includes(q) ||
+      user.position?.toLowerCase().includes(q)
+    )
+  })
   const resetForm = () => {
     setName("")
     setEmail("")
@@ -51,7 +54,6 @@ export default function UsersPage() {
     setEditUser(null)
     setShowForm(false)
   }
-
   const handleEdit = (user: User) => {
     setEditUser(user)
     setName(user.name ?? "")
@@ -62,11 +64,9 @@ export default function UsersPage() {
     setPassword("")
     setShowForm(true)
   }
-
   const handleSubmit = async () => {
     setLoading(true)
     setError("")
-
     if (editUser) {
       const res = await fetch(`/api/users/${editUser.id}`, {
         method: "PUT",
@@ -90,18 +90,15 @@ export default function UsersPage() {
         return
       }
     }
-
     resetForm()
     setLoading(false)
     fetchUsers()
   }
-
   const handleDelete = async (id: string) => {
     if (!confirm("このユーザーを削除しますか？")) return
     await fetch(`/api/users/${id}`, { method: "DELETE" })
     fetchUsers()
   }
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -110,7 +107,6 @@ export default function UsersPage() {
           {showForm ? "キャンセル" : "新規登録"}
         </Button>
       </div>
-
       {showForm && (
         <Card className="mb-8">
           <CardHeader>
@@ -156,9 +152,15 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       )}
-
+      <div className="mb-4">
+        <Input
+          placeholder="名前・メール・部署・役職で検索..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       <div className="space-y-4">
-        {users.map((user) => (
+        {filteredUsers.map((user) => (
           <Card key={user.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
@@ -191,8 +193,10 @@ export default function UsersPage() {
             </CardContent>
           </Card>
         ))}
-        {users.length === 0 && (
-          <p className="text-center text-gray-500">ユーザーが登録されていません</p>
+        {filteredUsers.length === 0 && (
+          <p className="text-center text-gray-500">
+            {searchQuery ? "検索結果がありません" : "ユーザーが登録されていません"}
+          </p>
         )}
       </div>
     </div>

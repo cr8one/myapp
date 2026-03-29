@@ -1,23 +1,19 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 type Part = {
   id?: string
   code: string
   name: string
   note?: string
 }
-
 type User = {
   id: string
   name: string
 }
-
 type Product = {
   id: string
   code: string
@@ -27,7 +23,6 @@ type Product = {
   user: User
   parts: Part[]
 }
-
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -35,30 +30,39 @@ export default function ProductsPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [userId, setUserId] = useState("")
   const [parts, setParts] = useState<Part[]>([{ code: "", name: "", note: "" }])
-
+  const [searchQuery, setSearchQuery] = useState("")
   const fetchProducts = async () => {
     const res = await fetch("/api/products")
     const data = await res.json()
     setProducts(data)
   }
-
   const fetchUsers = async () => {
     const res = await fetch("/api/users")
     const data = await res.json()
     setUsers(data)
   }
-
   useEffect(() => {
     fetchProducts()
     fetchUsers()
   }, [])
-
+  const filteredProducts = products.filter((product) => {
+    const q = searchQuery.toLowerCase()
+    return (
+      product.name.toLowerCase().includes(q) ||
+      product.code.toLowerCase().includes(q) ||
+      product.user?.name?.toLowerCase().includes(q) ||
+      product.parts.some(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q)
+      )
+    )
+  })
   const resetForm = () => {
     setCode("")
     setName("")
@@ -69,7 +73,6 @@ export default function ProductsPage() {
     setEditProduct(null)
     setShowForm(false)
   }
-
   const handleEdit = (product: Product) => {
     setEditProduct(product)
     setCode(product.code)
@@ -79,25 +82,20 @@ export default function ProductsPage() {
     setParts(product.parts.length > 0 ? product.parts : [{ code: "", name: "", note: "" }])
     setShowForm(true)
   }
-
   const addPart = () => {
     setParts([...parts, { code: "", name: "", note: "" }])
   }
-
   const updatePart = (index: number, field: keyof Part, value: string) => {
     const updated = [...parts]
     updated[index] = { ...updated[index], [field]: value }
     setParts(updated)
   }
-
   const removePart = (index: number) => {
     setParts(parts.filter((_, i) => i !== index))
   }
-
   const handleSubmit = async () => {
     setLoading(true)
     setError("")
-
     if (editProduct) {
       const res = await fetch(`/api/products/${editProduct.id}`, {
         method: "PUT",
@@ -121,18 +119,15 @@ export default function ProductsPage() {
         return
       }
     }
-
     resetForm()
     setLoading(false)
     fetchProducts()
   }
-
   const handleDelete = async (id: string) => {
     if (!confirm("この製品を削除しますか？")) return
     await fetch(`/api/products/${id}`, { method: "DELETE" })
     fetchProducts()
   }
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -141,7 +136,6 @@ export default function ProductsPage() {
           {showForm ? "キャンセル" : "新規登録"}
         </Button>
       </div>
-
       {showForm && (
         <Card className="mb-8">
           <CardHeader>
@@ -177,7 +171,6 @@ export default function ProductsPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <div className="flex justify-between items-center mb-2">
                 <Label>パーツ</Label>
@@ -208,7 +201,6 @@ export default function ProductsPage() {
                 </div>
               ))}
             </div>
-
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button onClick={handleSubmit} disabled={loading} className="w-full">
               {loading ? "処理中..." : editProduct ? "更新する" : "登録する"}
@@ -216,9 +208,15 @@ export default function ProductsPage() {
           </CardContent>
         </Card>
       )}
-
+      <div className="mb-4">
+        <Input
+          placeholder="製品名・製品コード・担当者・パーツで検索..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       <div className="space-y-4">
-        {products.map((product) => (
+        {filteredProducts.map((product) => (
           <Card key={product.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
@@ -259,8 +257,10 @@ export default function ProductsPage() {
             </CardContent>
           </Card>
         ))}
-        {products.length === 0 && (
-          <p className="text-center text-gray-500">製品が登録されていません</p>
+        {filteredProducts.length === 0 && (
+          <p className="text-center text-gray-500">
+            {searchQuery ? "検索結果がありません" : "製品が登録されていません"}
+          </p>
         )}
       </div>
     </div>
