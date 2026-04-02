@@ -20,6 +20,7 @@ type Product = {
   name: string
   description?: string
   userId: string
+  createdAt: string
   user: User
   parts: Part[]
 }
@@ -50,6 +51,46 @@ export default function ProductsPage() {
     fetchProducts()
     fetchUsers()
   }, [])
+  const handleExportCSV = () => {
+    const headers = ["製品コード", "製品名", "担当ユーザー名", "登録日時", "パーツコード", "パーツ名"]
+    const rows: string[][] = []
+    products.forEach((product) => {
+      if (product.parts.length === 0) {
+        rows.push([
+          product.code,
+          product.name,
+          product.user?.name ?? "",
+          new Date(product.createdAt).toLocaleString("ja-JP"),
+          "",
+          "",
+        ])
+      } else {
+        product.parts.forEach((part) => {
+          rows.push([
+            product.code,
+            product.name,
+            product.user?.name ?? "",
+            new Date(product.createdAt).toLocaleString("ja-JP"),
+            part.code,
+            part.name,
+          ])
+        })
+      }
+    })
+    const bom = "\uFEFF"
+    const csvContent =
+      bom +
+      [headers, ...rows]
+        .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
+        .join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `products_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
   const filteredProducts = products.filter((product) => {
     const q = searchQuery.toLowerCase()
     return (
@@ -132,9 +173,14 @@ export default function ProductsPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">製品仕様一覧</h1>
-        <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
-          {showForm ? "キャンセル" : "新規登録"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCSV}>
+            CSVダウンロード
+          </Button>
+          <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
+            {showForm ? "キャンセル" : "新規登録"}
+          </Button>
+        </div>
       </div>
       {showForm && (
         <Card className="mb-8">
