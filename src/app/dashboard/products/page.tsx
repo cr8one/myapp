@@ -103,7 +103,7 @@ export default function ProductsPage() {
     const [, ...dataLines] = lines
     const rows = dataLines.map((line) => {
       const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? []
-      const clean = (s: string) => s?.replace(/^"|"$/g, "").replace(/""/g, '"').trim() ?? ""
+      const clean = (s: string | undefined) => s?.replace(/^"|"$/g, "").replace(/""/g, '"').trim() ?? ""
       return {
         productCode: clean(cols[0]),
         productName: clean(cols[1]),
