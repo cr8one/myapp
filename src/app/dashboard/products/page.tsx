@@ -37,6 +37,8 @@ export default function ProductsPage() {
   const [userId, setUserId] = useState("")
   const [parts, setParts] = useState<Part[]>([{ code: "", name: "", note: "" }])
   const [searchQuery, setSearchQuery] = useState("")
+  const [importing, setImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState("")
   const fetchProducts = async () => {
     const res = await fetch("/api/products")
     const data = await res.json()
@@ -90,6 +92,36 @@ export default function ProductsPage() {
     a.download = `products_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportMessage("")
+    const text = await file.text()
+    const lines = text.replace(/^\uFEFF/, "").split("\n").filter(Boolean)
+    const [, ...dataLines] = lines
+    const rows = dataLines.map((line) => {
+      const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? []
+      const clean = (s: string) => s?.replace(/^"|"$/g, "").replace(/""/g, '"').trim() ?? ""
+      return {
+        productCode: clean(cols[0]),
+        productName: clean(cols[1]),
+        userName:    clean(cols[2]),
+        partsCode:   clean(cols[4]),
+        partsName:   clean(cols[5]),
+      }
+    })
+    const res = await fetch("/api/products/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows }),
+    })
+    const data = await res.json()
+    setImportMessage(res.ok ? data.message : `エラー: ${data.error}`)
+    setImporting(false)
+    e.target.value = ""
+    if (res.ok) fetchProducts()
   }
   const filteredProducts = products.filter((product) => {
     const q = searchQuery.toLowerCase()
@@ -177,11 +209,28 @@ export default function ProductsPage() {
           <Button variant="outline" onClick={handleExportCSV}>
             CSVダウンロード
           </Button>
+          <label>
+            <input id="csv-import-input"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleImportCSV}
+              disabled={importing}
+            />
+            <Button variant="outline" disabled={importing} onClick={() => document.getElementById('csv-import-input')?.click()}>
+              <span>{importing ? "インポート中..." : "CSVインポート"}</span>
+            </Button>
+          </label>
           <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
             {showForm ? "キャンセル" : "新規登録"}
           </Button>
         </div>
       </div>
+      {importMessage && (
+        <p className={`mb-4 text-sm ${importMessage.startsWith("エラー") ? "text-red-500" : "text-green-600"}`}>
+          {importMessage}
+        </p>
+      )}
       {showForm && (
         <Card className="mb-8">
           <CardHeader>
