@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 const menuItems = [
   { label: "ダッシュボード", href: "/dashboard" },
   { label: "製品管理", href: "/dashboard/products" },
+  { label: "パーツ一覧", href: "/dashboard/parts" },
   { label: "ユーザー管理", href: "/dashboard/users" },
   { label: "依頼管理", href: "/dashboard/requests" },
 ]
