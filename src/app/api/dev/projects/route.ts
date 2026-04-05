@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@/generated/prisma"
-
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   const projects = await prisma.devProject.findMany({
@@ -17,7 +15,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const { title, status, description, expectedOrderDate, notes, primaryCompanyId, companyIds } = await req.json()
   if (!title) return NextResponse.json({ error: "案件名は必須です" }, { status: 400 })
-
   const project = await prisma.devProject.create({
     data: {
       title,
@@ -27,7 +24,7 @@ export async function POST(req: Request) {
       notes,
       primaryCompanyId: primaryCompanyId || null,
       companies: {
-        create: (companyIds ?? []).map((id: string) => ({ companyId: id })),
+        create: (companyIds ?? []).map((cid: string) => ({ companyId: cid })),
       },
     },
     include: {

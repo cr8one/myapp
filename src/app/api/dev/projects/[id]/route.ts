@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@/generated/prisma"
-
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { title, status, description, expectedOrderDate, notes, primaryCompanyId, companyIds } = await req.json()
-
   await prisma.devProjectCompany.deleteMany({ where: { projectId: id } })
-
   const project = await prisma.devProject.update({
     where: { id },
     data: {

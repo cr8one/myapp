@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@/generated/prisma"
-
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   const exhibitions = await prisma.devExhibition.findMany({
@@ -16,7 +14,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const { name, location, startDate, endDate, notes, companyIds } = await req.json()
   if (!name) return NextResponse.json({ error: "展示会名は必須です" }, { status: 400 })
-
   const exhibition = await prisma.devExhibition.create({
     data: {
       name,
@@ -25,7 +22,7 @@ export async function POST(req: Request) {
       endDate: endDate ? new Date(endDate) : null,
       notes,
       companies: {
-        create: (companyIds ?? []).map((id: string) => ({ companyId: id })),
+        create: (companyIds ?? []).map((cid: string) => ({ companyId: cid })),
       },
     },
     include: {
