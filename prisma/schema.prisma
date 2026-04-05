@@ -42,3 +42,77 @@ model Part {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model DevCompany {
+  id                String                 @id @default(cuid())
+  name              String
+  nameKana          String?
+  industry          String?
+  contactName       String?
+  contactEmail      String?
+  contactPhone      String?
+  notes             String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  primaryProjects   DevProject[]           @relation("DevPrimaryCompany")
+  projects          DevProjectCompany[]
+  exhibitions       DevExhibitionCompany[]
+
+  @@map("dev_companies")
+}
+
+model DevProject {
+  id                String              @id @default(cuid())
+  title             String
+  status            String              @default("商談中")
+  description       String?
+  expectedOrderDate DateTime?
+  notes             String?
+  primaryCompanyId  String?
+  primaryCompany    DevCompany?         @relation("DevPrimaryCompany", fields: [primaryCompanyId], references: [id])
+  companies         DevProjectCompany[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("dev_projects")
+}
+
+model DevProjectCompany {
+  id        String     @id @default(cuid())
+  projectId String
+  companyId String
+  role      String?
+  project   DevProject @relation(fields: [projectId], references: [id])
+  company   DevCompany @relation(fields: [companyId], references: [id])
+  createdAt DateTime   @default(now())
+
+  @@unique([projectId, companyId])
+  @@map("dev_project_companies")
+}
+
+model DevExhibition {
+  id        String                 @id @default(cuid())
+  name      String
+  location  String?
+  startDate DateTime?
+  endDate   DateTime?
+  notes     String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  companies DevExhibitionCompany[]
+
+  @@map("dev_exhibitions")
+}
+
+model DevExhibitionCompany {
+  id           String        @id @default(cuid())
+  exhibitionId String
+  companyId    String
+  notes        String?
+  exhibition   DevExhibition @relation(fields: [exhibitionId], references: [id])
+  company      DevCompany    @relation(fields: [companyId], references: [id])
+  createdAt    DateTime      @default(now())
+
+  @@unique([exhibitionId, companyId])
+  @@map("dev_exhibition_companies")
+}

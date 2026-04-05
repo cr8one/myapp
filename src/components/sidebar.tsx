@@ -14,6 +14,14 @@ const menuItems = [
       { label: "パーツ一覧", href: "/dashboard/parts" },
     ],
   },
+  {
+    label: "新規開発管理",
+    children: [
+      { label: "会社管理", href: "/dashboard/dev/companies" },
+      { label: "案件管理", href: "/dashboard/dev/projects" },
+      { label: "展示会管理", href: "/dashboard/dev/exhibitions" },
+    ],
+  },
   { label: "ユーザー管理", href: "/dashboard/users" },
   { label: "依頼管理", href: "/dashboard/requests" },
 ]
@@ -21,9 +29,19 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname()
 
-  const defaultOpen = pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+  const defaultOpen = (label: string) => {
+    if (label === "製品管理") {
+      return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+    }
+    if (label === "新規開発管理") {
+      return pathname.startsWith("/dashboard/dev")
+    }
+    return false
+  }
+
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    製品管理: defaultOpen,
+    製品管理: defaultOpen("製品管理"),
+    新規開発管理: defaultOpen("新規開発管理"),
   })
 
   const toggleMenu = (label: string) => {
