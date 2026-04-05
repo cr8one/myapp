@@ -3,14 +3,14 @@ import { PrismaClient } from "@/generated/prisma"
 
 const prisma = new PrismaClient()
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const { title, status, description, expectedOrderDate, notes, primaryCompanyId, companyIds } = await req.json()
 
-  // 既存の関連会社を一旦削除して入れ直す
-  await prisma.devProjectCompany.deleteMany({ where: { projectId: params.id } })
+  await prisma.devProjectCompany.deleteMany({ where: { projectId: id } })
 
   const project = await prisma.devProject.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       title,
       status,
@@ -19,7 +19,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       notes,
       primaryCompanyId: primaryCompanyId || null,
       companies: {
-        create: (companyIds ?? []).map((id: string) => ({ companyId: id })),
+        create: (companyIds ?? []).map((cid: string) => ({ companyId: cid })),
       },
     },
     include: {
@@ -30,8 +30,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json(project)
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  await prisma.devProjectCompany.deleteMany({ where: { projectId: params.id } })
-  await prisma.devProject.delete({ where: { id: params.id } })
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  await prisma.devProjectCompany.deleteMany({ where: { projectId: id } })
+  await prisma.devProject.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

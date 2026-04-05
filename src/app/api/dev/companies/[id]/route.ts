@@ -3,16 +3,18 @@ import { PrismaClient } from "@/generated/prisma"
 
 const prisma = new PrismaClient()
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const { name, nameKana, industry, contactName, contactEmail, contactPhone, notes } = await req.json()
   const company = await prisma.devCompany.update({
-    where: { id: params.id },
+    where: { id },
     data: { name, nameKana, industry, contactName, contactEmail, contactPhone, notes },
   })
   return NextResponse.json(company)
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  await prisma.devCompany.delete({ where: { id: params.id } })
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  await prisma.devCompany.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

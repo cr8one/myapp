@@ -3,13 +3,14 @@ import { PrismaClient } from "@/generated/prisma"
 
 const prisma = new PrismaClient()
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const { name, location, startDate, endDate, notes, companyIds } = await req.json()
 
-  await prisma.devExhibitionCompany.deleteMany({ where: { exhibitionId: params.id } })
+  await prisma.devExhibitionCompany.deleteMany({ where: { exhibitionId: id } })
 
   const exhibition = await prisma.devExhibition.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       name,
       location,
@@ -17,7 +18,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       endDate: endDate ? new Date(endDate) : null,
       notes,
       companies: {
-        create: (companyIds ?? []).map((id: string) => ({ companyId: id })),
+        create: (companyIds ?? []).map((cid: string) => ({ companyId: cid })),
       },
     },
     include: {
@@ -27,8 +28,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   return NextResponse.json(exhibition)
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  await prisma.devExhibitionCompany.deleteMany({ where: { exhibitionId: params.id } })
-  await prisma.devExhibition.delete({ where: { id: params.id } })
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  await prisma.devExhibitionCompany.deleteMany({ where: { exhibitionId: id } })
+  await prisma.devExhibition.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }
