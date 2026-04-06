@@ -44,19 +44,24 @@ model Part {
 }
 
 model DevCompany {
-  id                String                 @id @default(cuid())
-  name              String
-  nameKana          String?
-  industry          String?
-  contactName       String?
-  contactEmail      String?
-  contactPhone      String?
-  notes             String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  primaryProjects   DevProject[]           @relation("DevPrimaryCompany")
-  projects          DevProjectCompany[]
-  exhibitions       DevExhibitionCompany[]
+  id          String   @id @default(cuid())
+  name        String
+  nameKana    String?
+  industry    String?
+  status      String   @default("登録のみ")
+  postalCode  String?
+  address     String?
+  phone       String?
+  url         String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  primaryProjects DevProject[]           @relation("DevPrimaryCompany")
+  projects        DevProjectCompany[]
+  exhibitions     DevExhibitionCompany[]
+  contacts        DevCompanyContact[]
+  types           DevCompanyType[]
 
   @@map("dev_companies")
 }
@@ -115,4 +120,46 @@ model DevExhibitionCompany {
 
   @@unique([exhibitionId, companyId])
   @@map("dev_exhibition_companies")
+}
+
+model DevCompanyContact {
+  id         String     @id @default(cuid())
+  companyId  String
+  company    DevCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name       String
+  nameKana   String?
+  email      String?
+  phone      String?
+  department String?
+  position   String?
+  isPrimary  Boolean    @default(false)
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("dev_company_contacts")
+}
+
+model DevCompanyTypeMaster {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  companies   DevCompanyType[]
+
+  @@map("dev_company_type_masters")
+}
+
+model DevCompanyType {
+  id           String               @id @default(cuid())
+  companyId    String
+  typeMasterId String
+  company      DevCompany           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  typeMaster   DevCompanyTypeMaster @relation(fields: [typeMasterId], references: [id], onDelete: Cascade)
+  createdAt    DateTime             @default(now())
+
+  @@unique([companyId, typeMasterId])
+  @@map("dev_company_types")
 }
