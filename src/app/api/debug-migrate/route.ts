@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const cols = await prisma.$queryRawUnsafe<{column_name: string}[]>(`
       SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'dev_company_type_masters'
+      WHERE table_name = 'dev_companies'
       ORDER BY ordinal_position;
     `)
     return NextResponse.json({ ok: true, columns: cols.map(c => c.column_name) })
