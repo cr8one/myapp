@@ -46,7 +46,7 @@ model Part {
 model DevCompany {
   id          String   @id @default(cuid())
   name        String
-  nameKana    String?  @map("name_kana")
+  nameKana    String?
   industry    String?
   status      String   @default("登録のみ")
   postalCode  String?  @map("postal_code")
@@ -54,8 +54,8 @@ model DevCompany {
   phone       String?
   url         String?
   notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   primaryProjects DevProject[]           @relation("DevPrimaryCompany")
   projects        DevProjectCompany[]
@@ -71,25 +71,25 @@ model DevProject {
   title             String
   status            String              @default("商談中")
   description       String?
-  expectedOrderDate DateTime?           @map("expected_order_date")
+  expectedOrderDate DateTime?
   notes             String?
-  primaryCompanyId  String?             @map("primary_company_id")
+  primaryCompanyId  String?
   primaryCompany    DevCompany?         @relation("DevPrimaryCompany", fields: [primaryCompanyId], references: [id])
   companies         DevProjectCompany[]
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   @@map("dev_projects")
 }
 
 model DevProjectCompany {
   id        String     @id @default(cuid())
-  projectId String     @map("project_id")
-  companyId String     @map("company_id")
+  projectId String
+  companyId String
   role      String?
   project   DevProject @relation(fields: [projectId], references: [id])
   company   DevCompany @relation(fields: [companyId], references: [id])
-  createdAt DateTime   @default(now()) @map("created_at")
+  createdAt DateTime   @default(now())
 
   @@unique([projectId, companyId])
   @@map("dev_project_companies")
@@ -99,11 +99,11 @@ model DevExhibition {
   id        String                 @id @default(cuid())
   name      String
   location  String?
-  startDate DateTime?              @map("start_date")
-  endDate   DateTime?              @map("end_date")
+  startDate DateTime?
+  endDate   DateTime?
   notes     String?
-  createdAt DateTime               @default(now()) @map("created_at")
-  updatedAt DateTime               @updatedAt @map("updated_at")
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
   companies DevExhibitionCompany[]
 
   @@map("dev_exhibitions")
@@ -111,12 +111,12 @@ model DevExhibition {
 
 model DevExhibitionCompany {
   id           String        @id @default(cuid())
-  exhibitionId String        @map("exhibition_id")
-  companyId    String        @map("company_id")
+  exhibitionId String
+  companyId    String
   notes        String?
   exhibition   DevExhibition @relation(fields: [exhibitionId], references: [id])
   company      DevCompany    @relation(fields: [companyId], references: [id])
-  createdAt    DateTime      @default(now()) @map("created_at")
+  createdAt    DateTime      @default(now())
 
   @@unique([exhibitionId, companyId])
   @@map("dev_exhibition_companies")
