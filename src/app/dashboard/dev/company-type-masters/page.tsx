@@ -101,30 +101,45 @@ export default function DevCompanyTypeMastersPage() {
 
     const text = await file.text()
     const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
-    const headers = lines[0].split(",").map((h) => h.trim())
+    const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
 
     const rows = lines.slice(1).map((line) => {
-      const values = line.match(/(".*?"|[^,]+)/g)?.map((v) => v.replace(/^"|"$/g, "").trim()) ?? []
+      // カンマ区切りを正しくパース（空フィールド対応）
+      const values: string[] = []
+      let current = ""
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim())
+          current = ""
+        } else {
+          current += char
+        }
+      }
+      values.push(current.trim())
+
       const row: Record<string, string> = {}
       headers.forEach((h, i) => { row[h] = values[i] ?? "" })
       return row
     })
 
-    const res = await fetch("/api/dev/company-type-masters/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows }),
-    })
-    const data = await res.json()
-    if (res.ok) {
-      setImportMessage(data.message)
-      fetchMasters()
-    } else {
-      setImportMessage(`エラー: ${data.error}`)
-    }
-    e.target.value = ""
+  const res = await fetch("/api/dev/company-type-masters/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows }),
+  })
+  const data = await res.json()
+  if (res.ok) {
+    setImportMessage(data.message)
+    fetchMasters()
+  } else {
+    setImportMessage(`エラー: ${data.error}`)
   }
-
+  e.target.value = ""
+}
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
