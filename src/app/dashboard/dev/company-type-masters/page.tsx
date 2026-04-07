@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,9 +18,11 @@ export default function DevCompanyTypeMastersPage() {
   const [editTarget, setEditTarget] = useState<TypeMaster | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [importMessage, setImportMessage] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [sortOrder, setSortOrder] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchMasters = async () => {
     const res = await fetch("/api/dev/company-type-masters")
@@ -71,14 +73,77 @@ export default function DevCompanyTypeMastersPage() {
     fetchMasters()
   }
 
+  // CSVエクスポート
+  const handleExport = () => {
+    const header = "name,description,sortOrder"
+    const rows = masters.map((m) =>
+      [
+        `"${m.name}"`,
+        `"${m.description ?? ""}"`,
+        m.sortOrder,
+      ].join(",")
+    )
+    const csv = [header, ...rows].join("\n")
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "company_type_masters.csv"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // CSVインポート
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportMessage("")
+
+    const text = await file.text()
+    const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
+    const headers = lines[0].split(",").map((h) => h.trim())
+
+    const rows = lines.slice(1).map((line) => {
+      const values = line.match(/(".*?"|[^,]+)/g)?.map((v) => v.replace(/^"|"$/g, "").trim()) ?? []
+      const row: Record<string, string> = {}
+      headers.forEach((h, i) => { row[h] = values[i] ?? "" })
+      return row
+    })
+
+    const res = await fetch("/api/dev/company-type-masters/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setImportMessage(data.message)
+      fetchMasters()
+    } else {
+      setImportMessage(`エラー: ${data.error}`)
+    }
+    e.target.value = ""
+  }
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">種別管理</h1>
-        <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
-          {showForm ? "キャンセル" : "新規追加"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>CSVエクスポート</Button>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>CSVインポート</Button>
+          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
+            {showForm ? "キャンセル" : "新規追加"}
+          </Button>
+        </div>
       </div>
+
+      {importMessage && (
+        <p className={`mb-4 text-sm px-4 py-2 rounded ${importMessage.startsWith("エラー") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}>
+          {importMessage}
+        </p>
+      )}
 
       {showForm && (
         <Card className="mb-6">
