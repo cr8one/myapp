@@ -7,3 +7,12 @@ export async function GET() {
   })
   return NextResponse.json(masters)
 }
+
+export async function POST(req: Request) {
+  const { name, description, sortOrder } = await req.json()
+  if (!name) return NextResponse.json({ error: "種別名は必須です" }, { status: 400 })
+  const master = await prisma.devCompanyTypeMaster.create({
+    data: { name, description, sortOrder: sortOrder ?? 0 },
+  })
+  return NextResponse.json(master)
+}

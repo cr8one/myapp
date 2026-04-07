@@ -20,6 +20,7 @@ const menuItems = [
       { label: "会社管理", href: "/dashboard/dev/companies" },
       { label: "案件管理", href: "/dashboard/dev/projects" },
       { label: "展示会管理", href: "/dashboard/dev/exhibitions" },
+      { label: "種別管理", href: "/dashboard/dev/company-type-masters" },
     ],
   },
   { label: "ユーザー管理", href: "/dashboard/users" },
