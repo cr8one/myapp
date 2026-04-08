@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+export const maxDuration = 60 // 秒
+
 export async function POST(req: NextRequest) {
   try {
     const { rows } = await req.json()
