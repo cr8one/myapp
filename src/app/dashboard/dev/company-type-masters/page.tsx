@@ -94,37 +94,60 @@ export default function DevCompanyTypeMastersPage() {
   }
 
   // CSVインポート
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImportMessage("")
+const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  setImportMessage("")
 
-    const text = await file.text()
-    const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
-    const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
+  const text = await file.text()
+  const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
+  const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
 
-    const rows = lines.slice(1).map((line) => {
-      // カンマ区切りを正しくパース（空フィールド対応）
-      const values: string[] = []
-      let current = ""
-      let inQuotes = false
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === '"') {
-          inQuotes = !inQuotes
-        } else if (char === "," && !inQuotes) {
-          values.push(current.trim())
-          current = ""
-        } else {
-          current += char
-        }
+  const rows = lines.slice(1).map((line) => {
+    const values: string[] = []
+    let current = ""
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        inQuotes = !inQuotes
+      } else if (char === "," && !inQuotes) {
+        values.push(current.trim())
+        current = ""
+      } else {
+        current += char
       }
-      values.push(current.trim())
+    }
+    values.push(current.trim())
+    const row: Record<string, string> = {}
+    headers.forEach((h, i) => { row[h] = values[i] ?? "" })
+    return row
+  })
 
-      const row: Record<string, string> = {}
-      headers.forEach((h, i) => { row[h] = values[i] ?? "" })
-      return row
+  // 100件ずつ分割して送信
+  const chunkSize = 100
+  let totalCount = 0
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize)
+    const res = await fetch("/api/dev/company-type-masters/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: chunk }),
     })
+    const data = await res.json()
+    if (!res.ok) {
+      setImportMessage(`エラー: ${data.error}`)
+      e.target.value = ""
+      return
+    }
+    totalCount += chunk.length
+    setImportMessage(`処理中... ${totalCount}/${rows.length}件`)
+  }
+
+  setImportMessage(`${totalCount}件をインポートしました`)
+  fetchMasters()
+  e.target.value = ""
+}
 
   const res = await fetch("/api/dev/company-type-masters/import", {
     method: "POST",
