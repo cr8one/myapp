@@ -73,6 +73,13 @@ export default function DevCompanyTypeMastersPage() {
     fetchMasters()
   }
 
+  const handleDeleteAll = async () => {
+  if (!confirm(`全${masters.length}件の種別を削除しますか？\nこの操作は取り消せません。`)) return
+  await fetch("/api/dev/company-type-masters", { method: "DELETE" })
+  fetchMasters()
+  setImportMessage("")
+}
+
   const handleExport = () => {
     const header = "name,description,sortOrder"
     const rows = masters.map((m) =>
@@ -150,6 +157,7 @@ export default function DevCompanyTypeMastersPage() {
           <Button variant="outline" onClick={handleExport}>CSVエクスポート</Button>
           <Button variant="outline" onClick={() => fileInputRef.current?.click()}>CSVインポート</Button>
           <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          <Button variant="destructive" onClick={handleDeleteAll}>全件削除</Button>
           <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
             {showForm ? "キャンセル" : "新規追加"}
           </Button>

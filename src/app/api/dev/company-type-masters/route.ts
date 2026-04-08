@@ -16,3 +16,8 @@ export async function POST(req: Request) {
   })
   return NextResponse.json(master)
 }
+
+export async function DELETE() {
+  await prisma.devCompanyTypeMaster.deleteMany()
+  return NextResponse.json({ ok: true })
+}
