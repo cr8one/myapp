@@ -73,15 +73,10 @@ export default function DevCompanyTypeMastersPage() {
     fetchMasters()
   }
 
-  // CSVエクスポート
   const handleExport = () => {
     const header = "name,description,sortOrder"
     const rows = masters.map((m) =>
-      [
-        `"${m.name}"`,
-        `"${m.description ?? ""}"`,
-        m.sortOrder,
-      ].join(",")
+      [`"${m.name}"`, `"${m.description ?? ""}"`, m.sortOrder].join(",")
     )
     const csv = [header, ...rows].join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
@@ -93,76 +88,60 @@ export default function DevCompanyTypeMastersPage() {
     URL.revokeObjectURL(url)
   }
 
-  // CSVインポート
-const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (!file) return
-  setImportMessage("")
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportMessage("")
 
-  const text = await file.text()
-  const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
-  const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
+    const text = await file.text()
+    const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
+    const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
 
-  const rows = lines.slice(1).map((line) => {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-      if (char === '"') {
-        inQuotes = !inQuotes
-      } else if (char === "," && !inQuotes) {
-        values.push(current.trim())
-        current = ""
-      } else {
-        current += char
+    const rows = lines.slice(1).map((line) => {
+      const values: string[] = []
+      let current = ""
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        if (char === '"') {
+          inQuotes = !inQuotes
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim())
+          current = ""
+        } else {
+          current += char
+        }
       }
-    }
-    values.push(current.trim())
-    const row: Record<string, string> = {}
-    headers.forEach((h, i) => { row[h] = values[i] ?? "" })
-    return row
-  })
-
-  // 100件ずつ分割して送信
-  const chunkSize = 100
-  let totalCount = 0
-  for (let i = 0; i < rows.length; i += chunkSize) {
-    const chunk = rows.slice(i, i + chunkSize)
-    const res = await fetch("/api/dev/company-type-masters/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows: chunk }),
+      values.push(current.trim())
+      const row: Record<string, string> = {}
+      headers.forEach((h, i) => { row[h] = values[i] ?? "" })
+      return row
     })
-    const data = await res.json()
-    if (!res.ok) {
-      setImportMessage(`エラー: ${data.error}`)
-      e.target.value = ""
-      return
+
+    const chunkSize = 100
+    let totalCount = 0
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize)
+      const res = await fetch("/api/dev/company-type-masters/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: chunk }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setImportMessage(`エラー: ${data.error}`)
+        e.target.value = ""
+        return
+      }
+      totalCount += chunk.length
+      setImportMessage(`処理中... ${totalCount}/${rows.length}件`)
     }
-    totalCount += chunk.length
-    setImportMessage(`処理中... ${totalCount}/${rows.length}件`)
-  }
 
-  setImportMessage(`${totalCount}件をインポートしました`)
-  fetchMasters()
-  e.target.value = ""
-}
-
-  const res = await fetch("/api/dev/company-type-masters/import", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rows }),
-  })
-  const data = await res.json()
-  if (res.ok) {
-    setImportMessage(data.message)
+    setImportMessage(`${totalCount}件をインポートしました`)
     fetchMasters()
-  } else {
-    setImportMessage(`エラー: ${data.error}`)
+    e.target.value = ""
   }
-  e.target.value = ""
-}
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
