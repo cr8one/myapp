@@ -18,6 +18,8 @@ model User {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   products   Product[]
+
+  exhibitions DevExhibitionVisitor[]
 }
 
 model Product {
@@ -59,7 +61,7 @@ model DevCompany {
 
   primaryProjects DevProject[]           @relation("DevPrimaryCompany")
   projects        DevProjectCompany[]
-  exhibitions     DevExhibitionCompany[]
+  exhibitions     DevExhibitionContact[]
   contacts        DevCompanyContact[]
   types           DevCompanyType[]
 
@@ -96,30 +98,48 @@ model DevProjectCompany {
 }
 
 model DevExhibition {
-  id        String                 @id @default(cuid())
-  name      String
-  location  String?
-  startDate DateTime?
-  endDate   DateTime?
-  notes     String?
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-  companies DevExhibitionCompany[]
+  id          String                  @id @default(cuid())
+  name        String
+  location    String?
+  startDate   DateTime?               @map("start_date")
+  endDate     DateTime?               @map("end_date")
+  notes       String?
+  summary     String?
+  description String?
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  visitors    DevExhibitionVisitor[]
+  contacts    DevExhibitionContact[]
 
   @@map("dev_exhibitions")
 }
 
-model DevExhibitionCompany {
+model DevExhibitionVisitor {
   id           String        @id @default(cuid())
-  exhibitionId String
-  companyId    String
-  notes        String?
-  exhibition   DevExhibition @relation(fields: [exhibitionId], references: [id])
-  company      DevCompany    @relation(fields: [companyId], references: [id])
-  createdAt    DateTime      @default(now())
+  exhibitionId String        @map("exhibition_id")
+  userId       String        @map("user_id")
+  impression   String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  exhibition   DevExhibition @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id])
 
-  @@unique([exhibitionId, companyId])
-  @@map("dev_exhibition_companies")
+  @@unique([exhibitionId, userId])
+  @@map("dev_exhibition_visitors")
+}
+
+model DevExhibitionContact {
+  id           String             @id @default(cuid())
+  exhibitionId String             @map("exhibition_id")
+  companyId    String             @map("company_id")
+  contactId    String?            @map("contact_id")
+  notes        String?
+  createdAt    DateTime           @default(now()) @map("created_at")
+  exhibition   DevExhibition      @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
+  company      DevCompany         @relation(fields: [companyId], references: [id])
+  contact      DevCompanyContact? @relation(fields: [contactId], references: [id])
+
+  @@map("dev_exhibition_contacts")
 }
 
 model DevCompanyContact {
@@ -138,6 +158,7 @@ model DevCompanyContact {
   updatedAt  DateTime   @updatedAt @map("updated_at")
 
   @@map("dev_company_contacts")
+  exhibitionContacts DevExhibitionContact[]
 }
 
 model DevCompanyTypeMaster {
