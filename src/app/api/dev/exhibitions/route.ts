@@ -13,13 +13,26 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { name, location, startDate, endDate, notes, summary, description } = await req.json()
+  const { name, location, startDate, endDate, notes, summary, description, visitors, contacts } = await req.json()
   if (!name) return NextResponse.json({ error: "展示会名は必須です" }, { status: 400 })
   const exhibition = await prisma.devExhibition.create({
     data: {
       name, location, notes, summary, description,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
+      visitors: visitors?.length
+        ? { create: visitors.map((v: { userId: string; impression?: string }) => ({
+            userId: v.userId,
+            impression: v.impression ?? null,
+          })) }
+        : undefined,
+      contacts: contacts?.length
+        ? { create: contacts.map((c: { companyId: string; contactId?: string; notes?: string }) => ({
+            companyId: c.companyId,
+            contactId: c.contactId ?? null,
+            notes: c.notes ?? null,
+          })) }
+        : undefined,
     },
     include: {
       visitors: { include: { user: { select: { id: true, name: true } } } },

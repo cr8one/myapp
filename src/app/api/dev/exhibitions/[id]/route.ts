@@ -7,12 +7,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       visitors: { include: { user: { select: { id: true, name: true } } } },
-      contacts: {
-        include: {
-          company: true,
-          contact: true,
-        },
-      },
+      contacts: { include: { company: true, contact: true } },
     },
   })
   if (!exhibition) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -21,7 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { name, location, startDate, endDate, notes, summary, description, visitorUserIds, contacts } = await req.json()
+  const { name, location, startDate, endDate, notes, summary, description, visitors, contacts } = await req.json()
 
   await prisma.devExhibitionVisitor.deleteMany({ where: { exhibitionId: id } })
   await prisma.devExhibitionContact.deleteMany({ where: { exhibitionId: id } })
@@ -32,8 +27,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       name, location, notes, summary, description,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
-      visitors: visitorUserIds?.length
-        ? { create: visitorUserIds.map((userId: string) => ({ userId })) }
+      visitors: visitors?.length
+        ? { create: visitors.map((v: { userId: string; impression?: string }) => ({
+            userId: v.userId,
+            impression: v.impression ?? null,
+          })) }
         : undefined,
       contacts: contacts?.length
         ? { create: contacts.map((c: { companyId: string; contactId?: string; notes?: string }) => ({

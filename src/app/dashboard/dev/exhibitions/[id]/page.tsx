@@ -12,11 +12,12 @@ type User = { id: string; name?: string }
 type DevCompany = { id: string; name: string }
 type DevCompanyContact = { id: string; name: string; companyId: string }
 type ContactForm = { companyId: string; contactId: string; notes: string }
+type VisitorForm = { userId: string; impression: string }
 type DevExhibition = {
   id: string; name: string; location?: string
   startDate?: string; endDate?: string
   notes?: string; summary?: string; description?: string
-  visitors: { user: { id: string; name?: string } }[]
+  visitors: { user: { id: string; name?: string }; impression?: string }[]
   contacts: { company: { id: string; name: string }; contact?: { id: string; name: string } | null; notes?: string }[]
 }
 
@@ -30,7 +31,6 @@ export default function DevExhibitionDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
   const [name, setName] = useState("")
   const [location, setLocation] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -38,7 +38,7 @@ export default function DevExhibitionDetailPage() {
   const [notes, setNotes] = useState("")
   const [summary, setSummary] = useState("")
   const [description, setDescription] = useState("")
-  const [visitorUserIds, setVisitorUserIds] = useState<string[]>([])
+  const [visitors, setVisitors] = useState<VisitorForm[]>([])
   const [contacts, setContacts] = useState<ContactForm[]>([])
 
   const fetchExhibition = async () => {
@@ -63,7 +63,10 @@ export default function DevExhibitionDetailPage() {
     setNotes(exhibition.notes ?? "")
     setSummary(exhibition.summary ?? "")
     setDescription(exhibition.description ?? "")
-    setVisitorUserIds(exhibition.visitors.map((v) => v.user.id))
+    setVisitors(exhibition.visitors.map((v) => ({
+      userId: v.user.id,
+      impression: v.impression ?? "",
+    })))
     setContacts(exhibition.contacts.map((c) => ({
       companyId: c.company.id,
       contactId: c.contact?.id ?? "",
@@ -73,7 +76,15 @@ export default function DevExhibitionDetailPage() {
   }
 
   const toggleVisitor = (uid: string) => {
-    setVisitorUserIds((prev) => prev.includes(uid) ? prev.filter((i) => i !== uid) : [...prev, uid])
+    setVisitors((prev) =>
+      prev.some((v) => v.userId === uid)
+        ? prev.filter((v) => v.userId !== uid)
+        : [...prev, { userId: uid, impression: "" }]
+    )
+  }
+
+  const updateImpression = (uid: string, impression: string) => {
+    setVisitors((prev) => prev.map((v) => v.userId === uid ? { ...v, impression } : v))
   }
 
   const addContact = () => setContacts((prev) => [...prev, { companyId: "", contactId: "", notes: "" }])
@@ -92,7 +103,7 @@ export default function DevExhibitionDetailPage() {
         name, location, notes, summary, description,
         startDate: startDate || null,
         endDate: endDate || null,
-        visitorUserIds,
+        visitors,
         contacts: contacts.filter((c) => c.companyId),
       }),
     })
@@ -147,13 +158,34 @@ export default function DevExhibitionDetailPage() {
           <Card>
             <CardHeader><CardTitle>来場者（社内）</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {users.map((u) => (
-                  <div key={u.id} className="flex items-center gap-2">
-                    <Checkbox id={`ev-${u.id}`} checked={visitorUserIds.includes(u.id)} onCheckedChange={() => toggleVisitor(u.id)} />
-                    <Label htmlFor={`ev-${u.id}`} className="cursor-pointer">{u.name ?? u.id}</Label>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {users.map((u) => {
+                  const visitor = visitors.find((v) => v.userId === u.id)
+                  const checked = !!visitor
+                  return (
+                    <div key={u.id} className="border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`ev-${u.id}`}
+                          checked={checked}
+                          onCheckedChange={() => toggleVisitor(u.id)}
+                        />
+                        <Label htmlFor={`ev-${u.id}`} className="cursor-pointer font-medium">{u.name ?? u.id}</Label>
+                      </div>
+                      {checked && (
+                        <div className="pl-6 space-y-1">
+                          <Label className="text-xs text-gray-500">所感</Label>
+                          <Textarea
+                            value={visitor?.impression ?? ""}
+                            onChange={(e) => updateImpression(u.id, e.target.value)}
+                            rows={2}
+                            placeholder="展示会での所感を入力..."
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -222,10 +254,20 @@ export default function DevExhibitionDetailPage() {
           <Card>
             <CardHeader><CardTitle>来場者（社内）</CardTitle></CardHeader>
             <CardContent>
-              {exhibition.visitors.length > 0
-                ? <div className="flex gap-2 flex-wrap">{exhibition.visitors.map((v) => <span key={v.user.id} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">{v.user.name}</span>)}</div>
-                : <p className="text-sm text-gray-500">来場者が登録されていません</p>
-              }
+              {exhibition.visitors.length > 0 ? (
+                <div className="space-y-3">
+                  {exhibition.visitors.map((v) => (
+                    <div key={v.user.id} className="border rounded-lg p-3">
+                      <p className="font-medium text-sm">{v.user.name}</p>
+                      {v.impression && (
+                        <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{v.impression}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">来場者が登録されていません</p>
+              )}
             </CardContent>
           </Card>
 
