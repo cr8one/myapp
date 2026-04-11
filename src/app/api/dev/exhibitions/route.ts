@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   const exhibitions = await prisma.devExhibition.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { startDate: "desc" },
     include: {
       visitors: { include: { user: { select: { id: true, name: true } } } },
       contacts: { include: { company: true, contact: true } },
