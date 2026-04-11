@@ -36,7 +36,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       contacts: contacts?.length
         ? { create: contacts.map((c: { companyId: string; contactId?: string; notes?: string }) => ({
             companyId: c.companyId,
-            contactId: c.contactId ?? null,
+            contactId: c.contactId || null,
             notes: c.notes ?? null,
           })) }
         : undefined,
