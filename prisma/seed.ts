@@ -1,45 +1,51 @@
-import "dotenv/config"
-import { PrismaClient } from '../src/generated/prisma'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from "../src/generated/prisma"
+import { PrismaPg } from "@prisma/adapter-pg"
+import bcrypt from "bcryptjs"
 
-function createPrismaClient() {
-  const connectionString = process.env.DB_HOST
-    ? `postgresql://${process.env.DB_USER}:${encodeURIComponent(process.env.DB_PASSWORD!)}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?sslmode=no-verify`
-    : process.env.DATABASE_URL!
-
-  const adapter = new PrismaPg({ connectionString })
-  return new PrismaClient({ adapter })
-}
-
-const prisma = createPrismaClient()
+const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/japan_sleeve_db"
+const adapter = new PrismaPg({ connectionString })
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  const types = [
-    { name: 'OEM生産',      sortOrder: 1 },
-    { name: 'ODM生産',      sortOrder: 2 },
-    { name: '試作・サンプル', sortOrder: 3 },
-    { name: '量産',         sortOrder: 4 },
-    { name: 'デザイン提案',  sortOrder: 5 },
-    { name: '資材調達',     sortOrder: 6 },
-    { name: '輸出入',       sortOrder: 7 },
-  ]
+  // ADMIN ユーザー
+  const adminPassword = await bcrypt.hash("password123", 10)
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@example.com" },
+    update: { role: "ADMIN" },
+    create: {
+      email: "admin@example.com",
+      password: adminPassword,
+      name: "管理者",
+      role: "ADMIN",
+    },
+  })
+  console.log("✅ ADMIN:", admin.email)
 
-  for (const type of types) {
-    await prisma.devCompanyTypeMaster.upsert({
-      where: { name: type.name },
-      update: {},
-      create: type,
-    })
-  }
-
-  console.log('✅ 種別マスタのシードデータを投入しました')
+  // 一般ユーザー
+  const userPassword = await bcrypt.hash("password123", 10)
+  const user = await prisma.user.upsert({
+    where: { email: "test@test.com" },
+    update: {},
+    create: {
+      email: "test@test.com",
+      password: userPassword,
+      name: "テストユーザー",
+      role: "USER",
+      permission: {
+        create: {
+          productsView: true,
+          productsEdit: false,
+          partsView: true,
+          partsEdit: false,
+          devView: true,
+          devEdit: false,
+        },
+      },
+    },
+  })
+  console.log("✅ USER:", user.email)
 }
 
 main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .catch(console.error)
+  .finally(() => prisma.$disconnect())

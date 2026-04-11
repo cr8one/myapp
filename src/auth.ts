@@ -31,17 +31,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,  // ← 追加
         }
       },
     }),
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.id = user.id
+      if (user) {
+        token.id = user.id
+        token.role = user.role  // ← 追加
+      }
       return token
     },
     session({ session, token }) {
-      if (token) session.user.id = token.id as string
+      if (token) {
+        session.user.id = token.id as string
+        session.user.role = token.role as string  // ← 追加
+      }
       return session
     },
   },

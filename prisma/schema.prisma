@@ -7,19 +7,41 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id         String    @id @default(cuid())
-  email      String    @unique
-  password   String
-  name       String?
-  department String?
-  position   String?
-  phone      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  products   Product[]
+enum Role {
+  ADMIN
+  USER
+}
 
+model User {
+  id          String                 @id @default(cuid())
+  email       String                 @unique
+  password    String
+  name        String?
+  department  String?
+  position    String?
+  phone       String?
+  role        Role                   @default(USER)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  products    Product[]
   exhibitions DevExhibitionVisitor[]
+  permission  UserPermission?
+}
+
+model UserPermission {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productsView  Boolean  @default(true)  @map("products_view")
+  productsEdit  Boolean  @default(false) @map("products_edit")
+  partsView     Boolean  @default(true)  @map("parts_view")
+  partsEdit     Boolean  @default(false) @map("parts_edit")
+  devView       Boolean  @default(true)  @map("dev_view")
+  devEdit       Boolean  @default(false) @map("dev_edit")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt      @map("updated_at")
+
+  @@map("user_permissions")
 }
 
 model Product {
@@ -46,19 +68,18 @@ model Part {
 }
 
 model DevCompany {
-  id          String   @id @default(cuid())
-  name        String
-  nameKana    String?
-  industry    String?
-  status      String   @default("登録のみ")
-  postalCode  String?  @map("postal_code")
-  address     String?
-  phone       String?
-  url         String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id              String                 @id @default(cuid())
+  name            String
+  nameKana        String?
+  industry        String?
+  status          String                 @default("登録のみ")
+  postalCode      String?                @map("postal_code")
+  address         String?
+  phone           String?
+  url             String?
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
   primaryProjects DevProject[]           @relation("DevPrimaryCompany")
   projects        DevProjectCompany[]
   exhibitions     DevExhibitionContact[]
@@ -143,22 +164,22 @@ model DevExhibitionContact {
 }
 
 model DevCompanyContact {
-  id         String     @id @default(cuid())
-  companyId  String     @map("company_id")
-  company    DevCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name       String
-  nameKana   String?    @map("name_kana")
-  email      String?
-  phone      String?
-  department String?
-  position   String?
-  isPrimary  Boolean    @default(false) @map("is_primary")
-  notes      String?
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt @map("updated_at")
+  id                 String                @id @default(cuid())
+  companyId          String                @map("company_id")
+  company            DevCompany            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name               String
+  nameKana           String?               @map("name_kana")
+  email              String?
+  phone              String?
+  department         String?
+  position           String?
+  isPrimary          Boolean               @default(false) @map("is_primary")
+  notes              String?
+  createdAt          DateTime              @default(now()) @map("created_at")
+  updatedAt          DateTime              @updatedAt @map("updated_at")
+  exhibitionContacts DevExhibitionContact[]
 
   @@map("dev_company_contacts")
-  exhibitionContacts DevExhibitionContact[]
 }
 
 model DevCompanyTypeMaster {
