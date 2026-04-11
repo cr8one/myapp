@@ -143,7 +143,16 @@ export default function DevExhibitionDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>展示会名 *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-                <div className="space-y-2"><Label>開催場所</Label><Input value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+                <div className="space-y-2">
+                  <Label>開催場所</Label>
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} list="location-list" placeholder="会場を入力または選択" />
+                  <datalist id="location-list">
+                    <option value="東京国際展示場（東京ビッグサイト）" />
+                    <option value="幕張メッセ" />
+                    <option value="サンシャインシティ 文化会館ビル" />
+                    <option value="秋葉原UDX AKIBA_SQUARE" />
+                  </datalist>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>開始日</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
