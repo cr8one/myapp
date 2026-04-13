@@ -122,33 +122,37 @@ export default function DevCompaniesPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setImportMessage("")
-
     try {
       const zip = await JSZip.loadAsync(file)
-
       const companyFile = zip.file("companies.csv")
       if (!companyFile) { setImportMessage("エラー: companies.csvが見つかりません"); return }
-
       const companies = parseCsv(await companyFile.async("text"))
-
       const contactFile = zip.file("company_contacts.csv")
       const contacts = contactFile ? parseCsv(await contactFile.async("text")) : []
-
       const typeFile = zip.file("company_types.csv")
       const types = typeFile ? parseCsv(await typeFile.async("text")) : []
 
-      const res = await fetch("/api/dev/companies/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companies, contacts, types }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setImportMessage(data.message)
-        fetchCompanies()
-      } else {
-        setImportMessage(`エラー: ${data.error}`)
+      const chunkSize = 10
+      for (let i = 0; i < companies.length; i += chunkSize) {
+        const chunk = companies.slice(i, i + chunkSize)
+        const chunkIds = chunk.map((c: Record<string, string>) => c.id).filter(Boolean)
+        const chunkContacts = contacts.filter((c: Record<string, string>) => chunkIds.includes(c.companyId))
+        const chunkTypes = types.filter((t: Record<string, string>) => chunkIds.includes(t.companyId))
+        const res = await fetch("/api/dev/companies/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companies: chunk, contacts: chunkContacts, types: chunkTypes }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          setImportMessage(`エラー: ${data.error}`)
+          e.target.value = ""
+          return
+        }
+        setImportMessage(`インポート中... ${i + chunk.length}/${companies.length}件`)
       }
+      setImportMessage(`インポート完了: ${companies.length}件`)
+      fetchCompanies()
     } catch {
       setImportMessage("エラー: ZIPファイルの読み込みに失敗しました")
     }
