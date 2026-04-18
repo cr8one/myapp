@@ -26,6 +26,7 @@ model User {
   products    Product[]
   exhibitions DevExhibitionVisitor[]
   permission  UserPermission?
+  assignedProjects DevProjectAssignee[]
 }
 
 model UserPermission {
@@ -96,9 +97,12 @@ model DevProject {
   description       String?
   expectedOrderDate DateTime?
   notes             String?
+  estimatedAmount   Int?     @map("estimated_amount")
+  orderedAmount     Int?     @map("ordered_amount")
   primaryCompanyId  String?
   primaryCompany    DevCompany?         @relation("DevPrimaryCompany", fields: [primaryCompanyId], references: [id])
   companies         DevProjectCompany[]
+  assignees         DevProjectAssignee[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
@@ -204,4 +208,17 @@ model DevCompanyType {
 
   @@unique([companyId, typeMasterId])
   @@map("dev_company_types")
+}
+
+model DevProjectAssignee {
+  id        String     @id @default(cuid())
+  projectId String     @map("project_id")
+  userId    String     @map("user_id")
+  role      String?
+  project   DevProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id])
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@unique([projectId, userId])
+  @@map("dev_project_assignees")
 }

@@ -249,7 +249,7 @@ export default function DevProjectsPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold">{project.title}</p>
+                    <a href={`/dashboard/dev/projects/${project.id}`} className="font-bold hover:underline text-blue-700">{project.title}</a>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(project.status)}`}>
                       {project.status}
                     </span>
