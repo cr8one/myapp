@@ -1,10 +1,12 @@
 #!/bin/sh
 set -e
+set +H
 
 if [ -n "$DB_HOST" ]; then
+  echo "DB_SECRET_ID is: ${DB_SECRET_ID}"
   echo "Fetching latest credentials from Secrets Manager..."
   SECRET=$(aws secretsmanager get-secret-value \
-    --secret-id "$DB_SECRET_ID" \
+    --secret-id "${DB_SECRET_ID}" \
     --region ap-northeast-1 \
     --query SecretString \
     --output text)
