@@ -6,10 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const connectionString = process.env.DB_HOST
-    ? `postgresql://${process.env.DB_USER}:${encodeURIComponent(process.env.DB_PASSWORD!)}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?sslmode=no-verify`
-    : process.env.DATABASE_URL!
-
+  const connectionString = process.env.DATABASE_URL!
   const adapter = new PrismaPg({ connectionString })
   return new PrismaClient({ adapter })
 }
