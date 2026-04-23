@@ -15,7 +15,8 @@ const menuItems = [
     ],
   },
   {
-    label: "新規開発管理",
+    label: "BPMS",
+    href: "/dashboard/bpms",
     children: [
       { label: "会社管理", href: "/dashboard/dev/companies" },
       { label: "案件管理", href: "/dashboard/dev/projects" },
@@ -34,15 +35,15 @@ export function Sidebar() {
     if (label === "製品管理") {
       return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     }
-    if (label === "新規開発管理") {
-      return pathname.startsWith("/dashboard/dev")
+    if (label === "BPMS") {
+      return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     }
     return false
   }
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     製品管理: defaultOpen("製品管理"),
-    新規開発管理: defaultOpen("新規開発管理"),
+    BPMS: defaultOpen("BPMS"),
   })
 
   const toggleMenu = (label: string) => {
@@ -55,23 +56,42 @@ export function Sidebar() {
         {menuItems.map((item) => {
           if (item.children) {
             const isOpen = openMenus[item.label] ?? false
-            const isActive = item.children.some((child) => pathname === child.href)
+            const isActive =
+              item.href === pathname ||
+              item.children.some((child) => pathname === child.href)
 
             return (
               <div key={item.label}>
-                <button
-                  onClick={() => toggleMenu(item.label)}
-                  className={`w-full flex items-center justify-between px-6 py-3 text-sm hover:bg-gray-50 ${
-                    isActive ? "font-semibold text-blue-600" : "text-gray-700"
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  {isOpen ? (
-                    <ChevronDown className="w-4 h-4" />
+                <div className="flex items-center">
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      className={`flex-1 px-6 py-3 text-sm hover:bg-gray-50 ${
+                        isActive ? "font-semibold text-blue-600" : "text-gray-700"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
                   ) : (
-                    <ChevronRight className="w-4 h-4" />
+                    <span
+                      className={`flex-1 px-6 py-3 text-sm ${
+                        isActive ? "font-semibold text-blue-600" : "text-gray-700"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
                   )}
-                </button>
+                  <button
+                    onClick={() => toggleMenu(item.label)}
+                    className="px-3 py-3 hover:bg-gray-50"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                    )}
+                  </button>
+                </div>
 
                 {isOpen && (
                   <div className="bg-gray-50">
