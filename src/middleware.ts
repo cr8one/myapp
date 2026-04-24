@@ -3,7 +3,14 @@ import { NextResponse } from "next/server"
 
 export default auth((req) => {
   if (!req.auth) {
-    return NextResponse.redirect(new URL("/login", req.url))
+    const loginUrl = new URL("/login", req.url)
+    const response = NextResponse.redirect(loginUrl)
+    // 古いセッションクッキーを削除してからリダイレクト
+    response.cookies.delete("authjs.session-token")
+    response.cookies.delete("__Secure-authjs.session-token")
+    response.cookies.delete("authjs.csrf-token")
+    response.cookies.delete("__Host-authjs.csrf-token")
+    return response
   }
 })
 
