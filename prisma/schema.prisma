@@ -103,6 +103,7 @@ model DevProject {
   primaryCompany    DevCompany?         @relation("DevPrimaryCompany", fields: [primaryCompanyId], references: [id])
   companies         DevProjectCompany[]
   assignees         DevProjectAssignee[]
+  files             DevProjectFile[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
@@ -221,4 +222,19 @@ model DevProjectAssignee {
 
   @@unique([projectId, userId])
   @@map("dev_project_assignees")
+}
+
+model DevProjectFile {
+  id        String     @id @default(cuid())
+  projectId String     @map("project_id")
+  project   DevProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileName  String     @map("file_name")
+  fileKey   String     @map("file_key")
+  fileSize  Int        @map("file_size")
+  mimeType  String     @map("mime_type")
+  comment   String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  createdBy String?    @map("created_by")
+
+  @@map("dev_project_files")
 }

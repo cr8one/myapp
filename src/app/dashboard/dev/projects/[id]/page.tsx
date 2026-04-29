@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import ProjectFiles from "@/components/dev/project-files"
 
 type DevCompany = { id: string; name: string }
 type AssigneeUser = { id: string; name: string; department?: string; position?: string }
@@ -318,6 +319,7 @@ export default function DevProjectDetailPage() {
               )}
             </CardContent>
           </Card>
+          <ProjectFiles projectId={id} />
         </div>
       )}
     </div>
