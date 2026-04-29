@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import ProjectFiles from "@/components/dev/project-files"
 
 type DevCompany = {
   id: string
@@ -227,6 +228,9 @@ export default function DevProjectsPage() {
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
+            {editProject && (
+              <ProjectFiles projectId={editProject.id} mode="edit" />
+            )}
             <Button onClick={handleSubmit} disabled={loading} className="w-full">
               {loading ? "処理中..." : editProject ? "更新する" : "登録する"}
             </Button>

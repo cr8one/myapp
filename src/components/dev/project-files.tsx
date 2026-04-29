@@ -14,11 +14,9 @@ type ProjectFile = {
   createdBy: string | null
 }
 
-const ALLOWED_TYPES: Record<string, string> = {
-  "application/pdf": "PDF",
-  "application/vnd.ms-excel": "Excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel",
-  "application/vnd.ms-outlook": "Msg",
+type Props = {
+  projectId: string
+  mode: "view" | "edit"
 }
 
 const formatSize = (bytes: number) =>
@@ -32,7 +30,14 @@ const getFileIcon = (mimeType: string) => {
   return <Mail className="text-blue-500 shrink-0" size={20} />
 }
 
-export default function ProjectFiles({ projectId }: { projectId: string }) {
+const ALLOWED_TYPES: Record<string, string> = {
+  "application/pdf": "PDF",
+  "application/vnd.ms-excel": "Excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel",
+  "application/vnd.ms-outlook": "Msg",
+}
+
+export default function ProjectFiles({ projectId, mode }: Props) {
   const [files, setFiles] = useState<ProjectFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [comment, setComment] = useState("")
@@ -102,6 +107,15 @@ export default function ProjectFiles({ projectId }: { projectId: string }) {
     }
   }
 
+  const handleDownload = async (file: ProjectFile) => {
+    const res = await fetch(`/api/dev/projects/${projectId}/files/${file.id}`)
+    const { url } = await res.json()
+    const a = document.createElement("a")
+    a.href = url
+    a.download = file.fileName
+    a.click()
+  }
+
   const handlePreviewOrDownload = async (file: ProjectFile) => {
     const res = await fetch(`/api/dev/projects/${projectId}/files/${file.id}`)
     const { url } = await res.json()
@@ -128,35 +142,42 @@ export default function ProjectFiles({ projectId }: { projectId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-            <p className="text-sm text-gray-500">PDF / Excel / Msg をクリックして選択</p>
-            <p className="text-xs text-gray-400 mt-1">最大 10MB</p>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.xlsx,.xls,.msg"
-            onChange={handleFileChange}
-          />
-          <input
-            type="text"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="コメント（任意）— ファイル選択前に入力してください"
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-          {uploading && (
-            <p className="text-sm text-blue-500 flex items-center gap-2">
-              <span className="animate-spin">⏳</span> アップロード中...
-            </p>
-          )}
-          {error && <p className="text-sm text-red-500">{error}</p>}
 
+          {/* editモードのみ：アップロードエリア */}
+          {mode === "edit" && (
+            <>
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="mx-auto mb-2 text-gray-400" size={24} />
+                <p className="text-sm text-gray-500">PDF / Excel / Msg をクリックして選択</p>
+                <p className="text-xs text-gray-400 mt-1">最大 10MB</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.xlsx,.xls,.msg"
+                onChange={handleFileChange}
+              />
+              <input
+                type="text"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="コメント（任意）— ファイル選択前に入力してください"
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+              {uploading && (
+                <p className="text-sm text-blue-500 flex items-center gap-2">
+                  <span className="animate-spin">⏳</span> アップロード中...
+                </p>
+              )}
+              {error && <p className="text-sm text-red-500">{error}</p>}
+            </>
+          )}
+
+          {/* ファイル一覧 */}
           {files.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">添付ファイルはありません</p>
           ) : (
@@ -173,20 +194,32 @@ export default function ProjectFiles({ projectId }: { projectId: string }) {
                     {file.comment && <p className="text-xs text-gray-500 mt-0.5">{file.comment}</p>}
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    {file.mimeType === "application/pdf" && (
+                      <button
+                        onClick={() => handlePreviewOrDownload(file)}
+                        className="p-1.5 hover:bg-gray-200 rounded"
+                        title="プレビュー"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handlePreviewOrDownload(file)}
+                      onClick={() => handleDownload(file)}
                       className="p-1.5 hover:bg-gray-200 rounded"
-                      title={file.mimeType === "application/pdf" ? "プレビュー" : "ダウンロード"}
+                      title="ダウンロード"
                     >
-                      {file.mimeType === "application/pdf" ? <Eye size={16} /> : <Download size={16} />}
+                      <Download size={16} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(file.id)}
-                      className="p-1.5 hover:bg-red-100 text-red-500 rounded"
-                      title="削除"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {/* 削除はeditモードのみ */}
+                    {mode === "edit" && (
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        className="p-1.5 hover:bg-red-100 text-red-500 rounded"
+                        title="削除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -195,6 +228,7 @@ export default function ProjectFiles({ projectId }: { projectId: string }) {
         </CardContent>
       </Card>
 
+      {/* PDFプレビューモーダル */}
       {previewUrl && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-4xl h-[85vh] flex flex-col">

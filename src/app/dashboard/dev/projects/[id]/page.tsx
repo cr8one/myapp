@@ -226,6 +226,7 @@ export default function DevProjectDetailPage() {
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
+            <ProjectFiles projectId={id} mode="edit" />
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={loading} className="flex-1">
                 {loading ? "保存中..." : "保存する"}
@@ -319,7 +320,7 @@ export default function DevProjectDetailPage() {
               )}
             </CardContent>
           </Card>
-          <ProjectFiles projectId={id} />
+          <ProjectFiles projectId={id} mode={editing ? "edit" : "view"} />
         </div>
       )}
     </div>
