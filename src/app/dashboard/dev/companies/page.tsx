@@ -58,7 +58,8 @@ export default function DevCompaniesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchCompanies = async () => {
-    const res = await fetch("/api/dev/companies")
+    // 全件取得（全フィールド検索のためcontactsは全員取得に変更）
+    const res = await fetch("/api/dev/companies?all=1")
     const data = await res.json()
     setCompanies(data)
   }
@@ -74,8 +75,6 @@ export default function DevCompaniesPage() {
 
   const handleExport = async () => {
     const zip = new JSZip()
-
-    // companies.csv
     const companyRows = companies.map((c) => [
       c.id, c.name, c.nameKana ?? "", c.industry ?? "", c.status,
       c.postalCode ?? "", c.address ?? "", c.phone ?? "", c.url ?? "", c.notes ?? "",
@@ -84,8 +83,6 @@ export default function DevCompaniesPage() {
       ["id", "name", "nameKana", "industry", "status", "postalCode", "address", "phone", "url", "notes"],
       companyRows
     ))
-
-    // company_contacts.csv
     const contactRows: string[][] = []
     for (const c of companies) {
       for (const ct of c.contacts) {
@@ -96,8 +93,6 @@ export default function DevCompaniesPage() {
       ["companyId", "companyName", "id", "name", "isPrimary"],
       contactRows
     ))
-
-    // company_types.csv
     const typeRows: string[][] = []
     for (const c of companies) {
       for (const t of c.types) {
@@ -108,7 +103,6 @@ export default function DevCompaniesPage() {
       ["companyId", "companyName", "typeMasterId", "typeMasterName"],
       typeRows
     ))
-
     const blob = await zip.generateAsync({ type: "blob" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -131,7 +125,6 @@ export default function DevCompaniesPage() {
       const contacts = contactFile ? parseCsv(await contactFile.async("text")) : []
       const typeFile = zip.file("company_types.csv")
       const types = typeFile ? parseCsv(await typeFile.async("text")) : []
-
       const chunkSize = 10
       for (let i = 0; i < companies.length; i += chunkSize) {
         const chunk = companies.slice(i, i + chunkSize)
@@ -160,13 +153,18 @@ export default function DevCompaniesPage() {
   }
 
   const filtered = companies.filter((c) => {
+    if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    const primaryContact = c.contacts.find((ct) => ct.isPrimary)
     return (
       c.name.toLowerCase().includes(q) ||
       (c.nameKana ?? "").toLowerCase().includes(q) ||
       (c.industry ?? "").toLowerCase().includes(q) ||
-      (primaryContact?.name ?? "").toLowerCase().includes(q)
+      (c.postalCode ?? "").toLowerCase().includes(q) ||
+      (c.address ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").toLowerCase().includes(q) ||
+      (c.notes ?? "").toLowerCase().includes(q) ||
+      c.contacts.some((ct) => ct.name.toLowerCase().includes(q)) ||
+      c.types.some((t) => t.typeMaster.name.toLowerCase().includes(q))
     )
   })
 
@@ -190,7 +188,7 @@ export default function DevCompaniesPage() {
 
       <div className="mb-4">
         <Input
-          placeholder="会社名・カナ・業種・担当者で検索..."
+          placeholder="会社名・カナ・業種・担当者・住所・電話・備考・取扱種別で検索..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -214,9 +212,7 @@ export default function DevCompaniesPage() {
                         {company.status}
                       </span>
                     </div>
-                    {company.nameKana && (
-                      <p className="text-sm text-gray-500">{company.nameKana}</p>
-                    )}
+                    {company.nameKana && <p className="text-sm text-gray-500">{company.nameKana}</p>}
                     <div className="flex gap-4 mt-1 text-sm text-gray-500">
                       {company.industry && <span>業種: {company.industry}</span>}
                       {primaryContact && <span>主担当: {primaryContact.name}</span>}
