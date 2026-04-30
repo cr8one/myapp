@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
 
 type User = { id: string; name?: string }
 type DevCompany = { id: string; name: string }
@@ -20,7 +21,6 @@ export default function NewDevExhibitionPage() {
   const [users, setUsers] = useState<User[]>([])
   const [companies, setCompanies] = useState<DevCompany[]>([])
   const [allContacts, setAllContacts] = useState<DevCompanyContact[]>([])
-
   const [name, setName] = useState("")
   const [location, setLocation] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -42,9 +42,15 @@ export default function NewDevExhibitionPage() {
   }
 
   const addContact = () => setContacts((prev) => [...prev, { companyId: "", contactId: "", notes: "" }])
+
   const updateContact = (index: number, field: keyof ContactForm, value: string) => {
-    setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
+    setContacts((prev) => prev.map((c, i) => {
+      if (i !== index) return c
+      if (field === "companyId") return { ...c, companyId: value, contactId: "" }
+      return { ...c, [field]: value }
+    }))
   }
+
   const removeContact = (index: number) => setContacts((prev) => prev.filter((_, i) => i !== index))
 
   const handleSubmit = async () => {
@@ -67,13 +73,18 @@ export default function NewDevExhibitionPage() {
     router.push(`/dashboard/dev/exhibitions/${data.id}`)
   }
 
+  const companyOptions = companies.map((c) => ({ id: c.id, label: c.name }))
+  const getContactOptions = (companyId: string) =>
+    allContacts
+      .filter((c) => !companyId || c.companyId === companyId)
+      .map((c) => ({ id: c.id, label: c.name }))
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
         <h1 className="text-2xl font-bold">展示会登録</h1>
       </div>
-
       <div className="space-y-6">
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
@@ -95,27 +106,12 @@ export default function NewDevExhibitionPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>開始日</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>終了日</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </div>
+              <div className="space-y-2"><Label>開始日</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+              <div className="space-y-2"><Label>終了日</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>説明</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>サマリー</Label>
-              <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>備考</Label>
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
+            <div className="space-y-2"><Label>説明</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+            <div className="space-y-2"><Label>サマリー</Label><Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} /></div>
+            <div className="space-y-2"><Label>備考</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
           </CardContent>
         </Card>
 
@@ -149,27 +145,25 @@ export default function NewDevExhibitionPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">会社 *</Label>
-                  <select
+                  <SingleSelectModal
+                    label="会社"
+                    options={companyOptions}
                     value={contact.companyId}
-                    onChange={(e) => updateContact(index, "companyId", e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  >
-                    <option value="">選択してください</option>
-                    {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    onChange={(val) => updateContact(index, "companyId", val)}
+                    placeholder="会社を選択..."
+                    nullable={false}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">担当者（任意）</Label>
-                  <select
+                  <SingleSelectModal
+                    label="担当者"
+                    options={getContactOptions(contact.companyId)}
                     value={contact.contactId}
-                    onChange={(e) => updateContact(index, "contactId", e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  >
-                    <option value="">選択してください</option>
-                    {allContacts
-                      .filter((c) => !contact.companyId || c.companyId === contact.companyId)
-                      .map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    onChange={(val) => updateContact(index, "contactId", val)}
+                    placeholder="担当者を選択..."
+                    nullable={true}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">メモ</Label>
@@ -177,9 +171,7 @@ export default function NewDevExhibitionPage() {
                 </div>
               </div>
             ))}
-            {contacts.length === 0 && (
-              <p className="text-sm text-gray-400">「+ 追加」から接触先を追加してください</p>
-            )}
+            {contacts.length === 0 && <p className="text-sm text-gray-400">「+ 追加」から接触先を追加してください</p>}
           </CardContent>
         </Card>
 

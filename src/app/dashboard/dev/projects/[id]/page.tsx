@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ProjectFiles from "@/components/dev/project-files"
+import { SingleSelectModal, MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
 type DevCompany = { id: string; name: string }
 type AssigneeUser = { id: string; name: string; department?: string; position?: string }
@@ -27,7 +28,6 @@ type DevProject = {
 }
 
 const STATUS_OPTIONS = ["商談中", "提案済", "受注", "失注"]
-
 const statusColor = (s: string) => {
   switch (s) {
     case "商談中": return "bg-blue-100 text-blue-700"
@@ -47,7 +47,6 @@ export default function DevProjectDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
   const [title, setTitle] = useState("")
   const [status, setStatus] = useState("商談中")
   const [description, setDescription] = useState("")
@@ -86,10 +85,6 @@ export default function DevProjectDetailPage() {
     setEditing(true)
   }
 
-  const toggleItem = (id: string, list: string[], setter: (v: string[]) => void) => {
-    setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
-  }
-
   const handleSave = async () => {
     setLoading(true)
     setError("")
@@ -118,6 +113,14 @@ export default function DevProjectDetailPage() {
     await fetch(`/api/dev/projects/${id}`, { method: "DELETE" })
     router.push("/dashboard/dev/projects")
   }
+
+  // SelectOption形式に変換
+  const companyOptions = allCompanies.map((c) => ({ id: c.id, label: c.name }))
+  const userOptions = allUsers.map((u) => ({
+    id: u.id,
+    label: u.name,
+    sublabel: [u.department, u.position].filter(Boolean).join(" / "),
+  }))
 
   if (!project) return <div className="p-8">読み込み中...</div>
 
@@ -161,50 +164,46 @@ export default function DevProjectDetailPage() {
                 </select>
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>主担当会社</Label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm"
-                  value={primaryCompanyId} onChange={(e) => setPrimaryCompanyId(e.target.value)}>
-                  <option value="">選択してください</option>
-                  {allCompanies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <SingleSelectModal
+                  label="主担当会社"
+                  options={companyOptions}
+                  value={primaryCompanyId}
+                  onChange={setPrimaryCompanyId}
+                  placeholder="会社を選択..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>受注予定日</Label>
                 <Input type="date" value={expectedOrderDate} onChange={(e) => setExpectedOrderDate(e.target.value)} />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label>関連会社（複数選択可）</Label>
-              <div className="border rounded-md p-3 flex flex-wrap gap-2">
-                {allCompanies.map((c) => (
-                  <button key={c.id} type="button"
-                    onClick={() => toggleItem(c.id, selectedCompanyIds, setSelectedCompanyIds)}
-                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                      selectedCompanyIds.includes(c.id)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+              <MultiSelectModal
+                label="関連会社"
+                options={companyOptions}
+                values={selectedCompanyIds}
+                onChange={setSelectedCompanyIds}
+                placeholder="会社を選択..."
+              />
             </div>
+
             <div className="space-y-2">
               <Label>担当者（複数選択可）</Label>
-              <div className="border rounded-md p-3 flex flex-wrap gap-2">
-                {allUsers.map((u) => (
-                  <button key={u.id} type="button"
-                    onClick={() => toggleItem(u.id, selectedAssigneeIds, setSelectedAssigneeIds)}
-                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                      selectedAssigneeIds.includes(u.id)
-                        ? "bg-green-600 text-white border-green-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
-                    {u.name}
-                  </button>
-                ))}
-              </div>
+              <MultiSelectModal
+                label="担当者"
+                options={userOptions}
+                values={selectedAssigneeIds}
+                onChange={setSelectedAssigneeIds}
+                placeholder="担当者を選択..."
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>見積金額（円）</Label>
@@ -217,6 +216,7 @@ export default function DevProjectDetailPage() {
                   onChange={(e) => setOrderedAmount(e.target.value)} placeholder="例: 900000" />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label>内容</Label>
               <Input value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -225,6 +225,7 @@ export default function DevProjectDetailPage() {
               <Label>備考</Label>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
+
             {error && <p className="text-sm text-red-500">{error}</p>}
             <ProjectFiles projectId={id} mode="edit" />
             <div className="flex gap-2">

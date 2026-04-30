@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
 type TypeMaster = { id: string; name: string }
 type ContactForm = { name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
 
 const STATUSES = ["登録のみ", "面識あり", "相談済", "見積り済", "受注済"]
-
 const emptyContact = (): ContactForm => ({
   name: "", nameKana: "", email: "", phone: "", department: "", position: "", isPrimary: false, notes: ""
 })
@@ -21,7 +21,6 @@ export default function NewDevCompanyPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [typeMasters, setTypeMasters] = useState<TypeMaster[]>([])
-
   const [name, setName] = useState("")
   const [nameKana, setNameKana] = useState("")
   const [industry, setIndustry] = useState("")
@@ -37,12 +36,6 @@ export default function NewDevCompanyPage() {
   useEffect(() => {
     fetch("/api/dev/company-type-masters").then((r) => r.json()).then(setTypeMasters)
   }, [])
-
-  const toggleType = (id: string) => {
-    setSelectedTypeIds((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    )
-  }
 
   const updateContact = (index: number, field: keyof ContactForm, value: string | boolean) => {
     setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
@@ -69,15 +62,15 @@ export default function NewDevCompanyPage() {
     router.push(`/dashboard/dev/companies/${data.id}`)
   }
 
+  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name }))
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
         <h1 className="text-2xl font-bold">会社登録</h1>
       </div>
-
       <div className="space-y-6">
-        {/* 基本情報 */}
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -98,11 +91,8 @@ export default function NewDevCompanyPage() {
               </div>
               <div className="space-y-2">
                 <Label>ステータス</Label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                >
+                <select value={status} onChange={(e) => setStatus(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm">
                   {STATUSES.map((s) => <option key={s}>{s}</option>)}
                 </select>
               </div>
@@ -134,26 +124,19 @@ export default function NewDevCompanyPage() {
           </CardContent>
         </Card>
 
-        {/* 取扱種別 */}
         <Card>
           <CardHeader><CardTitle>取扱種別</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              {typeMasters.map((t) => (
-                <div key={t.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={t.id}
-                    checked={selectedTypeIds.includes(t.id)}
-                    onCheckedChange={() => toggleType(t.id)}
-                  />
-                  <Label htmlFor={t.id} className="cursor-pointer">{t.name}</Label>
-                </div>
-              ))}
-            </div>
+            <MultiSelectModal
+              label="取扱種別"
+              options={typeOptions}
+              values={selectedTypeIds}
+              onChange={setSelectedTypeIds}
+              placeholder="種別を選択..."
+            />
           </CardContent>
         </Card>
 
-        {/* 担当者 */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -168,11 +151,8 @@ export default function NewDevCompanyPage() {
                   <p className="font-medium text-sm">担当者 {index + 1}</p>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1">
-                      <Checkbox
-                        id={`primary-${index}`}
-                        checked={contact.isPrimary}
-                        onCheckedChange={(v) => updateContact(index, "isPrimary", !!v)}
-                      />
+                      <Checkbox id={`primary-${index}`} checked={contact.isPrimary}
+                        onCheckedChange={(v) => updateContact(index, "isPrimary", !!v)} />
                       <Label htmlFor={`primary-${index}`} className="text-sm cursor-pointer">主担当</Label>
                     </div>
                     {contacts.length > 1 && (
@@ -181,39 +161,18 @@ export default function NewDevCompanyPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">氏名 *</Label>
-                    <Input value={contact.name} onChange={(e) => updateContact(index, "name", e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">氏名（カナ）</Label>
-                    <Input value={contact.nameKana} onChange={(e) => updateContact(index, "nameKana", e.target.value)} />
-                  </div>
+                  <div className="space-y-1"><Label className="text-xs">氏名 *</Label><Input value={contact.name} onChange={(e) => updateContact(index, "name", e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">氏名（カナ）</Label><Input value={contact.nameKana} onChange={(e) => updateContact(index, "nameKana", e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">部署</Label>
-                    <Input value={contact.department} onChange={(e) => updateContact(index, "department", e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">役職</Label>
-                    <Input value={contact.position} onChange={(e) => updateContact(index, "position", e.target.value)} />
-                  </div>
+                  <div className="space-y-1"><Label className="text-xs">部署</Label><Input value={contact.department} onChange={(e) => updateContact(index, "department", e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">役職</Label><Input value={contact.position} onChange={(e) => updateContact(index, "position", e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">メール</Label>
-                    <Input value={contact.email} onChange={(e) => updateContact(index, "email", e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">電話番号</Label>
-                    <Input value={contact.phone} onChange={(e) => updateContact(index, "phone", e.target.value)} />
-                  </div>
+                  <div className="space-y-1"><Label className="text-xs">メール</Label><Input value={contact.email} onChange={(e) => updateContact(index, "email", e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">電話番号</Label><Input value={contact.phone} onChange={(e) => updateContact(index, "phone", e.target.value)} /></div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">備考</Label>
-                  <Input value={contact.notes} onChange={(e) => updateContact(index, "notes", e.target.value)} />
-                </div>
+                <div className="space-y-1"><Label className="text-xs">備考</Label><Input value={contact.notes} onChange={(e) => updateContact(index, "notes", e.target.value)} /></div>
               </div>
             ))}
           </CardContent>

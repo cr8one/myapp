@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
 
 type User = { id: string; name?: string }
 type DevCompany = { id: string; name: string }
@@ -63,15 +64,8 @@ export default function DevExhibitionDetailPage() {
     setNotes(exhibition.notes ?? "")
     setSummary(exhibition.summary ?? "")
     setDescription(exhibition.description ?? "")
-    setVisitors(exhibition.visitors.map((v) => ({
-      userId: v.user.id,
-      impression: v.impression ?? "",
-    })))
-    setContacts(exhibition.contacts.map((c) => ({
-      companyId: c.company.id,
-      contactId: c.contact?.id ?? "",
-      notes: c.notes ?? "",
-    })))
+    setVisitors(exhibition.visitors.map((v) => ({ userId: v.user.id, impression: v.impression ?? "" })))
+    setContacts(exhibition.contacts.map((c) => ({ companyId: c.company.id, contactId: c.contact?.id ?? "", notes: c.notes ?? "" })))
     setEditing(true)
   }
 
@@ -88,8 +82,14 @@ export default function DevExhibitionDetailPage() {
   }
 
   const addContact = () => setContacts((prev) => [...prev, { companyId: "", contactId: "", notes: "" }])
+
   const updateContact = (index: number, field: keyof ContactForm, value: string) => {
-    setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
+    setContacts((prev) => prev.map((c, i) => {
+      if (i !== index) return c
+      // 会社が変わったら担当者をリセット
+      if (field === "companyId") return { ...c, companyId: value, contactId: "" }
+      return { ...c, [field]: value }
+    }))
   }
 
   const handleSave = async () => {
@@ -120,6 +120,13 @@ export default function DevExhibitionDetailPage() {
   }
 
   const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("ja-JP") : "—"
+
+  // SelectOption形式に変換
+  const companyOptions = companies.map((c) => ({ id: c.id, label: c.name }))
+  const getContactOptions = (companyId: string) =>
+    allContacts
+      .filter((c) => !companyId || c.companyId === companyId)
+      .map((c) => ({ id: c.id, label: c.name }))
 
   if (!exhibition) return <div className="p-8">読み込み中...</div>
 
@@ -174,11 +181,7 @@ export default function DevExhibitionDetailPage() {
                   return (
                     <div key={u.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`ev-${u.id}`}
-                          checked={checked}
-                          onCheckedChange={() => toggleVisitor(u.id)}
-                        />
+                        <Checkbox id={`ev-${u.id}`} checked={checked} onCheckedChange={() => toggleVisitor(u.id)} />
                         <Label htmlFor={`ev-${u.id}`} className="cursor-pointer font-medium">{u.name ?? u.id}</Label>
                       </div>
                       {checked && (
@@ -215,17 +218,25 @@ export default function DevExhibitionDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">会社 *</Label>
-                    <select value={contact.companyId} onChange={(e) => updateContact(index, "companyId", e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm">
-                      <option value="">選択してください</option>
-                      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                    <SingleSelectModal
+                      label="会社"
+                      options={companyOptions}
+                      value={contact.companyId}
+                      onChange={(val) => updateContact(index, "companyId", val)}
+                      placeholder="会社を選択..."
+                      nullable={false}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">担当者（任意）</Label>
-                    <select value={contact.contactId} onChange={(e) => updateContact(index, "contactId", e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm">
-                      <option value="">選択してください</option>
-                      {allContacts.filter((c) => !contact.companyId || c.companyId === contact.companyId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                    <SingleSelectModal
+                      label="担当者"
+                      options={getContactOptions(contact.companyId)}
+                      value={contact.contactId}
+                      onChange={(val) => updateContact(index, "contactId", val)}
+                      placeholder="担当者を選択..."
+                      nullable={true}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">メモ</Label>
@@ -268,9 +279,7 @@ export default function DevExhibitionDetailPage() {
                   {exhibition.visitors.map((v) => (
                     <div key={v.user.id} className="border rounded-lg p-3">
                       <p className="font-medium text-sm">{v.user.name}</p>
-                      {v.impression && (
-                        <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{v.impression}</p>
-                      )}
+                      {v.impression && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{v.impression}</p>}
                     </div>
                   ))}
                 </div>

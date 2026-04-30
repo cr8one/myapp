@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
 type TypeMaster = { id: string; name: string }
 type Contact = { id?: string; name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
@@ -39,8 +40,6 @@ export default function DevCompanyDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-
-  // 編集用フォーム状態
   const [name, setName] = useState("")
   const [nameKana, setNameKana] = useState("")
   const [industry, setIndustry] = useState("")
@@ -80,12 +79,6 @@ export default function DevCompanyDetailPage() {
     setEditing(true)
   }
 
-  const toggleType = (tid: string) => {
-    setSelectedTypeIds((prev) =>
-      prev.includes(tid) ? prev.filter((t) => t !== tid) : [...prev, tid]
-    )
-  }
-
   const updateContact = (index: number, field: keyof Contact, value: string | boolean) => {
     setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
   }
@@ -115,6 +108,9 @@ export default function DevCompanyDetailPage() {
     router.push("/dashboard/dev/companies")
   }
 
+  // SelectOption形式に変換
+  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name }))
+
   if (!company) return <div className="p-8">読み込み中...</div>
 
   return (
@@ -135,7 +131,6 @@ export default function DevCompanyDetailPage() {
 
       {editing ? (
         <div className="space-y-6">
-          {/* 基本情報 編集 */}
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -156,7 +151,8 @@ export default function DevCompanyDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>ステータス</Label>
-                  <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm">
+                  <select value={status} onChange={(e) => setStatus(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm">
                     {STATUSES.map((s) => <option key={s}>{s}</option>)}
                   </select>
                 </div>
@@ -188,22 +184,20 @@ export default function DevCompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 取扱種別 編集 */}
+          {/* 取扱種別 — MultiSelectModal に置き換え */}
           <Card>
             <CardHeader><CardTitle>取扱種別</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {typeMasters.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2">
-                    <Checkbox id={`edit-${t.id}`} checked={selectedTypeIds.includes(t.id)} onCheckedChange={() => toggleType(t.id)} />
-                    <Label htmlFor={`edit-${t.id}`} className="cursor-pointer">{t.name}</Label>
-                  </div>
-                ))}
-              </div>
+              <MultiSelectModal
+                label="取扱種別"
+                options={typeOptions}
+                values={selectedTypeIds}
+                onChange={setSelectedTypeIds}
+                placeholder="種別を選択..."
+              />
             </CardContent>
           </Card>
 
-          {/* 担当者 編集 */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -218,11 +212,14 @@ export default function DevCompanyDetailPage() {
                     <p className="font-medium text-sm">担当者 {index + 1}</p>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
-                        <Checkbox id={`ep-${index}`} checked={contact.isPrimary} onCheckedChange={(v) => updateContact(index, "isPrimary", !!v)} />
+                        <Checkbox id={`ep-${index}`} checked={contact.isPrimary}
+                          onCheckedChange={(v) => updateContact(index, "isPrimary", !!v)} />
                         <Label htmlFor={`ep-${index}`} className="text-sm cursor-pointer">主担当</Label>
                       </div>
                       {contacts.length > 1 && (
-                        <Button variant="ghost" size="sm" onClick={() => setContacts((p) => p.filter((_, i) => i !== index))} className="text-red-500 h-6 px-2">削除</Button>
+                        <Button variant="ghost" size="sm"
+                          onClick={() => setContacts((p) => p.filter((_, i) => i !== index))}
+                          className="text-red-500 h-6 px-2">削除</Button>
                       )}
                     </div>
                   </div>
@@ -254,7 +251,6 @@ export default function DevCompanyDetailPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* 基本情報 表示 */}
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent>
@@ -277,7 +273,6 @@ export default function DevCompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 取扱種別 表示 */}
           <Card>
             <CardHeader><CardTitle>取扱種別</CardTitle></CardHeader>
             <CardContent>
@@ -288,7 +283,6 @@ export default function DevCompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 担当者 表示 */}
           <Card>
             <CardHeader><CardTitle>担当者</CardTitle></CardHeader>
             <CardContent>
@@ -317,7 +311,6 @@ export default function DevCompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 関連案件 表示 */}
           {company.primaryProjects.length > 0 && (
             <Card>
               <CardHeader><CardTitle>関連案件</CardTitle></CardHeader>
