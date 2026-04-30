@@ -67,8 +67,6 @@ export default function DevExhibitionsPage() {
 
   const handleExport = async () => {
     const zip = new JSZip()
-
-    // exhibitions.csv
     const exRows = exhibitions.map((e) => [
       e.id, e.name, e.location ?? "",
       e.startDate ? e.startDate.slice(0, 10) : "",
@@ -79,8 +77,6 @@ export default function DevExhibitionsPage() {
       ["id", "name", "location", "startDate", "endDate", "summary", "description", "notes"],
       exRows
     ))
-
-    // exhibition_visitors.csv
     const vRows: string[][] = []
     for (const e of exhibitions) {
       for (const v of e.visitors) {
@@ -91,8 +87,6 @@ export default function DevExhibitionsPage() {
       ["exhibitionId", "exhibitionName", "userId", "userName", "impression"],
       vRows
     ))
-
-    // exhibition_contacts.csv
     const cRows: string[][] = []
     for (const e of exhibitions) {
       for (const c of e.contacts) {
@@ -103,7 +97,6 @@ export default function DevExhibitionsPage() {
       ["exhibitionId", "exhibitionName", "companyId", "companyName", "contactId", "contactName", "notes"],
       cRows
     ))
-
     const blob = await zip.generateAsync({ type: "blob" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -117,44 +110,29 @@ export default function DevExhibitionsPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setImportMessage("")
-
     try {
       const zip = await JSZip.loadAsync(file)
-
       const exFile = zip.file("exhibitions.csv")
       const vFile = zip.file("exhibition_visitors.csv")
       const cFile = zip.file("exhibition_contacts.csv")
-
       if (!exFile) { setImportMessage("エラー: exhibitions.csvが見つかりません"); return }
-
       const exText = await exFile.async("text")
       const exhibitions = parseCsv(exText)
-
       const visitors = vFile ? parseCsv(await vFile.async("text")).map((r) => ({
-        exhibitionId: r.exhibitionId,
-        userId: r.userId,
-        impression: r.impression,
+        exhibitionId: r.exhibitionId, userId: r.userId, impression: r.impression,
       })) : []
-
       const contacts = cFile ? parseCsv(await cFile.async("text")).map((r) => ({
-        exhibitionId: r.exhibitionId,
-        companyId: r.companyId,
-        contactId: r.contactId || null,
-        notes: r.notes,
+        exhibitionId: r.exhibitionId, companyId: r.companyId,
+        contactId: r.contactId || null, notes: r.notes,
       })) : []
-
       const res = await fetch("/api/dev/exhibitions/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ exhibitions, visitors, contacts }),
       })
       const data = await res.json()
-      if (res.ok) {
-        setImportMessage(data.message)
-        fetchExhibitions()
-      } else {
-        setImportMessage(`エラー: ${data.error}`)
-      }
+      if (res.ok) { setImportMessage(data.message); fetchExhibitions() }
+      else { setImportMessage(`エラー: ${data.error}`) }
     } catch {
       setImportMessage("エラー: ZIPファイルの読み込みに失敗しました")
     }
@@ -164,11 +142,19 @@ export default function DevExhibitionsPage() {
   const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("ja-JP") : ""
 
   const filtered = exhibitions.filter((e) => {
+    if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
       e.name.toLowerCase().includes(q) ||
       (e.location ?? "").toLowerCase().includes(q) ||
-      e.contacts.some((c) => c.company.name.toLowerCase().includes(q))
+      (e.description ?? "").toLowerCase().includes(q) ||
+      (e.summary ?? "").toLowerCase().includes(q) ||
+      (e.notes ?? "").toLowerCase().includes(q) ||
+      e.visitors.some((v) => (v.user.name ?? "").toLowerCase().includes(q)) ||
+      e.visitors.some((v) => (v.impression ?? "").toLowerCase().includes(q)) ||
+      e.contacts.some((c) => c.company.name.toLowerCase().includes(q)) ||
+      e.contacts.some((c) => (c.contact?.name ?? "").toLowerCase().includes(q)) ||
+      e.contacts.some((c) => (c.notes ?? "").toLowerCase().includes(q))
     )
   })
 
@@ -192,7 +178,7 @@ export default function DevExhibitionsPage() {
 
       <div className="mb-4">
         <Input
-          placeholder="展示会名・場所・会社名で検索..."
+          placeholder="展示会名・場所・説明・サマリー・備考・来場者・接触会社・担当者で検索..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />

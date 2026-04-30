@@ -5,12 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ProjectFiles from "@/components/dev/project-files"
+import { SingleSelectModal, MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
-type DevCompany = {
-  id: string
-  name: string
-}
-
+type DevCompany = { id: string; name: string }
 type DevProject = {
   id: string
   title: string
@@ -21,10 +18,23 @@ type DevProject = {
   primaryCompanyId?: string
   primaryCompany?: DevCompany
   companies: { company: DevCompany }[]
+  assignees?: { user: { id: string; name: string } }[]
+  estimatedAmount?: number
+  orderedAmount?: number
   createdAt: string
 }
 
 const STATUS_OPTIONS = ["商談中", "提案済", "受注", "失注"]
+
+const statusColor = (s: string) => {
+  switch (s) {
+    case "商談中": return "bg-blue-100 text-blue-700"
+    case "提案済": return "bg-yellow-100 text-yellow-700"
+    case "受注":   return "bg-green-100 text-green-700"
+    case "失注":   return "bg-gray-100 text-gray-500"
+    default:       return "bg-gray-100 text-gray-700"
+  }
+}
 
 export default function DevProjectsPage() {
   const [projects, setProjects] = useState<DevProject[]>([])
@@ -34,7 +44,6 @@ export default function DevProjectsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-
   const [title, setTitle] = useState("")
   const [status, setStatus] = useState("商談中")
   const [description, setDescription] = useState("")
@@ -78,12 +87,6 @@ export default function DevProjectsPage() {
     setShowForm(true)
   }
 
-  const toggleCompany = (id: string) => {
-    setSelectedCompanyIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    )
-  }
-
   const handleSubmit = async () => {
     setLoading(true)
     setError("")
@@ -105,11 +108,7 @@ export default function DevProjectsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
-    if (!res.ok) {
-      setError("保存に失敗しました")
-      setLoading(false)
-      return
-    }
+    if (!res.ok) { setError("保存に失敗しました"); setLoading(false); return }
     resetForm()
     setLoading(false)
     fetchProjects()
@@ -121,23 +120,21 @@ export default function DevProjectsPage() {
     fetchProjects()
   }
 
-  const statusColor = (s: string) => {
-    switch (s) {
-      case "商談中": return "bg-blue-100 text-blue-700"
-      case "提案済": return "bg-yellow-100 text-yellow-700"
-      case "受注":   return "bg-green-100 text-green-700"
-      case "失注":   return "bg-gray-100 text-gray-500"
-      default:       return "bg-gray-100 text-gray-700"
-    }
-  }
+  const companyOptions = allCompanies.map((c) => ({ id: c.id, label: c.name }))
 
   const filtered = projects.filter((p) => {
+    if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
       p.title.toLowerCase().includes(q) ||
       p.status.toLowerCase().includes(q) ||
       (p.primaryCompany?.name ?? "").toLowerCase().includes(q) ||
-      p.companies.some((c) => c.company.name.toLowerCase().includes(q))
+      (p.description ?? "").toLowerCase().includes(q) ||
+      (p.notes ?? "").toLowerCase().includes(q) ||
+      p.companies.some((c) => c.company.name.toLowerCase().includes(q)) ||
+      (p.assignees ?? []).some((a) => a.user.name.toLowerCase().includes(q)) ||
+      (p.estimatedAmount ? String(p.estimatedAmount) : "").includes(q) ||
+      (p.orderedAmount ? String(p.orderedAmount) : "").includes(q)
     )
   })
 
@@ -163,61 +160,37 @@ export default function DevProjectsPage() {
               </div>
               <div className="space-y-2">
                 <Label>ステータス</Label>
-                <select
-                  className="w-full border rounded-md px-3 py-2 text-sm"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
+                <select className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={status} onChange={(e) => setStatus(e.target.value)}>
+                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>主担当会社</Label>
-                <select
-                  className="w-full border rounded-md px-3 py-2 text-sm"
+                <SingleSelectModal
+                  label="主担当会社"
+                  options={companyOptions}
                   value={primaryCompanyId}
-                  onChange={(e) => setPrimaryCompanyId(e.target.value)}
-                >
-                  <option value="">選択してください</option>
-                  {allCompanies.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={setPrimaryCompanyId}
+                  placeholder="会社を選択..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>受注予定日</Label>
-                <Input
-                  type="date"
-                  value={expectedOrderDate}
-                  onChange={(e) => setExpectedOrderDate(e.target.value)}
-                />
+                <Input type="date" value={expectedOrderDate} onChange={(e) => setExpectedOrderDate(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
               <Label>関連会社（複数選択可）</Label>
-              <div className="border rounded-md p-3 flex flex-wrap gap-2">
-                {allCompanies.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => toggleCompany(c.id)}
-                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                      selectedCompanyIds.includes(c.id)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-                {allCompanies.length === 0 && (
-                  <p className="text-sm text-gray-400">会社が登録されていません</p>
-                )}
-              </div>
+              <MultiSelectModal
+                label="関連会社"
+                options={companyOptions}
+                values={selectedCompanyIds}
+                onChange={setSelectedCompanyIds}
+                placeholder="会社を選択..."
+              />
             </div>
             <div className="space-y-2">
               <Label>内容</Label>
@@ -228,9 +201,7 @@ export default function DevProjectsPage() {
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
-            {editProject && (
-              <ProjectFiles projectId={editProject.id} mode="edit" />
-            )}
+            {editProject && <ProjectFiles projectId={editProject.id} mode="edit" />}
             <Button onClick={handleSubmit} disabled={loading} className="w-full">
               {loading ? "処理中..." : editProject ? "更新する" : "登録する"}
             </Button>
@@ -240,7 +211,7 @@ export default function DevProjectsPage() {
 
       <div className="mb-4">
         <Input
-          placeholder="案件名・ステータス・会社名で検索..."
+          placeholder="案件名・ステータス・会社名・担当者・内容・備考で検索..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -262,14 +233,10 @@ export default function DevProjectsPage() {
                     <p className="text-sm text-gray-500">主担当: {project.primaryCompany.name}</p>
                   )}
                   {project.companies.length > 0 && (
-                    <p className="text-sm text-gray-500">
-                      関連会社: {project.companies.map((c) => c.company.name).join("、")}
-                    </p>
+                    <p className="text-sm text-gray-500">関連会社: {project.companies.map((c) => c.company.name).join("、")}</p>
                   )}
                   {project.expectedOrderDate && (
-                    <p className="text-sm text-gray-500">
-                      受注予定: {new Date(project.expectedOrderDate).toLocaleDateString("ja-JP")}
-                    </p>
+                    <p className="text-sm text-gray-500">受注予定: {new Date(project.expectedOrderDate).toLocaleDateString("ja-JP")}</p>
                   )}
                   {project.description && <p className="text-sm text-gray-500">内容: {project.description}</p>}
                   {project.notes && <p className="text-sm text-gray-500">備考: {project.notes}</p>}
