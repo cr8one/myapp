@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import JSZip from "jszip"
-
 type Contact = { id: string; name: string; isPrimary: boolean }
 type TypeMaster = { id: string; name: string }
 type DevCompanyType = { typeMaster: TypeMaster }
@@ -17,7 +16,6 @@ type DevCompany = {
   contacts: Contact[]
   types: DevCompanyType[]
 }
-
 const STATUS_COLORS: Record<string, string> = {
   "登録のみ":  "bg-gray-100 text-gray-600",
   "面識あり":  "bg-blue-100 text-blue-600",
@@ -25,12 +23,10 @@ const STATUS_COLORS: Record<string, string> = {
   "見積り済":  "bg-orange-100 text-orange-700",
   "受注済":    "bg-green-100 text-green-700",
 }
-
 function toCsv(headers: string[], rows: string[][]): string {
   const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`
   return [headers.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n")
 }
-
 function parseCsv(text: string): Record<string, string>[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
   const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
@@ -49,30 +45,27 @@ function parseCsv(text: string): Record<string, string>[] {
     return row
   })
 }
-
 export default function DevCompaniesPage() {
   const router = useRouter()
   const [companies, setCompanies] = useState<DevCompany[]>([])
+  const [fetching, setFetching] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-
   const fetchCompanies = async () => {
-    // 全件取得（全フィールド検索のためcontactsは全員取得に変更）
+    setFetching(true)
     const res = await fetch("/api/dev/companies?all=1")
     const data = await res.json()
     setCompanies(data)
+    setFetching(false)
   }
-
   useEffect(() => { fetchCompanies() }, [])
-
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm("この会社を削除しますか？")) return
     await fetch(`/api/dev/companies/${id}`, { method: "DELETE" })
     fetchCompanies()
   }
-
   const handleExport = async () => {
     const zip = new JSZip()
     const companyRows = companies.map((c) => [
@@ -111,7 +104,6 @@ export default function DevCompaniesPage() {
     a.click()
     URL.revokeObjectURL(url)
   }
-
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -151,7 +143,6 @@ export default function DevCompaniesPage() {
     }
     e.target.value = ""
   }
-
   const filtered = companies.filter((c) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -167,7 +158,6 @@ export default function DevCompaniesPage() {
       c.types.some((t) => t.typeMaster.name.toLowerCase().includes(q))
     )
   })
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -179,13 +169,11 @@ export default function DevCompaniesPage() {
           <Button onClick={() => router.push("/dashboard/dev/companies/new")}>新規登録</Button>
         </div>
       </div>
-
       {importMessage && (
         <p className={`mb-4 text-sm px-4 py-2 rounded ${importMessage.startsWith("エラー") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}>
           {importMessage}
         </p>
       )}
-
       <div className="mb-4">
         <Input
           placeholder="会社名・カナ・業種・担当者・住所・電話・備考・取扱種別で検索..."
@@ -193,9 +181,14 @@ export default function DevCompaniesPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
       <div className="space-y-3">
-        {filtered.map((company) => {
+        {fetching ? (
+          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">
+            {searchQuery ? "検索結果がありません" : "会社が登録されていません"}
+          </p>
+        ) : filtered.map((company) => {
           const primaryContact = company.contacts.find((c) => c.isPrimary)
           return (
             <Card
@@ -237,11 +230,6 @@ export default function DevCompaniesPage() {
             </Card>
           )
         })}
-        {filtered.length === 0 && (
-          <p className="text-center text-gray-500 py-8">
-            {searchQuery ? "検索結果がありません" : "会社が登録されていません"}
-          </p>
-        )}
       </div>
     </div>
   )
