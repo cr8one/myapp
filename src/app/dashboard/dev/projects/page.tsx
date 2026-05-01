@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ProjectFiles from "@/components/dev/project-files"
 import { SingleSelectModal, MultiSelectModal } from "@/components/ui/searchable-select-modal"
 import JSZip from "jszip"
-
 type DevCompany = { id: string; name: string }
 type DevProject = {
   id: string
@@ -24,9 +23,7 @@ type DevProject = {
   orderedAmount?: number
   createdAt: string
 }
-
 const STATUS_OPTIONS = ["商談中", "提案済", "受注", "失注"]
-
 const statusColor = (s: string) => {
   switch (s) {
     case "商談中": return "bg-blue-100 text-blue-700"
@@ -36,12 +33,10 @@ const statusColor = (s: string) => {
     default:       return "bg-gray-100 text-gray-700"
   }
 }
-
 function toCsv(headers: string[], rows: string[][]): string {
   const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`
   return [headers.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n")
 }
-
 function parseCsv(text: string): Record<string, string>[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
   const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
@@ -60,10 +55,10 @@ function parseCsv(text: string): Record<string, string>[] {
     return row
   })
 }
-
 export default function DevProjectsPage() {
   const [projects, setProjects] = useState<DevProject[]>([])
   const [allCompanies, setAllCompanies] = useState<DevCompany[]>([])
+  const [fetching, setFetching] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProject, setEditProject] = useState<DevProject | null>(null)
   const [loading, setLoading] = useState(false)
@@ -71,7 +66,6 @@ export default function DevProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-
   const [title, setTitle] = useState("")
   const [status, setStatus] = useState("商談中")
   const [description, setDescription] = useState("")
@@ -79,11 +73,12 @@ export default function DevProjectsPage() {
   const [notes, setNotes] = useState("")
   const [primaryCompanyId, setPrimaryCompanyId] = useState("")
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([])
-
   const fetchProjects = async () => {
+    setFetching(true)
     const res = await fetch("/api/dev/projects")
     const data = await res.json()
     setProjects(data)
+    setFetching(false)
   }
   const fetchCompanies = async () => {
     const res = await fetch("/api/dev/companies")
@@ -91,13 +86,11 @@ export default function DevProjectsPage() {
     setAllCompanies(data)
   }
   useEffect(() => { fetchProjects(); fetchCompanies() }, [])
-
   const resetForm = () => {
     setTitle(""); setStatus("商談中"); setDescription("")
     setExpectedOrderDate(""); setNotes(""); setPrimaryCompanyId("")
     setSelectedCompanyIds([]); setError(""); setEditProject(null); setShowForm(false)
   }
-
   const handleEdit = (project: DevProject) => {
     setEditProject(project)
     setTitle(project.title)
@@ -109,7 +102,6 @@ export default function DevProjectsPage() {
     setSelectedCompanyIds(project.companies.map((c) => c.company.id))
     setShowForm(true)
   }
-
   const handleSubmit = async () => {
     setLoading(true); setError("")
     const body = {
@@ -125,13 +117,11 @@ export default function DevProjectsPage() {
     if (!res.ok) { setError("保存に失敗しました"); setLoading(false); return }
     resetForm(); setLoading(false); fetchProjects()
   }
-
   const handleDelete = async (id: string) => {
     if (!confirm("この案件を削除しますか？")) return
     await fetch(`/api/dev/projects/${id}`, { method: "DELETE" })
     fetchProjects()
   }
-
   const handleExport = async () => {
     const zip = new JSZip()
     const projectRows = projects.map((p) => [
@@ -148,23 +138,17 @@ export default function DevProjectsPage() {
     ))
     const companyRows: string[][] = []
     for (const p of projects) {
-      for (const c of p.companies) {
-        companyRows.push([p.id, p.title, c.company.id, c.company.name])
-      }
+      for (const c of p.companies) { companyRows.push([p.id, p.title, c.company.id, c.company.name]) }
     }
     zip.file("project_companies.csv", "\uFEFF" + toCsv(
-      ["projectId", "projectTitle", "companyId", "companyName"],
-      companyRows
+      ["projectId", "projectTitle", "companyId", "companyName"], companyRows
     ))
     const assigneeRows: string[][] = []
     for (const p of projects) {
-      for (const a of p.assignees ?? []) {
-        assigneeRows.push([p.id, p.title, a.user.id, a.user.name])
-      }
+      for (const a of p.assignees ?? []) { assigneeRows.push([p.id, p.title, a.user.id, a.user.name]) }
     }
     zip.file("project_assignees.csv", "\uFEFF" + toCsv(
-      ["projectId", "projectTitle", "userId", "userName"],
-      assigneeRows
+      ["projectId", "projectTitle", "userId", "userName"], assigneeRows
     ))
     const fileRes = await fetch("/api/dev/projects/export-files")
     const fileData: {
@@ -181,7 +165,6 @@ export default function DevProjectsPage() {
     a.href = url; a.download = "projects.zip"; a.click()
     URL.revokeObjectURL(url)
   }
-
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -210,7 +193,6 @@ export default function DevProjectsPage() {
     }
     e.target.value = ""
   }
-
   const companyOptions = allCompanies.map((c) => ({ id: c.id, label: c.name }))
   const filtered = projects.filter((p) => {
     if (!searchQuery) return true
@@ -227,7 +209,6 @@ export default function DevProjectsPage() {
       (p.orderedAmount ? String(p.orderedAmount) : "").includes(q)
     )
   })
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -301,7 +282,13 @@ export default function DevProjectsPage() {
         />
       </div>
       <div className="space-y-4">
-        {filtered.map((project) => (
+        {fetching ? (
+          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">
+            {searchQuery ? "検索結果がありません" : "案件が登録されていません"}
+          </p>
+        ) : filtered.map((project) => (
           <Card key={project.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
@@ -324,9 +311,6 @@ export default function DevProjectsPage() {
             </CardContent>
           </Card>
         ))}
-        {filtered.length === 0 && (
-          <p className="text-center text-gray-500">{searchQuery ? "検索結果がありません" : "案件が登録されていません"}</p>
-        )}
       </div>
     </div>
   )

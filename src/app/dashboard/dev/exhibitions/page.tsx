@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import JSZip from "jszip"
-
 type DevExhibition = {
   id: string
   name: string
@@ -18,12 +17,10 @@ type DevExhibition = {
   visitors: { user: { id: string; name?: string }; impression?: string }[]
   contacts: { company: { id: string; name: string }; contact?: { id: string; name: string } | null; notes?: string }[]
 }
-
 function toCsv(headers: string[], rows: string[][]): string {
   const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`
   return [headers.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n")
 }
-
 function parseCsv(text: string): Record<string, string>[] {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
   const headers = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim())
@@ -42,29 +39,27 @@ function parseCsv(text: string): Record<string, string>[] {
     return row
   })
 }
-
 export default function DevExhibitionsPage() {
   const router = useRouter()
   const [exhibitions, setExhibitions] = useState<DevExhibition[]>([])
+  const [fetching, setFetching] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-
   const fetchExhibitions = async () => {
+    setFetching(true)
     const res = await fetch("/api/dev/exhibitions")
     const data = await res.json()
     setExhibitions(data)
+    setFetching(false)
   }
-
   useEffect(() => { fetchExhibitions() }, [])
-
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm("この展示会を削除しますか？")) return
     await fetch(`/api/dev/exhibitions/${id}`, { method: "DELETE" })
     fetchExhibitions()
   }
-
   const handleExport = async () => {
     const zip = new JSZip()
     const exRows = exhibitions.map((e) => [
@@ -74,18 +69,14 @@ export default function DevExhibitionsPage() {
       e.summary ?? "", e.description ?? "", e.notes ?? "",
     ])
     zip.file("exhibitions.csv", "\uFEFF" + toCsv(
-      ["id", "name", "location", "startDate", "endDate", "summary", "description", "notes"],
-      exRows
+      ["id", "name", "location", "startDate", "endDate", "summary", "description", "notes"], exRows
     ))
     const vRows: string[][] = []
     for (const e of exhibitions) {
-      for (const v of e.visitors) {
-        vRows.push([e.id, e.name, v.user.id, v.user.name ?? "", v.impression ?? ""])
-      }
+      for (const v of e.visitors) { vRows.push([e.id, e.name, v.user.id, v.user.name ?? "", v.impression ?? ""]) }
     }
     zip.file("exhibition_visitors.csv", "\uFEFF" + toCsv(
-      ["exhibitionId", "exhibitionName", "userId", "userName", "impression"],
-      vRows
+      ["exhibitionId", "exhibitionName", "userId", "userName", "impression"], vRows
     ))
     const cRows: string[][] = []
     for (const e of exhibitions) {
@@ -94,18 +85,14 @@ export default function DevExhibitionsPage() {
       }
     }
     zip.file("exhibition_contacts.csv", "\uFEFF" + toCsv(
-      ["exhibitionId", "exhibitionName", "companyId", "companyName", "contactId", "contactName", "notes"],
-      cRows
+      ["exhibitionId", "exhibitionName", "companyId", "companyName", "contactId", "contactName", "notes"], cRows
     ))
     const blob = await zip.generateAsync({ type: "blob" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    a.href = url
-    a.download = "exhibitions.zip"
-    a.click()
+    a.href = url; a.download = "exhibitions.zip"; a.click()
     URL.revokeObjectURL(url)
   }
-
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -116,8 +103,7 @@ export default function DevExhibitionsPage() {
       const vFile = zip.file("exhibition_visitors.csv")
       const cFile = zip.file("exhibition_contacts.csv")
       if (!exFile) { setImportMessage("エラー: exhibitions.csvが見つかりません"); return }
-      const exText = await exFile.async("text")
-      const exhibitions = parseCsv(exText)
+      const exhibitions = parseCsv(await exFile.async("text"))
       const visitors = vFile ? parseCsv(await vFile.async("text")).map((r) => ({
         exhibitionId: r.exhibitionId, userId: r.userId, impression: r.impression,
       })) : []
@@ -138,9 +124,7 @@ export default function DevExhibitionsPage() {
     }
     e.target.value = ""
   }
-
   const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("ja-JP") : ""
-
   const filtered = exhibitions.filter((e) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -157,7 +141,6 @@ export default function DevExhibitionsPage() {
       e.contacts.some((c) => (c.notes ?? "").toLowerCase().includes(q))
     )
   })
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -169,13 +152,11 @@ export default function DevExhibitionsPage() {
           <Button onClick={() => router.push("/dashboard/dev/exhibitions/new")}>新規登録</Button>
         </div>
       </div>
-
       {importMessage && (
         <p className={`mb-4 text-sm px-4 py-2 rounded ${importMessage.startsWith("エラー") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}>
           {importMessage}
         </p>
       )}
-
       <div className="mb-4">
         <Input
           placeholder="展示会名・場所・説明・サマリー・備考・来場者・接触会社・担当者で検索..."
@@ -183,9 +164,14 @@ export default function DevExhibitionsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
       <div className="space-y-3">
-        {filtered.map((exhibition) => (
+        {fetching ? (
+          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">
+            {searchQuery ? "検索結果がありません" : "展示会が登録されていません"}
+          </p>
+        ) : filtered.map((exhibition) => (
           <Card
             key={exhibition.id}
             className="cursor-pointer hover:shadow-md transition-shadow"
@@ -202,14 +188,10 @@ export default function DevExhibitionsPage() {
                     )}
                   </div>
                   {exhibition.visitors.length > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      来場者: {exhibition.visitors.map((v) => v.user.name).join("、")}
-                    </p>
+                    <p className="text-sm text-gray-500 mt-1">来場者: {exhibition.visitors.map((v) => v.user.name).join("、")}</p>
                   )}
                   {exhibition.contacts.length > 0 && (
-                    <p className="text-sm text-gray-500">
-                      接触会社: {exhibition.contacts.map((c) => c.company.name).join("、")}
-                    </p>
+                    <p className="text-sm text-gray-500">接触会社: {exhibition.contacts.map((c) => c.company.name).join("、")}</p>
                   )}
                 </div>
                 <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
@@ -220,11 +202,6 @@ export default function DevExhibitionsPage() {
             </CardContent>
           </Card>
         ))}
-        {filtered.length === 0 && (
-          <p className="text-center text-gray-500 py-8">
-            {searchQuery ? "検索結果がありません" : "展示会が登録されていません"}
-          </p>
-        )}
       </div>
     </div>
   )
