@@ -2,34 +2,25 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake } from "lucide-react"
 
-// BPMSアイコン（握手）
-function BpmsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 10.5C3 10.5 4.5 9 6 9C7 9 7.5 9.5 8.5 9.5C9.5 9.5 10 9 11 9L13 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M17 10.5C17 10.5 15.5 9 14 9L13 9.5L11.5 11C11 11.5 10.2 11.5 9.7 11L8.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M13 9.5L14 11C14.5 11.8 14.2 12.8 13.4 13.2L10.5 14.5C9.9 14.8 9.2 14.6 8.8 14.1L6 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M3 8L6 10.5C6.5 11 6.4 11.8 5.9 12.2L5 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <circle cx="6" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.4"/>
-      <circle cx="14" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.4"/>
-    </svg>
-  )
-}
-
-// SSSSアイコン（シール）
+// SSSSアイコン（長方形シール・端が剥がれているイメージ）
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* シール本体（長方形） */}
+      <rect x="2" y="5" width="14" height="9" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      {/* 剥がれている右下の角 */}
       <path
-        d="M10 2L11.8 5.2L15.5 4.5L14.2 8L17 10L14.2 12L15.5 15.5L11.8 14.8L10 18L8.2 14.8L4.5 15.5L5.8 12L3 10L5.8 8L4.5 4.5L8.2 5.2L10 2Z"
+        d="M16 11 L16 14 Q16 14 13.5 14 L16 11Z"
+        fill="white"
         stroke="currentColor"
-        strokeWidth="1.4"
+        strokeWidth="1.1"
         strokeLinejoin="round"
       />
-      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-      <circle cx="10" cy="10" r="1" fill="currentColor"/>
+      {/* シール上の横線（テキストを表現） */}
+      <line x1="5" y1="8.5" x2="12" y2="8.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+      <line x1="5" y1="11" x2="10" y2="11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
     </svg>
   )
 }
@@ -67,7 +58,7 @@ const menuItems = [
 ]
 
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
-  if (icon === "bpms") return <BpmsIcon className={className} />
+  if (icon === "bpms") return <Handshake className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
   return null
 }
