@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
-import { Search, Plus, Mail, AlertCircle } from "lucide-react"
+import { Search, Plus, Mail, AlertCircle, X, ChevronDown } from "lucide-react"
 
 type Staff = { id: number; name: string }
 type Company = { id: number; name: string }
@@ -32,6 +32,52 @@ type SealSupply = {
   notes: string | null
 }
 
+type FormData = {
+  productCode: string
+  orderNo: string
+  partName: string
+  qtyShizuokaToTokyo: string
+  qtyTokyoToOutsource: string
+  qtyTokyoStock: string
+  companyId: string
+  companyName: string
+  issuerId: string
+  issuerName: string
+  supplierId: string
+  supplierName: string
+  receiverId: string
+  receiverName: string
+  outsourceReceiverId: string
+  outsourceReceiverName: string
+  issueDate: string
+  isHold: boolean
+  holdDeadline: string
+  notes: string
+}
+
+const initialForm: FormData = {
+  productCode: "",
+  orderNo: "",
+  partName: "",
+  qtyShizuokaToTokyo: "",
+  qtyTokyoToOutsource: "",
+  qtyTokyoStock: "",
+  companyId: "",
+  companyName: "",
+  issuerId: "",
+  issuerName: "",
+  supplierId: "",
+  supplierName: "",
+  receiverId: "",
+  receiverName: "",
+  outsourceReceiverId: "",
+  outsourceReceiverName: "",
+  issueDate: new Date().toISOString().split("T")[0],
+  isHold: false,
+  holdDeadline: "",
+  notes: "",
+}
+
 function fmtDate(d: string | null) {
   if (!d) return ""
   return new Date(d).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
@@ -43,12 +89,371 @@ function getSupplierDisplay(s: SealSupply) { return s.supplier?.name ?? s.suppli
 function getReceiverDisplay(s: SealSupply) { return s.receiver?.name ?? s.receiverName ?? "" }
 function getOutsourceReceiverDisplay(s: SealSupply) { return s.outsourceReceiver?.name ?? s.outsourceReceiverName ?? "" }
 
+// ドロップダウン＋手入力コンポーネント
+function ComboField({
+  label,
+  required,
+  masterId,
+  masterName,
+  onChangeId,
+  onChangeName,
+  options,
+  placeholder,
+}: {
+  label: string
+  required?: boolean
+  masterId: string
+  masterName: string
+  onChangeId: (v: string) => void
+  onChangeName: (v: string) => void
+  options: { id: number; name: string }[]
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find(o => String(o.id) === masterId)
+
+  const handleSelect = (o: { id: number; name: string }) => {
+    onChangeId(String(o.id))
+    onChangeName(o.name)
+    setOpen(false)
+  }
+
+  const handleClear = () => {
+    onChangeId("")
+    onChangeName("")
+  }
+
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      <div className="relative">
+        {/* マスタ選択ボタン */}
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <span className={selected ? "text-gray-900" : "text-gray-400"}>
+            {selected ? selected.name : "マスタから選択..."}
+          </span>
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-gray-400">マスタデータがありません</div>
+            ) : (
+              options.map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => handleSelect(o)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700"
+                >
+                  {o.name}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      {/* 手入力フィールド */}
+      <div className="mt-1 flex items-center gap-1">
+        <input
+          type="text"
+          value={masterName}
+          onChange={e => { onChangeName(e.target.value); onChangeId("") }}
+          placeholder={placeholder ?? "または直接入力"}
+          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {(masterId || masterName) && (
+          <button type="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function NewSupplyModal({
+  onClose,
+  onCreated,
+  companies,
+  staffs,
+}: {
+  onClose: () => void
+  onCreated: () => void
+  companies: Company[]
+  staffs: Staff[]
+}) {
+  const [form, setForm] = useState<FormData>(initialForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+
+  const set = (key: keyof FormData, value: string | boolean) =>
+    setForm(prev => ({ ...prev, [key]: value }))
+
+  const handleSubmit = async () => {
+    if (!form.productCode || !form.orderNo || !form.partName) {
+      setError("品番・受注No・貼り付けパーツは必須です")
+      return
+    }
+    setSaving(true)
+    setError("")
+    try {
+      const res = await fetch("/api/ssss/supplies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productCode: form.productCode,
+          orderNo: form.orderNo,
+          partName: form.partName,
+          qtyShizuokaToTokyo: parseInt(form.qtyShizuokaToTokyo) || 0,
+          qtyTokyoToOutsource: parseInt(form.qtyTokyoToOutsource) || 0,
+          qtyTokyoStock: parseInt(form.qtyTokyoStock) || 0,
+          companyId: form.companyId ? parseInt(form.companyId) : null,
+          companyName: form.companyName || null,
+          issuerId: form.issuerId ? parseInt(form.issuerId) : null,
+          issuerName: form.issuerName || null,
+          supplierId: form.supplierId ? parseInt(form.supplierId) : null,
+          supplierName: form.supplierName || null,
+          receiverId: form.receiverId ? parseInt(form.receiverId) : null,
+          receiverName: form.receiverName || null,
+          outsourceReceiverId: form.outsourceReceiverId ? parseInt(form.outsourceReceiverId) : null,
+          outsourceReceiverName: form.outsourceReceiverName || null,
+          issueDate: form.issueDate || null,
+          isHold: form.isHold,
+          holdDeadline: form.holdDeadline || null,
+          notes: form.notes || null,
+        }),
+      })
+      if (!res.ok) throw new Error("作成に失敗しました")
+      onCreated()
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "エラーが発生しました")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const issuers = staffs.filter(s => true) // 全員表示（フラグはAPIで制御済み）
+  const suppliers = staffs
+  const receivers = staffs
+  const outsourceReceivers = staffs
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* モーダルヘッダー */}
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-base font-bold text-gray-900">新規支給登録</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* モーダルボディ */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* 品番・受注No・パーツ */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                品番<span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="text"
+                value={form.productCode}
+                onChange={e => set("productCode", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="例: TKCA91701"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                受注No<span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="text"
+                value={form.orderNo}
+                onChange={e => set("orderNo", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="例: 0742809-00"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              貼り付けパーツ<span className="text-red-500 ml-0.5">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.partName}
+              onChange={e => set("partName", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="例: ラベル"
+            />
+          </div>
+
+          {/* 支給枚数 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">支給枚数</label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: "qtyShizuokaToTokyo" as keyof FormData, label: "静岡→東京" },
+                { key: "qtyTokyoToOutsource" as keyof FormData, label: "東京→外注" },
+                { key: "qtyTokyoStock" as keyof FormData, label: "東京保管" },
+              ].map(({ key, label }) => (
+                <div key={key}>
+                  <div className="text-xs text-gray-500 mb-1 text-center">{label}</div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form[key] as string}
+                    onChange={e => set(key, e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 支給先会社 */}
+          <ComboField
+            label="支給先会社"
+            masterId={form.companyId}
+            masterName={form.companyName}
+            onChangeId={v => set("companyId", v)}
+            onChangeName={v => set("companyName", v)}
+            options={companies}
+            placeholder="または直接入力"
+          />
+
+          {/* 担当者 */}
+          <div className="grid grid-cols-2 gap-4">
+            <ComboField
+              label="JS起票者"
+              masterId={form.issuerId}
+              masterName={form.issuerName}
+              onChangeId={v => set("issuerId", v)}
+              onChangeName={v => set("issuerName", v)}
+              options={issuers}
+            />
+            <ComboField
+              label="JS支給者"
+              masterId={form.supplierId}
+              masterName={form.supplierName}
+              onChangeId={v => set("supplierId", v)}
+              onChangeName={v => set("supplierName", v)}
+              options={suppliers}
+            />
+            <ComboField
+              label="JS受領者"
+              masterId={form.receiverId}
+              masterName={form.receiverName}
+              onChangeId={v => set("receiverId", v)}
+              onChangeName={v => set("receiverName", v)}
+              options={receivers}
+            />
+            <ComboField
+              label="外注受領担当"
+              masterId={form.outsourceReceiverId}
+              masterName={form.outsourceReceiverName}
+              onChangeId={v => set("outsourceReceiverId", v)}
+              onChangeName={v => set("outsourceReceiverName", v)}
+              options={outsourceReceivers}
+            />
+          </div>
+
+          {/* 発行日 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">発行日</label>
+            <input
+              type="date"
+              value={form.issueDate}
+              onChange={e => set("issueDate", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* 保留 */}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isHold}
+                onChange={e => set("isHold", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">保留</span>
+            </label>
+            {form.isHold && (
+              <div className="flex items-center gap-2 flex-1">
+                <label className="text-xs text-gray-500 whitespace-nowrap">保留期限</label>
+                <input
+                  type="date"
+                  value={form.holdDeadline}
+                  onChange={e => set("holdDeadline", e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 備考 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">備考</label>
+            <textarea
+              value={form.notes}
+              onChange={e => set("notes", e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              placeholder="メモがあれば入力..."
+            />
+          </div>
+        </div>
+
+        {/* モーダルフッター */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
+          >
+            {saving ? "登録中..." : "登録する"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SealSupplyListPage() {
   const [items, setItems] = useState<SealSupply[]>([])
   const [total, setTotal] = useState(0)
   const [fetching, setFetching] = useState(true)
   const [search, setSearch] = useState("")
   const [holdFilter, setHoldFilter] = useState<"all" | "hold" | "normal">("all")
+  const [showModal, setShowModal] = useState(false)
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [staffs, setStaffs] = useState<Staff[]>([])
 
   const fetchItems = useCallback(async () => {
     setFetching(true)
@@ -66,6 +471,16 @@ export default function SealSupplyListPage() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
+  const openModal = async () => {
+    const [c, s] = await Promise.all([
+      fetch("/api/ssss/companies").then(r => r.json()),
+      fetch("/api/ssss/staffs").then(r => r.json()),
+    ])
+    setCompanies(c)
+    setStaffs(s)
+    setShowModal(true)
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* ヘッダー */}
@@ -75,7 +490,10 @@ export default function SealSupplyListPage() {
             <h1 className="text-xl font-bold text-gray-900">支給管理一覧</h1>
             <p className="text-xs text-gray-400 mt-0.5">全 {total.toLocaleString()} 件</p>
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+          <button
+            onClick={openModal}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
+          >
             <Plus className="w-4 h-4" />
             新規作成
           </button>
@@ -226,6 +644,16 @@ export default function SealSupplyListPage() {
           </div>
         )}
       </div>
+
+      {/* 新規作成モーダル */}
+      {showModal && (
+        <NewSupplyModal
+          onClose={() => setShowModal(false)}
+          onCreated={fetchItems}
+          companies={companies}
+          staffs={staffs}
+        />
+      )}
     </div>
   )
 }
