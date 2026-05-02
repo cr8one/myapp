@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma"
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const role = searchParams.get("role")
+  const all = searchParams.get("all") === "1"
 
-  const where: Record<string, unknown> = { isActive: true }
+  const where: Record<string, unknown> = {}
+  if (!all) where.isActive = true
   if (role === "issuer") where.isIssuer = true
   if (role === "supplier") where.isSupplier = true
   if (role === "receiver") where.isReceiver = true

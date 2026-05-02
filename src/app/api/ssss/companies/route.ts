@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const all = searchParams.get("all") === "1"
+
   const companies = await prisma.sealSupplyCompany.findMany({
-    where: { isActive: true },
+    where: all ? {} : { isActive: true },
     orderBy: { name: "asc" },
   })
   return NextResponse.json(companies)
