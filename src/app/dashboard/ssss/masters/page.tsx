@@ -4,13 +4,12 @@ import { Plus, Pencil, Trash2, X, Check, AlertCircle } from "lucide-react"
 
 type Company = { id: number; name: string; isActive: boolean }
 type Staff = {
-  id: number
+  id: string
   name: string
   isIssuer: boolean
   isSupplier: boolean
   isReceiver: boolean
   isOutsourceReceiver: boolean
-  isActive: boolean
 }
 
 type Tab = "companies" | "staffs"
@@ -36,16 +35,8 @@ export default function MastersPage() {
   const [newCompanyName, setNewCompanyName] = useState("")
   const [addingCompany, setAddingCompany] = useState(false)
 
-  // 担当者マスタ
+  // 担当者（編集のみ、追加はユーザー管理から）
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
-  const [addingStaff, setAddingStaff] = useState(false)
-  const [newStaff, setNewStaff] = useState({
-    name: "",
-    isIssuer: false,
-    isSupplier: false,
-    isReceiver: false,
-    isOutsourceReceiver: false,
-  })
 
   const fetchAll = useCallback(async () => {
     setFetching(true)
@@ -98,41 +89,19 @@ export default function MastersPage() {
     fetchAll()
   }
 
-  // 担当者マスタ操作
-  const saveStaff = async () => {
-    if (!newStaff.name.trim()) return
-    await fetch("/api/ssss/staffs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newStaff),
-    })
-    setNewStaff({ name: "", isIssuer: false, isSupplier: false, isReceiver: false, isOutsourceReceiver: false })
-    setAddingStaff(false)
-    fetchAll()
-  }
-
-  const updateStaff = async (s: Staff) => {
-    await fetch(`/api/ssss/staffs/${s.id}`, {
+  // 担当者フラグ更新（UserPermission経由）
+  const updateStaffFlags = async (s: Staff) => {
+    await fetch(`/api/users/${s.id}/permission`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(s),
+      body: JSON.stringify({
+        ssssIsIssuer: s.isIssuer,
+        ssssIsSupplier: s.isSupplier,
+        ssssIsReceiver: s.isReceiver,
+        ssssIsOutsourceReceiver: s.isOutsourceReceiver,
+      }),
     })
     setEditingStaff(null)
-    fetchAll()
-  }
-
-  const deleteStaff = async (id: number) => {
-    if (!confirm("削除しますか？")) return
-    await fetch(`/api/ssss/staffs/${id}`, { method: "DELETE" })
-    fetchAll()
-  }
-
-  const toggleStaffActive = async (s: Staff) => {
-    await fetch(`/api/ssss/staffs/${s.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...s, isActive: !s.isActive }),
-    })
     fetchAll()
   }
 
@@ -141,7 +110,7 @@ export default function MastersPage() {
       {/* ヘッダー */}
       <div className="bg-white border-b px-6 py-4">
         <h1 className="text-xl font-bold text-gray-900">マスタ管理</h1>
-        <p className="text-xs text-gray-400 mt-0.5">支給先会社・担当者の登録・編集</p>
+        <p className="text-xs text-gray-400 mt-0.5">支給先会社・担当者フラグの管理</p>
       </div>
 
       {/* タブ */}
@@ -188,7 +157,6 @@ export default function MastersPage() {
                   </button>
                 </div>
 
-                {/* 新規追加行 */}
                 {addingCompany && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
                     <input
@@ -266,74 +234,22 @@ export default function MastersPage() {
             {/* 担当者タブ */}
             {tab === "staffs" && (
               <div className="space-y-3">
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setAddingStaff(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    担当者を追加
-                  </button>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
+                  担当者の追加・削除はユーザー管理画面から行ってください。ここでは各ユーザーのSSSS担当フラグを設定できます。
                 </div>
-
-                {/* 新規追加行 */}
-                {addingStaff && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-4 space-y-3">
-                    <input
-                      type="text"
-                      value={newStaff.name}
-                      onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))}
-                      placeholder="担当者名を入力"
-                      autoFocus
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="flex flex-wrap gap-3">
-                      {([
-                        ["isIssuer", "起票者"],
-                        ["isSupplier", "支給者"],
-                        ["isReceiver", "受領者"],
-                        ["isOutsourceReceiver", "外注受領担当"],
-                      ] as const).map(([key, label]) => (
-                        <label key={key} className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={newStaff[key]}
-                            onChange={e => setNewStaff(s => ({ ...s, [key]: e.target.checked }))}
-                            className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600"
-                          />
-                          <span className="text-xs text-gray-600">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => { setAddingStaff(false); setNewStaff({ name: "", isIssuer: false, isSupplier: false, isReceiver: false, isOutsourceReceiver: false }) }} className="text-gray-400 hover:text-gray-600">
-                        <X className="w-5 h-5" />
-                      </button>
-                      <button onClick={saveStaff} className="text-blue-600 hover:text-blue-800">
-                        <Check className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {staffs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400">
                     <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">担当者が登録されていません</p>
+                    <p className="text-sm">ユーザーが登録されていません</p>
                   </div>
                 ) : (
                   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
                     {staffs.map(s => (
-                      <div key={s.id} className={`px-4 py-3 ${!s.isActive ? "opacity-50" : ""}`}>
+                      <div key={s.id} className="px-4 py-3">
                         {editingStaff?.id === s.id ? (
                           <div className="space-y-3">
-                            <input
-                              type="text"
-                              value={editingStaff.name}
-                              onChange={e => setEditingStaff({ ...editingStaff, name: e.target.value })}
-                              autoFocus
-                              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <div className="text-sm font-medium text-gray-800">{s.name}</div>
                             <div className="flex flex-wrap gap-3">
                               {([
                                 ["isIssuer", "起票者"],
@@ -356,7 +272,7 @@ export default function MastersPage() {
                               <button onClick={() => setEditingStaff(null)} className="text-gray-400 hover:text-gray-600">
                                 <X className="w-4 h-4" />
                               </button>
-                              <button onClick={() => updateStaff(editingStaff)} className="text-blue-600 hover:text-blue-800">
+                              <button onClick={() => updateStaffFlags(editingStaff)} className="text-blue-600 hover:text-blue-800">
                                 <Check className="w-4 h-4" />
                               </button>
                             </div>
@@ -370,21 +286,8 @@ export default function MastersPage() {
                               <RoleBadge label="受領者" active={s.isReceiver} />
                               <RoleBadge label="外注受領" active={s.isOutsourceReceiver} />
                             </div>
-                            <button
-                              onClick={() => toggleStaffActive(s)}
-                              className={`text-xs px-2 py-0.5 rounded font-medium border transition-colors ${
-                                s.isActive
-                                  ? "border-green-200 text-green-600 hover:bg-green-50"
-                                  : "border-gray-200 text-gray-400 hover:bg-gray-50"
-                              }`}
-                            >
-                              {s.isActive ? "有効" : "無効"}
-                            </button>
                             <button onClick={() => setEditingStaff(s)} className="text-gray-400 hover:text-blue-600">
                               <Pencil className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => deleteStaff(s.id)} className="text-gray-400 hover:text-red-600">
-                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         )}

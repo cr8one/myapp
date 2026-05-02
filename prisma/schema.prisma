@@ -2,16 +2,13 @@ generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
-
 datasource db {
   provider = "postgresql"
 }
-
 enum Role {
   ADMIN
   USER
 }
-
 model User {
   id          String                 @id @default(cuid())
   email       String                 @unique
@@ -27,8 +24,11 @@ model User {
   exhibitions DevExhibitionVisitor[]
   permission  UserPermission?
   assignedProjects DevProjectAssignee[]
+  suppliesAsIssuer            SealSupply[] @relation("SealIssuer")
+  suppliesAsSupplier          SealSupply[] @relation("SealSupplier")
+  suppliesAsReceiver          SealSupply[] @relation("SealReceiver")
+  suppliesAsOutsourceReceiver SealSupply[] @relation("SealOutsourceReceiver")
 }
-
 model UserPermission {
   id            String   @id @default(cuid())
   userId        String   @unique @map("user_id")
@@ -39,12 +39,16 @@ model UserPermission {
   partsEdit     Boolean  @default(false) @map("parts_edit")
   devView       Boolean  @default(true)  @map("dev_view")
   devEdit       Boolean  @default(false) @map("dev_edit")
+  ssssView      Boolean  @default(true)  @map("ssss_view")
+  ssssEdit      Boolean  @default(false) @map("ssss_edit")
+  ssssIsIssuer            Boolean @default(false) @map("ssss_is_issuer")
+  ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")
+  ssssIsReceiver          Boolean @default(false) @map("ssss_is_receiver")
+  ssssIsOutsourceReceiver Boolean @default(false) @map("ssss_is_outsource_receiver")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
-
   @@map("user_permissions")
 }
-
 model Product {
   id          String   @id @default(cuid())
   code        String   @unique
@@ -56,7 +60,6 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
-
 model Part {
   id        String   @id @default(cuid())
   code      String
@@ -67,7 +70,6 @@ model Part {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 model DevCompany {
   id              String                 @id @default(cuid())
   name            String
@@ -86,10 +88,8 @@ model DevCompany {
   exhibitions     DevExhibitionContact[]
   contacts        DevCompanyContact[]
   types           DevCompanyType[]
-
   @@map("dev_companies")
 }
-
 model DevProject {
   id                String              @id @default(cuid())
   title             String
@@ -106,10 +106,8 @@ model DevProject {
   files             DevProjectFile[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
-
   @@map("dev_projects")
 }
-
 model DevProjectCompany {
   id        String     @id @default(cuid())
   projectId String
@@ -118,11 +116,9 @@ model DevProjectCompany {
   project   DevProject @relation(fields: [projectId], references: [id])
   company   DevCompany @relation(fields: [companyId], references: [id])
   createdAt DateTime   @default(now())
-
   @@unique([projectId, companyId])
   @@map("dev_project_companies")
 }
-
 model DevExhibition {
   id          String                 @id @default(cuid())
   name        String
@@ -136,10 +132,8 @@ model DevExhibition {
   updatedAt   DateTime               @updatedAt
   visitors    DevExhibitionVisitor[]
   contacts    DevExhibitionContact[]
-
   @@map("dev_exhibitions")
 }
-
 model DevExhibitionVisitor {
   id           String        @id @default(cuid())
   exhibitionId String        @map("exhibition_id")
@@ -149,11 +143,9 @@ model DevExhibitionVisitor {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   exhibition   DevExhibition @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
   user         User          @relation(fields: [userId], references: [id])
-
   @@unique([exhibitionId, userId])
   @@map("dev_exhibition_visitors")
 }
-
 model DevExhibitionContact {
   id           String             @id @default(cuid())
   exhibitionId String             @map("exhibition_id")
@@ -164,10 +156,8 @@ model DevExhibitionContact {
   exhibition   DevExhibition      @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
   company      DevCompany         @relation(fields: [companyId], references: [id])
   contact      DevCompanyContact? @relation(fields: [contactId], references: [id])
-
   @@map("dev_exhibition_contacts")
 }
-
 model DevCompanyContact {
   id                 String                @id @default(cuid())
   companyId          String                @map("company_id")
@@ -183,10 +173,8 @@ model DevCompanyContact {
   createdAt          DateTime              @default(now()) @map("created_at")
   updatedAt          DateTime              @updatedAt @map("updated_at")
   exhibitionContacts DevExhibitionContact[]
-
   @@map("dev_company_contacts")
 }
-
 model DevCompanyTypeMaster {
   id          String           @id @default(cuid())
   name        String           @unique
@@ -195,10 +183,8 @@ model DevCompanyTypeMaster {
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
   companies   DevCompanyType[]
-
   @@map("dev_company_type_masters")
 }
-
 model DevCompanyType {
   id           String               @id @default(cuid())
   companyId    String               @map("company_id")
@@ -206,11 +192,9 @@ model DevCompanyType {
   company      DevCompany           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   typeMaster   DevCompanyTypeMaster @relation(fields: [typeMasterId], references: [id], onDelete: Cascade)
   createdAt    DateTime             @default(now()) @map("created_at")
-
   @@unique([companyId, typeMasterId])
   @@map("dev_company_types")
 }
-
 model DevProjectAssignee {
   id        String     @id @default(cuid())
   projectId String     @map("project_id")
@@ -219,11 +203,9 @@ model DevProjectAssignee {
   project   DevProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User       @relation(fields: [userId], references: [id])
   createdAt DateTime   @default(now()) @map("created_at")
-
   @@unique([projectId, userId])
   @@map("dev_project_assignees")
 }
-
 model DevProjectFile {
   id        String     @id @default(cuid())
   projectId String     @map("project_id")
@@ -235,7 +217,6 @@ model DevProjectFile {
   comment   String?
   createdAt DateTime   @default(now()) @map("created_at")
   createdBy String?    @map("created_by")
-
   @@map("dev_project_files")
 }
 
@@ -262,25 +243,6 @@ model SealSupplyCompany {
   @@map("seal_supply_companies")
 }
 
-model SealSupplyStaff {
-  id                  Int          @id @default(autoincrement())
-  name                String       @unique
-  isIssuer            Boolean      @default(false) @map("is_issuer")
-  isSupplier          Boolean      @default(false) @map("is_supplier")
-  isReceiver          Boolean      @default(false) @map("is_receiver")
-  isOutsourceReceiver Boolean      @default(false) @map("is_outsource_receiver")
-  isActive            Boolean      @default(true)  @map("is_active")
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
-
-  suppliesAsIssuer            SealSupply[] @relation("SealIssuer")
-  suppliesAsSupplier          SealSupply[] @relation("SealSupplier")
-  suppliesAsReceiver          SealSupply[] @relation("SealReceiver")
-  suppliesAsOutsourceReceiver SealSupply[] @relation("SealOutsourceReceiver")
-
-  @@map("seal_supply_staffs")
-}
-
 model SealSupply {
   id           Int      @id @default(autoincrement())
   serialCode   String   @unique @map("serial_code")
@@ -297,31 +259,26 @@ model SealSupply {
   qtyTokyoToOutsource  Int @default(0) @map("qty_tokyo_to_outsource")
   qtyTokyoStock        Int @default(0) @map("qty_tokyo_stock")
 
-  // 支給先会社（マスタ or 手入力）
   companyId   Int?    @map("company_id")
   company     SealSupplyCompany? @relation(fields: [companyId], references: [id])
   companyName String? @map("company_name")
 
-  // JS起票者（マスタ or 手入力）
-  issuerId   Int?    @map("issuer_id")
-  issuer     SealSupplyStaff? @relation("SealIssuer", fields: [issuerId], references: [id])
+  issuerId   String? @map("issuer_id")
+  issuer     User?   @relation("SealIssuer", fields: [issuerId], references: [id])
   issuerName String? @map("issuer_name")
 
-  // JS支給者（マスタ or 手入力）
-  supplierId   Int?    @map("supplier_id")
-  supplier     SealSupplyStaff? @relation("SealSupplier", fields: [supplierId], references: [id])
+  supplierId   String? @map("supplier_id")
+  supplier     User?   @relation("SealSupplier", fields: [supplierId], references: [id])
   supplierName String? @map("supplier_name")
   shipDateFromJS DateTime? @map("ship_date_from_js")
 
-  // JS受領者（マスタ or 手入力）
-  receiverId   Int?    @map("receiver_id")
-  receiver     SealSupplyStaff? @relation("SealReceiver", fields: [receiverId], references: [id])
+  receiverId   String? @map("receiver_id")
+  receiver     User?   @relation("SealReceiver", fields: [receiverId], references: [id])
   receiverName String? @map("receiver_name")
   receiptDateAtSupplier DateTime? @map("receipt_date_at_supplier")
 
-  // 外注受領担当（マスタ or 手入力）
-  outsourceReceiverId   Int?    @map("outsource_receiver_id")
-  outsourceReceiver     SealSupplyStaff? @relation("SealOutsourceReceiver", fields: [outsourceReceiverId], references: [id])
+  outsourceReceiverId   String? @map("outsource_receiver_id")
+  outsourceReceiver     User?   @relation("SealOutsourceReceiver", fields: [outsourceReceiverId], references: [id])
   outsourceReceiverName String? @map("outsource_receiver_name")
 
   mailSentFlag String   @default("未") @map("mail_sent_flag")
