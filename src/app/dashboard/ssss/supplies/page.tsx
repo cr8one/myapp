@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
-import { Search, Plus, Mail, AlertCircle, X, ChevronDown } from "lucide-react"
+import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2 } from "lucide-react"
 
 type Staff = { id: string; name: string }
 type Company = { id: number; name: string }
@@ -45,13 +45,16 @@ type FormData = {
   issuerName: string
   supplierId: string
   supplierName: string
+  shipDateFromJS: string
   receiverId: string
   receiverName: string
+  receiptDateAtSupplier: string
   outsourceReceiverId: string
   outsourceReceiverName: string
   issueDate: string
   isHold: boolean
   holdDeadline: string
+  mailSentFlag: string
   notes: string
 }
 
@@ -68,14 +71,22 @@ const initialForm: FormData = {
   issuerName: "",
   supplierId: "",
   supplierName: "",
+  shipDateFromJS: "",
   receiverId: "",
   receiverName: "",
+  receiptDateAtSupplier: "",
   outsourceReceiverId: "",
   outsourceReceiverName: "",
   issueDate: new Date().toISOString().split("T")[0],
   isHold: false,
   holdDeadline: "",
+  mailSentFlag: "未",
   notes: "",
+}
+
+function toDateInput(d: string | null) {
+  if (!d) return ""
+  return new Date(d).toISOString().split("T")[0]
 }
 
 function fmtDate(d: string | null) {
@@ -90,37 +101,14 @@ function getReceiverDisplay(s: SealSupply) { return s.receiver?.name ?? s.receiv
 function getOutsourceReceiverDisplay(s: SealSupply) { return s.outsourceReceiver?.name ?? s.outsourceReceiverName ?? "" }
 
 function ComboField({
-  label,
-  required,
-  masterId,
-  masterName,
-  onChangeId,
-  onChangeName,
-  options,
-  placeholder,
+  label, required, masterId, masterName, onChangeId, onChangeName, options, placeholder,
 }: {
-  label: string
-  required?: boolean
-  masterId: string
-  masterName: string
-  onChangeId: (v: string) => void
-  onChangeName: (v: string) => void
-  options: { id: string | number; name: string }[]
-  placeholder?: string
+  label: string; required?: boolean; masterId: string; masterName: string
+  onChangeId: (v: string) => void; onChangeName: (v: string) => void
+  options: { id: string | number; name: string }[]; placeholder?: string
 }) {
   const [open, setOpen] = useState(false)
   const selected = options.find(o => String(o.id) === masterId)
-
-  const handleSelect = (o: { id: string | number; name: string }) => {
-    onChangeId(String(o.id))
-    onChangeName(o.name)
-    setOpen(false)
-  }
-
-  const handleClear = () => {
-    onChangeId("")
-    onChangeName("")
-  }
 
   return (
     <div>
@@ -128,11 +116,8 @@ function ComboField({
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen(v => !v)}
-          className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
+        <button type="button" onClick={() => setOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
           <span className={selected ? "text-gray-900" : "text-gray-400"}>
             {selected ? selected.name : "マスタから選択..."}
           </span>
@@ -140,33 +125,25 @@ function ComboField({
         </button>
         {open && (
           <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-            {options.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-gray-400">該当するユーザーがいません</div>
-            ) : (
-              options.map(o => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => handleSelect(o)}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700"
-                >
+            {options.length === 0
+              ? <div className="px-3 py-2 text-xs text-gray-400">該当するユーザーがいません</div>
+              : options.map(o => (
+                <button key={o.id} type="button"
+                  onClick={() => { onChangeId(String(o.id)); onChangeName(o.name); setOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700">
                   {o.name}
                 </button>
-              ))
-            )}
+              ))}
           </div>
         )}
       </div>
       <div className="mt-1 flex items-center gap-1">
-        <input
-          type="text"
-          value={masterName}
+        <input type="text" value={masterName}
           onChange={e => { onChangeName(e.target.value); onChangeId("") }}
           placeholder={placeholder ?? "または直接入力"}
-          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+          className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
         {(masterId || masterName) && (
-          <button type="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={() => { onChangeId(""); onChangeName("") }} className="text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         )}
@@ -183,17 +160,48 @@ type MasterData = {
   outsourceReceivers: Staff[]
 }
 
-function NewSupplyModal({
-  onClose,
-  onCreated,
-  masters,
+function SupplyModal({
+  mode, supply, onClose, onSaved, onDeleted, masters,
 }: {
+  mode: "new" | "edit"
+  supply?: SealSupply
   onClose: () => void
-  onCreated: () => void
+  onSaved: () => void
+  onDeleted?: () => void
   masters: MasterData
 }) {
-  const [form, setForm] = useState<FormData>(initialForm)
+  const [form, setForm] = useState<FormData>(() => {
+    if (mode === "edit" && supply) {
+      return {
+        productCode: supply.productCode,
+        orderNo: supply.orderNo,
+        partName: supply.partName,
+        qtyShizuokaToTokyo: String(supply.qtyShizuokaToTokyo),
+        qtyTokyoToOutsource: String(supply.qtyTokyoToOutsource),
+        qtyTokyoStock: String(supply.qtyTokyoStock),
+        companyId: supply.company ? String(supply.company.id) : "",
+        companyName: supply.company?.name ?? supply.companyName ?? "",
+        issuerId: supply.issuer ? supply.issuer.id : "",
+        issuerName: supply.issuer?.name ?? supply.issuerName ?? "",
+        supplierId: supply.supplier ? supply.supplier.id : "",
+        supplierName: supply.supplier?.name ?? supply.supplierName ?? "",
+        shipDateFromJS: toDateInput(supply.shipDateFromJS),
+        receiverId: supply.receiver ? supply.receiver.id : "",
+        receiverName: supply.receiver?.name ?? supply.receiverName ?? "",
+        receiptDateAtSupplier: toDateInput(supply.receiptDateAtSupplier),
+        outsourceReceiverId: supply.outsourceReceiver ? supply.outsourceReceiver.id : "",
+        outsourceReceiverName: supply.outsourceReceiver?.name ?? supply.outsourceReceiverName ?? "",
+        issueDate: toDateInput(supply.issueDate),
+        isHold: supply.isHold,
+        holdDeadline: toDateInput(supply.holdDeadline),
+        mailSentFlag: supply.mailSentFlag,
+        notes: supply.notes ?? "",
+      }
+    }
+    return initialForm
+  })
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState("")
 
   const set = (key: keyof FormData, value: string | boolean) =>
@@ -207,34 +215,36 @@ function NewSupplyModal({
     setSaving(true)
     setError("")
     try {
-      const res = await fetch("/api/ssss/supplies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productCode: form.productCode,
-          orderNo: form.orderNo,
-          partName: form.partName,
-          qtyShizuokaToTokyo: parseInt(form.qtyShizuokaToTokyo) || 0,
-          qtyTokyoToOutsource: parseInt(form.qtyTokyoToOutsource) || 0,
-          qtyTokyoStock: parseInt(form.qtyTokyoStock) || 0,
-          companyId: form.companyId ? parseInt(form.companyId) : null,
-          companyName: form.companyName || null,
-          issuerId: form.issuerId || null,
-          issuerName: form.issuerName || null,
-          supplierId: form.supplierId || null,
-          supplierName: form.supplierName || null,
-          receiverId: form.receiverId || null,
-          receiverName: form.receiverName || null,
-          outsourceReceiverId: form.outsourceReceiverId || null,
-          outsourceReceiverName: form.outsourceReceiverName || null,
-          issueDate: form.issueDate || null,
-          isHold: form.isHold,
-          holdDeadline: form.holdDeadline || null,
-          notes: form.notes || null,
-        }),
-      })
-      if (!res.ok) throw new Error("作成に失敗しました")
-      onCreated()
+      const body = {
+        productCode: form.productCode,
+        orderNo: form.orderNo,
+        partName: form.partName,
+        qtyShizuokaToTokyo: parseInt(form.qtyShizuokaToTokyo) || 0,
+        qtyTokyoToOutsource: parseInt(form.qtyTokyoToOutsource) || 0,
+        qtyTokyoStock: parseInt(form.qtyTokyoStock) || 0,
+        companyId: form.companyId ? parseInt(form.companyId) : null,
+        companyName: form.companyName || null,
+        issuerId: form.issuerId || null,
+        issuerName: form.issuerName || null,
+        supplierId: form.supplierId || null,
+        supplierName: form.supplierName || null,
+        shipDateFromJS: form.shipDateFromJS || null,
+        receiverId: form.receiverId || null,
+        receiverName: form.receiverName || null,
+        receiptDateAtSupplier: form.receiptDateAtSupplier || null,
+        outsourceReceiverId: form.outsourceReceiverId || null,
+        outsourceReceiverName: form.outsourceReceiverName || null,
+        issueDate: form.issueDate || null,
+        isHold: form.isHold,
+        holdDeadline: form.holdDeadline || null,
+        mailSentFlag: form.mailSentFlag,
+        notes: form.notes || null,
+      }
+      const res = mode === "new"
+        ? await fetch("/api/ssss/supplies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        : await fetch(`/api/ssss/supplies/${supply!.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      if (!res.ok) throw new Error("保存に失敗しました")
+      onSaved()
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : "エラーが発生しました")
@@ -243,61 +253,49 @@ function NewSupplyModal({
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm(`No.${supply!.serialCode} を削除しますか？`)) return
+    setDeleting(true)
+    await fetch(`/api/ssss/supplies/${supply!.id}`, { method: "DELETE" })
+    onDeleted?.()
+    onClose()
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-base font-bold text-gray-900">新規支給登録</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <h2 className="text-base font-bold text-gray-900">
+              {mode === "new" ? "新規支給登録" : `編集 — ${supply?.serialCode}`}
+            </h2>
+            {mode === "edit" && supply && (
+              <p className="text-xs text-gray-400 mt-0.5">発行日: {fmtDate(supply.issueDate)}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">
-              {error}
-            </div>
-          )}
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">{error}</div>}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                品番<span className="text-red-500 ml-0.5">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.productCode}
-                onChange={e => set("productCode", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例: TKCA91701"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">品番<span className="text-red-500 ml-0.5">*</span></label>
+              <input type="text" value={form.productCode} onChange={e => set("productCode", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: TKCA91701" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                受注No<span className="text-red-500 ml-0.5">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.orderNo}
-                onChange={e => set("orderNo", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例: 0742809-00"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">受注No<span className="text-red-500 ml-0.5">*</span></label>
+              <input type="text" value={form.orderNo} onChange={e => set("orderNo", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: 0742809-00" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              貼り付けパーツ<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="text"
-              value={form.partName}
-              onChange={e => set("partName", e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="例: ラベル"
-            />
+            <label className="block text-xs font-medium text-gray-600 mb-1">貼り付けパーツ<span className="text-red-500 ml-0.5">*</span></label>
+            <input type="text" value={form.partName} onChange={e => set("partName", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: ラベル" />
           </div>
 
           <div>
@@ -310,120 +308,107 @@ function NewSupplyModal({
               ].map(({ key, label }) => (
                 <div key={key}>
                   <div className="text-xs text-gray-500 mb-1 text-center">{label}</div>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form[key] as string}
-                    onChange={e => set(key, e.target.value)}
-                    className="w-full px-3 py-2 text-sm text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0"
-                  />
+                  <input type="number" min="0" value={form[key] as string} onChange={e => set(key, e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" />
                 </div>
               ))}
             </div>
           </div>
 
-          <ComboField
-            label="支給先会社"
-            masterId={form.companyId}
-            masterName={form.companyName}
-            onChangeId={v => set("companyId", v)}
-            onChangeName={v => set("companyName", v)}
-            options={masters.companies}
-            placeholder="または直接入力"
-          />
+          <ComboField label="支給先会社" masterId={form.companyId} masterName={form.companyName}
+            onChangeId={v => set("companyId", v)} onChangeName={v => set("companyName", v)}
+            options={masters.companies} placeholder="または直接入力" />
 
           <div className="grid grid-cols-2 gap-4">
-            <ComboField
-              label="JS起票者"
-              masterId={form.issuerId}
-              masterName={form.issuerName}
-              onChangeId={v => set("issuerId", v)}
-              onChangeName={v => set("issuerName", v)}
-              options={masters.issuers}
-            />
-            <ComboField
-              label="JS支給者"
-              masterId={form.supplierId}
-              masterName={form.supplierName}
-              onChangeId={v => set("supplierId", v)}
-              onChangeName={v => set("supplierName", v)}
-              options={masters.suppliers}
-            />
-            <ComboField
-              label="JS受領者"
-              masterId={form.receiverId}
-              masterName={form.receiverName}
-              onChangeId={v => set("receiverId", v)}
-              onChangeName={v => set("receiverName", v)}
-              options={masters.receivers}
-            />
-            <ComboField
-              label="外注受領担当"
-              masterId={form.outsourceReceiverId}
-              masterName={form.outsourceReceiverName}
-              onChangeId={v => set("outsourceReceiverId", v)}
-              onChangeName={v => set("outsourceReceiverName", v)}
-              options={masters.outsourceReceivers}
-            />
+            <ComboField label="JS起票者" masterId={form.issuerId} masterName={form.issuerName}
+              onChangeId={v => set("issuerId", v)} onChangeName={v => set("issuerName", v)} options={masters.issuers} />
+            <div className="space-y-1">
+              <ComboField label="JS支給者" masterId={form.supplierId} masterName={form.supplierName}
+                onChangeId={v => set("supplierId", v)} onChangeName={v => set("supplierName", v)} options={masters.suppliers} />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">JS支給出荷日</label>
+                <input type="date" value={form.shipDateFromJS} onChange={e => set("shipDateFromJS", e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <ComboField label="JS受領者" masterId={form.receiverId} masterName={form.receiverName}
+                onChangeId={v => set("receiverId", v)} onChangeName={v => set("receiverName", v)} options={masters.receivers} />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">支給先受領日</label>
+                <input type="date" value={form.receiptDateAtSupplier} onChange={e => set("receiptDateAtSupplier", e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <ComboField label="外注受領担当" masterId={form.outsourceReceiverId} masterName={form.outsourceReceiverName}
+              onChangeId={v => set("outsourceReceiverId", v)} onChangeName={v => set("outsourceReceiverName", v)} options={masters.outsourceReceivers} />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">発行日</label>
-            <input
-              type="date"
-              value={form.issueDate}
-              onChange={e => set("issueDate", e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">発行日</label>
+              <input type="date" value={form.issueDate} onChange={e => set("issueDate", e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">メール送信</label>
+              <div className="flex gap-2 mt-1">
+                {["未", "済"].map(v => (
+                  <button key={v} type="button" onClick={() => set("mailSentFlag", v)}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      form.mailSentFlag === v
+                        ? v === "済" ? "bg-blue-600 text-white border-blue-600" : "bg-gray-100 text-gray-700 border-gray-300"
+                        : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"
+                    }`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isHold}
-                onChange={e => set("isHold", e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
+              <input type="checkbox" checked={form.isHold} onChange={e => set("isHold", e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
               <span className="text-sm text-gray-700">保留</span>
             </label>
             {form.isHold && (
               <div className="flex items-center gap-2 flex-1">
                 <label className="text-xs text-gray-500 whitespace-nowrap">保留期限</label>
-                <input
-                  type="date"
-                  value={form.holdDeadline}
-                  onChange={e => set("holdDeadline", e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="date" value={form.holdDeadline} onChange={e => set("holdDeadline", e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             )}
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">備考</label>
-            <textarea
-              value={form.notes}
-              onChange={e => set("notes", e.target.value)}
-              rows={3}
+            <textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={3}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="メモがあれば入力..."
-            />
+              placeholder="メモがあれば入力..." />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium">
-            キャンセル
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
-          >
-            {saving ? "登録中..." : "登録する"}
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+          <div>
+            {mode === "edit" && (
+              <button onClick={handleDelete} disabled={deleting}
+                className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium disabled:opacity-50">
+                <Trash2 className="w-4 h-4" />
+                削除
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium">
+              キャンセル
+            </button>
+            <button onClick={handleSubmit} disabled={saving}
+              className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm">
+              {saving ? "保存中..." : mode === "new" ? "登録する" : "保存する"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -436,7 +421,8 @@ export default function SealSupplyListPage() {
   const [fetching, setFetching] = useState(true)
   const [search, setSearch] = useState("")
   const [holdFilter, setHoldFilter] = useState<"all" | "hold" | "normal">("all")
-  const [showModal, setShowModal] = useState(false)
+  const [modalMode, setModalMode] = useState<"new" | "edit" | null>(null)
+  const [selectedSupply, setSelectedSupply] = useState<SealSupply | null>(null)
   const [masters, setMasters] = useState<MasterData>({ companies: [], issuers: [], suppliers: [], receivers: [], outsourceReceivers: [] })
 
   const fetchItems = useCallback(async () => {
@@ -455,7 +441,7 @@ export default function SealSupplyListPage() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
-  const openModal = async () => {
+  const loadMasters = async () => {
     const [companies, issuers, suppliers, receivers, outsourceReceivers] = await Promise.all([
       fetch("/api/ssss/companies").then(r => r.json()),
       fetch("/api/ssss/staffs?role=issuer").then(r => r.json()),
@@ -464,7 +450,18 @@ export default function SealSupplyListPage() {
       fetch("/api/ssss/staffs?role=outsourceReceiver").then(r => r.json()),
     ])
     setMasters({ companies, issuers, suppliers, receivers, outsourceReceivers })
-    setShowModal(true)
+  }
+
+  const openNew = async () => {
+    await loadMasters()
+    setSelectedSupply(null)
+    setModalMode("new")
+  }
+
+  const openEdit = async (item: SealSupply) => {
+    await loadMasters()
+    setSelectedSupply(item)
+    setModalMode("edit")
   }
 
   return (
@@ -475,34 +472,24 @@ export default function SealSupplyListPage() {
             <h1 className="text-xl font-bold text-gray-900">支給管理一覧</h1>
             <p className="text-xs text-gray-400 mt-0.5">全 {total.toLocaleString()} 件</p>
           </div>
-          <button
-            onClick={openModal}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            新規作成
+          <button onClick={openNew}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+            <Plus className="w-4 h-4" />新規作成
           </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="品番・受注No・パーツ・支給先..."
-              value={search}
+            <input type="text" placeholder="品番・受注No・パーツ・支給先..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {(["all", "normal", "hold"] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setHoldFilter(f)}
+              <button key={f} onClick={() => setHoldFilter(f)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   holdFilter === f ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
+                }`}>
                 {f === "all" ? "すべて" : f === "hold" ? "保留のみ" : "通常のみ"}
               </button>
             ))}
@@ -513,9 +500,7 @@ export default function SealSupplyListPage() {
       <div className="flex-1 overflow-auto px-6 py-4">
         {fetching ? (
           <div className="space-y-2">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-16 bg-white rounded-lg animate-pulse border border-gray-100" />
-            ))}
+            {[...Array(8)].map((_, i) => <div key={i} className="h-16 bg-white rounded-lg animate-pulse border border-gray-100" />)}
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-gray-400">
@@ -546,7 +531,8 @@ export default function SealSupplyListPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {items.map(item => (
-                    <tr key={item.id} className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${item.isHold ? "bg-amber-50/60" : ""}`}>
+                    <tr key={item.id} onClick={() => openEdit(item)}
+                      className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${item.isHold ? "bg-amber-50/60" : ""}`}>
                       <td className="px-3 py-3 text-center">
                         {item.isHold && (
                           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100">
@@ -598,10 +584,8 @@ export default function SealSupplyListPage() {
                         </div>
                       </td>
                       <td className="px-3 py-3 text-center">
-                        <button
-                          onClick={e => e.stopPropagation()}
-                          className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-1 transition-colors whitespace-nowrap"
-                        >
+                        <button onClick={e => e.stopPropagation()}
+                          className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-1 transition-colors whitespace-nowrap">
                           送り状
                         </button>
                       </td>
@@ -614,10 +598,13 @@ export default function SealSupplyListPage() {
         )}
       </div>
 
-      {showModal && (
-        <NewSupplyModal
-          onClose={() => setShowModal(false)}
-          onCreated={fetchItems}
+      {modalMode && (
+        <SupplyModal
+          mode={modalMode}
+          supply={selectedSupply ?? undefined}
+          onClose={() => { setModalMode(null); setSelectedSupply(null) }}
+          onSaved={fetchItems}
+          onDeleted={fetchItems}
           masters={masters}
         />
       )}
