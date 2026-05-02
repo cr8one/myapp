@@ -5,21 +5,21 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const all = searchParams.get("all") === "1"
 
-  const companies = await prisma.sealSupplyCompany.findMany({
+  const parts = await prisma.sealSupplyPartMaster.findMany({
     where: all ? {} : { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   })
-  return NextResponse.json(companies)
+  return NextResponse.json(parts)
 }
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const company = await prisma.sealSupplyCompany.create({
+  const part = await prisma.sealSupplyPartMaster.create({
     data: {
       name: body.name,
       sortOrder: body.sortOrder ?? 0,
       isActive: body.isActive ?? true,
     },
   })
-  return NextResponse.json(company, { status: 201 })
+  return NextResponse.json(part, { status: 201 })
 }

@@ -4,6 +4,7 @@ import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2 } from "lucide-
 
 type Staff = { id: string; name: string }
 type Company = { id: number; name: string }
+type Part = { id: number; name: string }
 type SealSupply = {
   id: number
   serialCode: string
@@ -149,6 +150,7 @@ function InputField({ label, required, value, onChange, placeholder, type = "tex
 
 type MasterData = {
   companies: Company[]
+  parts: Part[]
   issuers: Staff[]
   suppliers: Staff[]
   receivers: Staff[]
@@ -182,6 +184,16 @@ function SupplyModal({ mode, supply, onClose, onSaved, onDeleted, masters }: {
     }
     return initialForm
   })
+
+  // パーツのマスタID管理（partNameはテキストで保持、IDは選択時のみ使用）
+  const [partMasterId, setPartMasterId] = useState(() => {
+    if (mode === "edit" && supply) {
+      const matched = masters.parts.find(p => p.name === supply.partName)
+      return matched ? String(matched.id) : ""
+    }
+    return ""
+  })
+
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState("")
@@ -229,14 +241,12 @@ function SupplyModal({ mode, supply, onClose, onSaved, onDeleted, masters }: {
     if (!confirm(`No.${supply!.serialCode} を削除しますか？`)) return
     setDeleting(true)
     await fetch(`/api/ssss/supplies/${supply!.id}`, { method: "DELETE" })
-    onDeleted?.(); onClose()
-    setDeleting(false)
+    onDeleted?.(); onClose(); setDeleting(false)
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col">
-        {/* ヘッダー */}
         <div className="flex items-center justify-between px-6 py-3 border-b bg-gray-50 rounded-t-2xl">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-bold text-gray-900">
@@ -256,7 +266,15 @@ function SupplyModal({ mode, supply, onClose, onSaved, onDeleted, masters }: {
           <div className="grid grid-cols-4 gap-3 mb-4">
             <InputField label="品番 *" required value={form.productCode} onChange={v => set("productCode", v)} placeholder="例: TKCA91701" />
             <InputField label="受注No *" required value={form.orderNo} onChange={v => set("orderNo", v)} placeholder="例: 0742809-00" />
-            <InputField label="貼り付けパーツ *" required value={form.partName} onChange={v => set("partName", v)} placeholder="例: ラベル" />
+            <ComboField
+              label="貼り付けパーツ *" required
+              masterId={partMasterId}
+              masterName={form.partName}
+              onChangeId={v => setPartMasterId(v)}
+              onChangeName={v => set("partName", v)}
+              options={masters.parts}
+              placeholder="直接入力可"
+            />
             <InputField label="発行日" type="date" value={form.issueDate} onChange={v => set("issueDate", v)} />
           </div>
 
@@ -316,16 +334,14 @@ function SupplyModal({ mode, supply, onClose, onSaved, onDeleted, masters }: {
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">保留</label>
               <label className="flex items-center gap-2 cursor-pointer mt-2">
-                <input type="checkbox" checked={form.isHold}
-                  onChange={e => set("isHold", e.target.checked)}
+                <input type="checkbox" checked={form.isHold} onChange={e => set("isHold", e.target.checked)}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <span className="text-sm text-gray-700">保留中にする</span>
               </label>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">保留期限</label>
-              <input type="date" value={form.holdDeadline}
-                onChange={e => set("holdDeadline", e.target.value)}
+              <input type="date" value={form.holdDeadline} onChange={e => set("holdDeadline", e.target.value)}
                 disabled={!form.isHold}
                 className={`w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${!form.isHold ? "opacity-40 cursor-not-allowed bg-gray-50" : ""}`} />
             </div>
@@ -340,7 +356,6 @@ function SupplyModal({ mode, supply, onClose, onSaved, onDeleted, masters }: {
           </div>
         </div>
 
-        {/* フッター */}
         <div className="flex items-center justify-between px-6 py-3 border-t bg-gray-50 rounded-b-2xl">
           <div>
             {mode === "edit" && (
@@ -371,7 +386,9 @@ export default function SealSupplyListPage() {
   const [holdFilter, setHoldFilter] = useState<"all" | "hold" | "normal">("all")
   const [modalMode, setModalMode] = useState<"new" | "edit" | null>(null)
   const [selectedSupply, setSelectedSupply] = useState<SealSupply | null>(null)
-  const [masters, setMasters] = useState<MasterData>({ companies: [], issuers: [], suppliers: [], receivers: [], outsourceReceivers: [] })
+  const [masters, setMasters] = useState<MasterData>({
+    companies: [], parts: [], issuers: [], suppliers: [], receivers: [], outsourceReceivers: []
+  })
 
   const fetchItems = useCallback(async () => {
     setFetching(true)
@@ -390,14 +407,15 @@ export default function SealSupplyListPage() {
   useEffect(() => { fetchItems() }, [fetchItems])
 
   const loadMasters = async () => {
-    const [companies, issuers, suppliers, receivers, outsourceReceivers] = await Promise.all([
+    const [companies, parts, issuers, suppliers, receivers, outsourceReceivers] = await Promise.all([
       fetch("/api/ssss/companies").then(r => r.json()),
+      fetch("/api/ssss/parts").then(r => r.json()),
       fetch("/api/ssss/staffs?role=issuer").then(r => r.json()),
       fetch("/api/ssss/staffs?role=supplier").then(r => r.json()),
       fetch("/api/ssss/staffs?role=receiver").then(r => r.json()),
       fetch("/api/ssss/staffs?role=outsourceReceiver").then(r => r.json()),
     ])
-    setMasters({ companies, issuers, suppliers, receivers, outsourceReceivers })
+    setMasters({ companies, parts, issuers, suppliers, receivers, outsourceReceivers })
   }
 
   const openNew = async () => { await loadMasters(); setSelectedSupply(null); setModalMode("new") }

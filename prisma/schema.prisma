@@ -45,6 +45,10 @@ model UserPermission {
   ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")
   ssssIsReceiver          Boolean @default(false) @map("ssss_is_receiver")
   ssssIsOutsourceReceiver Boolean @default(false) @map("ssss_is_outsource_receiver")
+  ssssIssuerOrder            Int @default(0) @map("ssss_issuer_order")
+  ssssSupplierOrder          Int @default(0) @map("ssss_supplier_order")
+  ssssReceiverOrder          Int @default(0) @map("ssss_receiver_order")
+  ssssOutsourceReceiverOrder Int @default(0) @map("ssss_outsource_receiver_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
   @@map("user_permissions")
@@ -228,65 +232,63 @@ model SealSerialConfig {
   increment Int      @default(1)
   prefix    String?
   updatedAt DateTime @updatedAt @map("updated_at")
-
   @@map("seal_serial_configs")
 }
 
 model SealSupplyCompany {
   id        Int          @id @default(autoincrement())
   name      String       @unique
+  sortOrder Int          @default(0) @map("sort_order")
   isActive  Boolean      @default(true) @map("is_active")
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
   supplies  SealSupply[]
-
   @@map("seal_supply_companies")
+}
+
+model SealSupplyPartMaster {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("seal_supply_part_masters")
 }
 
 model SealSupply {
   id           Int      @id @default(autoincrement())
   serialCode   String   @unique @map("serial_code")
-
   isHold       Boolean  @default(false) @map("is_hold")
   holdDeadline DateTime? @map("hold_deadline")
-
   issueDate    DateTime @default(now()) @map("issue_date")
   productCode  String   @map("product_code")
   orderNo      String   @map("order_no")
   partName     String   @map("part_name")
-
   qtyShizuokaToTokyo   Int @default(0) @map("qty_shizuoka_to_tokyo")
   qtyTokyoToOutsource  Int @default(0) @map("qty_tokyo_to_outsource")
   qtyTokyoStock        Int @default(0) @map("qty_tokyo_stock")
-
   companyId   Int?    @map("company_id")
   company     SealSupplyCompany? @relation(fields: [companyId], references: [id])
   companyName String? @map("company_name")
-
   issuerId   String? @map("issuer_id")
   issuer     User?   @relation("SealIssuer", fields: [issuerId], references: [id])
   issuerName String? @map("issuer_name")
-
   supplierId   String? @map("supplier_id")
   supplier     User?   @relation("SealSupplier", fields: [supplierId], references: [id])
   supplierName String? @map("supplier_name")
   shipDateFromJS DateTime? @map("ship_date_from_js")
-
   receiverId   String? @map("receiver_id")
   receiver     User?   @relation("SealReceiver", fields: [receiverId], references: [id])
   receiverName String? @map("receiver_name")
   receiptDateAtSupplier DateTime? @map("receipt_date_at_supplier")
-
   outsourceReceiverId   String? @map("outsource_receiver_id")
   outsourceReceiver     User?   @relation("SealOutsourceReceiver", fields: [outsourceReceiverId], references: [id])
   outsourceReceiverName String? @map("outsource_receiver_name")
-
   mailSentFlag String   @default("未") @map("mail_sent_flag")
   notes        String?
   department   String?
-
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
   @@map("seal_supplies")
 }

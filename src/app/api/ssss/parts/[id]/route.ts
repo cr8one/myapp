@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await request.json()
-  const company = await prisma.sealSupplyCompany.update({
+  const part = await prisma.sealSupplyPartMaster.update({
     where: { id: parseInt(id) },
     data: {
       name: body.name,
@@ -12,11 +12,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       isActive: body.isActive ?? true,
     },
   })
-  return NextResponse.json(company)
+  return NextResponse.json(part)
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  await prisma.sealSupplyCompany.delete({ where: { id: parseInt(id) } })
+  await prisma.sealSupplyPartMaster.delete({ where: { id: parseInt(id) } })
   return NextResponse.json({ success: true })
 }
