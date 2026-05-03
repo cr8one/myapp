@@ -1,13 +1,9 @@
 "use client"
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer"
-
-Font.register({
-  family: "NotoSansJP",
-  src: "https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj757t7RCQjTn.woff2",
-})
+import { useEffect } from "react"
+import { usePDF, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "NotoSansJP", padding: 30, fontSize: 10 },
+  page: { padding: 30, fontSize: 10 },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
   companyName: { fontSize: 14, fontWeight: "bold" },
   honorific: { fontSize: 12, fontWeight: "bold" },
@@ -24,16 +20,18 @@ const styles = StyleSheet.create({
   logoArea: { alignItems: "flex-end", marginBottom: 4 },
   companyLogo: { fontSize: 10 },
   supplierLine: { fontSize: 9, textAlign: "right" },
-  cutLine: { borderBottom: 1, borderStyle: "dashed", borderColor: "#aaa", marginVertical: 16, textAlign: "center" },
   cutText: { fontSize: 8, color: "#aaa", textAlign: "center", marginBottom: 4 },
+  cutLine: { borderBottom: 1, borderStyle: "dashed", borderColor: "#aaa", marginBottom: 16 },
   receiptHeader: { marginBottom: 12 },
-  receiptName: { fontSize: 11, fontWeight: "bold", borderBottom: 1, borderColor: "#000", width: 120 },
-  signTable: { marginLeft: "auto", borderTop: 1, borderLeft: 1, borderColor: "#999" },
+  receiptNameRow: { flexDirection: "row", alignItems: "flex-end" },
+  receiptName: { fontSize: 11, fontWeight: "bold", borderBottom: 1, borderColor: "#000" },
+  receiptSuffix: { fontSize: 9, marginLeft: 4, marginBottom: 2 },
+  rightAlign: { alignItems: "flex-end" },
+  destCompany: { fontSize: 11, fontWeight: "bold", marginBottom: 8 },
+  signTable: { borderTop: 1, borderLeft: 1, borderColor: "#999" },
   signRow: { flexDirection: "row", borderBottom: 1, borderColor: "#999" },
   signLabel: { width: 50, backgroundColor: "#f5f5f5", borderRight: 1, borderColor: "#999", padding: 5 },
   signValue: { width: 100, padding: 5 },
-  rightAlign: { alignItems: "flex-end" },
-  destCompany: { fontSize: 11, fontWeight: "bold", marginBottom: 8 },
 })
 
 type PdfData = {
@@ -101,9 +99,9 @@ function SlipDocument({ data }: { data: PdfData }) {
         {/* 受領書 */}
         <View style={styles.receiptHeader}>
           <Text style={styles.companyLogo}>株式会社 ジャパン・スリーブ</Text>
-          <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+          <View style={styles.receiptNameRow}>
             <Text style={styles.receiptName}>{data.supplierName}</Text>
-            <Text style={{ fontSize: 9, marginLeft: 4, marginBottom: 2 }}>様</Text>
+            <Text style={styles.receiptSuffix}>様</Text>
           </View>
         </View>
 
@@ -142,20 +140,28 @@ function SlipDocument({ data }: { data: PdfData }) {
 }
 
 export default function PdfDownloadButton({ data, onExported }: { data: PdfData; onExported: () => void }) {
+  const [instance, updateInstance] = usePDF({ document: <SlipDocument data={data} /> })
+
+  useEffect(() => {
+    updateInstance(<SlipDocument data={data} />)
+  }, [data, updateInstance])
+
+  const handleClick = () => {
+    if (!instance.url) return
+    const link = document.createElement("a")
+    link.href = instance.url
+    link.download = `送り状_${data.serialCode}.pdf`
+    link.click()
+    setTimeout(onExported, 500)
+  }
+
   return (
-    <PDFDownloadLink
-      document={<SlipDocument data={data} />}
-      fileName={`送り状_${data.serialCode}.pdf`}
-      onClick={() => setTimeout(onExported, 1000)}
+    <button
+      onClick={handleClick}
+      disabled={instance.loading}
+      className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors disabled:opacity-50"
     >
-      {({ loading }) => (
-        <button
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? "準備中..." : "📄 PDF出力"}
-        </button>
-      )}
-    </PDFDownloadLink>
+      {instance.loading ? "準備中..." : "📄 PDF出力"}
+    </button>
   )
 }
