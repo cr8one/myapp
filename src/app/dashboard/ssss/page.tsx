@@ -1,9 +1,20 @@
-export default function SsssPage() {
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import { prisma } from "@/lib/prisma"
+import SsssDashboardClient from "./SsssDashboardClient"
+
+export default async function SsssDashboardPage() {
+  const session = await auth()
+  if (!session) redirect("/login")
+
+  const [supplyCount, holdCount, companyCount, partCount] = await Promise.all([
+    prisma.sealSupply.count(),
+    prisma.sealSupply.count({ where: { isHold: true } }),
+    prisma.sealSupplyCompany.count({ where: { isActive: true } }),
+    prisma.sealSupplyPartMaster.count({ where: { isActive: true } }),
+  ])
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-2">SSSS</h1>
-      <p className="text-gray-500">Sample Seal Supply System（サンプルシール支給システム）</p>
-      <p className="mt-6 text-sm text-gray-400">コンテンツは準備中です。</p>
-    </div>
+    <SsssDashboardClient stats={{ supplyCount, holdCount, companyCount, partCount }} />
   )
 }
