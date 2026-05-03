@@ -28,6 +28,7 @@ model User {
   suppliesAsSupplier          SealSupply[] @relation("SealSupplier")
   suppliesAsReceiver          SealSupply[] @relation("SealReceiver")
   suppliesAsOutsourceReceiver SealSupply[] @relation("SealOutsourceReceiver")
+  suppliesAsSalesPerson       SealSupply[] @relation("SealSalesPerson")
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -285,9 +286,14 @@ model SealSupply {
   outsourceReceiverId   String? @map("outsource_receiver_id")
   outsourceReceiver     User?   @relation("SealOutsourceReceiver", fields: [outsourceReceiverId], references: [id])
   outsourceReceiverName String? @map("outsource_receiver_name")
+  salesDepartment  String? @map("sales_department")
+  salesPersonId    String? @map("sales_person_id")
+  salesPerson      User?   @relation("SealSalesPerson", fields: [salesPersonId], references: [id])
+  salesPersonName  String? @map("sales_person_name")
   mailSentFlag String   @default("未") @map("mail_sent_flag")
   notes        String?
   department   String?
+  pdfExportedAt DateTime? @map("pdf_exported_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("seal_supplies")

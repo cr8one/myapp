@@ -5,7 +5,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params
   const supply = await prisma.sealSupply.findUnique({
     where: { id: parseInt(id) },
-    include: { company: true, issuer: true, supplier: true, receiver: true, outsourceReceiver: true },
+    include: { company: true, issuer: true, supplier: true, receiver: true, outsourceReceiver: true, salesPerson: true },
   })
   if (!supply) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(supply)
@@ -29,21 +29,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       qtyTokyoStock: body.qtyTokyoStock,
       companyId: body.companyId ?? null,
       companyName: body.companyName || null,
-      issuerId: body.issuerId ?? null,
+      issuerId: body.issuerId || null,
       issuerName: body.issuerName || null,
-      supplierId: body.supplierId ?? null,
+      supplierId: body.supplierId || null,
       supplierName: body.supplierName || null,
       shipDateFromJS: body.shipDateFromJS ? new Date(body.shipDateFromJS) : null,
-      receiverId: body.receiverId ?? null,
+      receiverId: body.receiverId || null,
       receiverName: body.receiverName || null,
       receiptDateAtSupplier: body.receiptDateAtSupplier ? new Date(body.receiptDateAtSupplier) : null,
-      outsourceReceiverId: body.outsourceReceiverId ?? null,
+      outsourceReceiverId: body.outsourceReceiverId || null,
       outsourceReceiverName: body.outsourceReceiverName || null,
+      salesDepartment: body.salesDepartment || null,
+      salesPersonId: body.salesPersonId || null,
+      salesPersonName: body.salesPersonName || null,
       mailSentFlag: body.mailSentFlag,
       notes: body.notes || null,
       department: body.department || null,
+      ...(body.pdfExportedAt !== undefined && { pdfExportedAt: body.pdfExportedAt ? new Date(body.pdfExportedAt) : null }),
     },
-    include: { company: true, issuer: true, supplier: true, receiver: true, outsourceReceiver: true },
+    include: { company: true, issuer: true, supplier: true, receiver: true, outsourceReceiver: true, salesPerson: true },
   })
   return NextResponse.json(supply)
 }
