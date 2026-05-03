@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
+import Link from "next/link"
 import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2 } from "lucide-react"
 
 type Staff = { id: string; name: string }
