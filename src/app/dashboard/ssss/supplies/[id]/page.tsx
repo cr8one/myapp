@@ -1,6 +1,9 @@
 "use client"
 import { useEffect, useState, useCallback, use } from "react"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
+
+const PdfDownloadButton = dynamic(() => import("./PdfDownloadButton"), { ssr: false })
 
 type User = { id: string; name: string; department?: string }
 type SealSupply = {
@@ -39,7 +42,6 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
   const [selectedDept, setSelectedDept] = useState("")
   const [selectedUserId, setSelectedUserId] = useState("")
   const [selectedUserName, setSelectedUserName] = useState("")
-  const [saving, setSaving] = useState(false)
 
   const fetchSupply = useCallback(async () => {
     const res = await fetch(`/api/ssss/supplies/${id}`)
@@ -89,8 +91,7 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
     setSelectedUserName(user?.name ?? "")
   }
 
-  const handleSaveAndPrint = async () => {
-    setSaving(true)
+  const handlePdfExported = async () => {
     const now = new Date().toISOString()
     await fetch(`/api/ssss/supplies/${id}`, {
       method: "PATCH",
@@ -107,9 +108,7 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
         qtyTokyoStock: 0,
       }),
     })
-    await fetchSupply()
-    setSaving(false)
-    window.print()
+    fetchSupply()
   }
 
   if (!supply) return <div className="p-8 text-gray-400">読み込み中...</div>
@@ -117,63 +116,42 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
   const companyName = supply.company?.name ?? supply.companyName ?? ""
   const supplierName = supply.supplier?.name ?? supply.supplierName ?? ""
 
+  const pdfData = {
+    serialCode: supply.serialCode,
+    issueDate: fmtDate(supply.issueDate),
+    productCode: supply.productCode,
+    orderNo: supply.orderNo,
+    partName: supply.partName,
+    qty: supply.qtyTokyoToOutsource,
+    companyName,
+    supplierName,
+    salesDepartment: selectedDept,
+    salesPersonName: selectedUserName,
+  }
+
   return (
-    <>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { margin: 0; }
-        }
-        @page { size: A4; margin: 15mm; }
-      `}</style>
-
-      {/* 右上固定パネル */}
-      <div className="no-print fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-80">
-        <p className="text-xs font-semibold text-gray-600 mb-3">JS営業担当者</p>
-        <div className="space-y-2 mb-4">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">部署</label>
-            <select value={selectedDept} onChange={e => handleDeptChange(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">選択してください</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          {selectedDept && (
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">担当者</label>
-              <select value={selectedUserId} onChange={e => handleUserChange(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">選択してください</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            </div>
+    <div className="min-h-screen bg-gray-100 py-8">
+      {/* 操作バー */}
+      <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between">
+        <button onClick={() => router.back()}
+          className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors">
+          ← 戻る
+        </button>
+        <div className="flex items-center gap-3">
+          {supply.pdfExportedAt && (
+            <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+              ✓ 出力済み：{fmtDateTime(supply.pdfExportedAt)}
+            </span>
           )}
-        </div>
-
-        {supply.pdfExportedAt && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-xs px-3 py-2 rounded-lg mb-3">
-            ✓ 出力済み：{fmtDateTime(supply.pdfExportedAt)}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button onClick={() => router.back()}
-            className="flex-1 py-2 text-sm border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors">
-            ← 戻る
-          </button>
-          <button onClick={handleSaveAndPrint} disabled={saving}
-            className="flex-1 py-2 text-sm bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-lg transition-colors disabled:opacity-50">
-            {saving ? "保存中..." : "🖨 PDF出力"}
-          </button>
+          <PdfDownloadButton data={pdfData} onExported={handlePdfExported} />
         </div>
       </div>
 
-      {/* 印刷コンテンツ */}
-      <div className="max-w-[210mm] mx-auto bg-white p-8 min-h-screen">
+      {/* 送り状プレビュー */}
+      <div className="max-w-[210mm] mx-auto bg-white shadow-lg p-10">
 
         {/* ===== 上半分：送り状 ===== */}
-        <div style={{ minHeight: "45%" }}>
+        <div className="mb-2">
           <div className="flex justify-between items-start mb-6">
             <div>
               <p className="text-xl font-bold">{companyName}</p>
@@ -205,8 +183,23 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
                 <td className="border border-gray-400 px-4 py-2 text-center font-medium w-36 bg-gray-50">JS営業担当者</td>
                 <td className="border border-gray-400 p-0">
                   <div className="flex">
-                    <div className="flex-1 px-4 py-2 border-r border-gray-400">{selectedDept}</div>
-                    <div className="flex-1 px-4 py-2">{selectedUserName}</div>
+                    {/* 部署選択 - 直接インライン */}
+                    <div className="flex-1 border-r border-gray-400">
+                      <select value={selectedDept} onChange={e => handleDeptChange(e.target.value)}
+                        className="w-full h-full px-3 py-2 text-sm bg-transparent focus:outline-none focus:bg-blue-50">
+                        <option value="">部署を選択</option>
+                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    {/* 担当者選択 - 直接インライン */}
+                    <div className="flex-1">
+                      <select value={selectedUserId} onChange={e => handleUserChange(e.target.value)}
+                        className="w-full h-full px-3 py-2 text-sm bg-transparent focus:outline-none focus:bg-blue-50"
+                        disabled={!selectedDept}>
+                        <option value="">担当者を選択</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -267,8 +260,8 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
                 <td className="border border-gray-400 px-4 py-2 text-center font-medium w-36 bg-gray-50">JS営業担当者</td>
                 <td className="border border-gray-400 p-0">
                   <div className="flex">
-                    <div className="flex-1 px-4 py-2 border-r border-gray-400">{selectedDept}</div>
-                    <div className="flex-1 px-4 py-2">{selectedUserName}</div>
+                    <div className="flex-1 px-4 py-2 border-r border-gray-400 text-sm">{selectedDept}</div>
+                    <div className="flex-1 px-4 py-2 text-sm">{selectedUserName}</div>
                   </div>
                 </td>
               </tr>
@@ -294,6 +287,6 @@ export default function SupplyPrintPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
