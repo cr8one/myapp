@@ -40,8 +40,9 @@ const menuItems = [
     href: "/dashboard/ssss",
     icon: "ssss",
     children: [
-      { label: "支給管理", href: "/dashboard/ssss/supplies" },
-      { label: "マスタ管理", href: "/dashboard/ssss/masters" },
+      { label: "支給管理表", href: "/dashboard/ssss/supplies" },
+      { label: "運用ルール", href: "/dashboard/ssss/rules" },
+      { label: "SSSSマスタ管理", href: "/dashboard/ssss/masters" },
     ],
   },
   {
