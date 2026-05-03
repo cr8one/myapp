@@ -11,20 +11,20 @@ type Stats = {
 }
 
 const cards = [
-  { label: "支給管理", key: "supplyCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: ClipboardList, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
-  { label: "保留中", key: "holdCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: AlertTriangle, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
-  { label: "支給先会社", key: "companyCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Building2, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
-  { label: "貼り付けパーツ", key: "partCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Tags, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
+  { label: "支給管理", key: "supplyCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: ClipboardList },
+  { label: "保留中", key: "holdCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: AlertTriangle },
+  { label: "支給先会社", key: "companyCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Building2 },
+  { label: "貼り付けパーツ", key: "partCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Tags },
 ]
 
 function SealIcon({ size, className }: { size: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <rect x="4" y="8" width="36" height="26" rx="3" fill="white" fillOpacity="0.25" stroke="white" strokeWidth="2"/>
+      <rect x="4" y="8" width="36" height="26" rx="3" fill="white" fillOpacity="0.3" stroke="white" strokeWidth="2"/>
       <line x1="10" y1="18" x2="34" y2="18" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="24" x2="28" y2="24" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="30" x2="22" y2="30" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-      <path d="M28 34 L40 34 L40 22 Z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M28 34 L40 34 L40 22 Z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
       <path d="M28 34 Q34 34 40 28" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   )
@@ -74,7 +74,7 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
             style={{
               width: logoSize,
               height: logoSize,
-              backgroundColor: "#ca8a04",
+              backgroundColor: "#eab308",
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
@@ -124,13 +124,16 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
             <Link
               key={card.key}
               href={card.href}
-              className={`group rounded-2xl border ${card.border} ${card.hover} bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5`}
+              className="group rounded-2xl border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              style={{ borderColor: "#fde68a" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "#fbbf24")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "#fde68a")}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`rounded-xl ${card.bg} p-2.5`}>
-                  <Icon className={`w-5 h-5 ${card.text}`} />
+                <div className="rounded-xl p-2.5" style={{ backgroundColor: "#fefce8" }}>
+                  <Icon className="w-5 h-5" style={{ color: "#ca8a04" }} />
                 </div>
-                <span className={`text-xs font-medium ${card.text} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#ca8a04" }}>
                   一覧を見る →
                 </span>
               </div>
