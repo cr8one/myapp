@@ -17,21 +17,19 @@ const cards = [
     href: "/dashboard/ssss/supplies",
     icon: ClipboardList,
     bg: "bg-yellow-50",
-    text: "text-yellow-700",
+    text: "text-yellow-600",
     border: "border-yellow-200",
     hover: "hover:border-yellow-400",
-    badge: null,
   },
   {
     label: "保留中",
     key: "holdCount" as keyof Stats,
     href: "/dashboard/ssss/supplies",
     icon: AlertTriangle,
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    border: "border-amber-200",
-    hover: "hover:border-amber-400",
-    badge: null,
+    bg: "bg-yellow-50",
+    text: "text-yellow-600",
+    border: "border-yellow-200",
+    hover: "hover:border-yellow-400",
   },
   {
     label: "支給先会社",
@@ -39,56 +37,31 @@ const cards = [
     href: "/dashboard/ssss/masters",
     icon: Building2,
     bg: "bg-yellow-50",
-    text: "text-yellow-700",
+    text: "text-yellow-600",
     border: "border-yellow-200",
     hover: "hover:border-yellow-400",
-    badge: null,
   },
   {
     label: "貼り付けパーツ",
     key: "partCount" as keyof Stats,
     href: "/dashboard/ssss/masters",
     icon: Tags,
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    border: "border-amber-200",
-    hover: "hover:border-amber-400",
-    badge: null,
+    bg: "bg-yellow-50",
+    text: "text-yellow-600",
+    border: "border-yellow-200",
+    hover: "hover:border-yellow-400",
   },
 ]
 
-// シールアイコン（右下が剥がれる）
 function SealIcon({ size, className }: { size: number; className?: string }) {
   return (
-    <svg
-      width={size} height={size}
-      viewBox="0 0 48 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      {/* シール本体（角丸長方形） */}
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <rect x="4" y="8" width="36" height="26" rx="3" fill="white" fillOpacity="0.25" stroke="white" strokeWidth="2"/>
-      {/* シール上の横線 */}
       <line x1="10" y1="18" x2="34" y2="18" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="24" x2="28" y2="24" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="30" x2="22" y2="30" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-      {/* 右下の剥がれ */}
-      <path
-        d="M28 34 L40 34 L40 22 Z"
-        fill="white"
-        fillOpacity="0.15"
-        stroke="white"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M28 34 Q34 34 40 28"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M28 34 L40 34 L40 22 Z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M28 34 Q34 34 40 28" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   )
 }
@@ -132,36 +105,31 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
 
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
-          {/* ロゴ */}
           <div
             className="relative flex items-center justify-center rounded-2xl shadow-lg flex-shrink-0 overflow-hidden"
             style={{
               width: logoSize,
               height: logoSize,
-              background: "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)",
+              background: "linear-gradient(135deg, #ca8a04 0%, #eab308 60%, #fde047 100%)",
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
             <div className={peelAnim ? "peel-anim" : ""}>
-              <SealIcon
-                size={phase >= 2 ? 30 : 42}
-                className="transition-all duration-500"
-              />
+              <SealIcon size={phase >= 2 ? 30 : 42} className="transition-all duration-500" />
             </div>
             {phase < 2 && (
-              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-300 ring-opacity-50 animate-ping" />
+              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-200 ring-opacity-60 animate-ping" />
             )}
           </div>
 
-          {/* テキスト */}
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl font-black tracking-tight text-gray-900">SSSS</span>
               {phase >= 2 && (
-                <span className="text-xs font-semibold text-yellow-600 tracking-widest uppercase">
+                <span className="text-xs font-semibold text-yellow-500 tracking-widest uppercase">
                   {fullText.slice(0, visibleChars)}
                   {visibleChars < fullText.length && (
-                    <span className="inline-block w-px h-3 bg-yellow-500 ml-0.5 animate-pulse align-middle" />
+                    <span className="inline-block w-px h-3 bg-yellow-400 ml-0.5 animate-pulse align-middle" />
                   )}
                 </span>
               )}
@@ -179,7 +147,6 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
         </div>
       </div>
 
-      {/* 統計カード */}
       <div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500"
         style={{
