@@ -546,10 +546,10 @@ export default function SealSupplyListPage() {
                         </div>
                       </td>
                       <td className="px-3 py-3 text-center">
-                        <button onClick={e => e.stopPropagation()}
+                        <Link href={`/dashboard/ssss/supplies/${item.id}`} onClick={e => e.stopPropagation()}
                           className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-1 transition-colors whitespace-nowrap">
                           送り状
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   ))}
