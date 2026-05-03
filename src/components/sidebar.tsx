@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { ChevronDown, ChevronRight, Handshake } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -44,13 +44,20 @@ const menuItems = [
       { label: "マスタ管理", href: "/dashboard/ssss/masters" },
     ],
   },
-  { label: "ユーザー管理", href: "/dashboard/users" },
-  { label: "依頼管理", href: "/dashboard/requests" },
+  {
+    label: "マスタ管理",
+    href: "/dashboard/masters",
+    icon: "masters",
+    children: [
+      { label: "ユーザー管理", href: "/dashboard/users" },
+    ],
+  },
 ]
 
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "bpms") return <Handshake className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
+  if (icon === "masters") return <Settings className={className} />
   return null
 }
 
@@ -61,6 +68,7 @@ export function Sidebar() {
     if (label === "製品管理") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
+    if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     return false
   }
 
@@ -68,6 +76,7 @@ export function Sidebar() {
     製品管理: defaultOpen("製品管理"),
     BPMS: defaultOpen("BPMS"),
     SSSS: defaultOpen("SSSS"),
+    マスタ管理: defaultOpen("マスタ管理"),
   })
 
   const toggleMenu = (label: string) => {
