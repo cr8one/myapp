@@ -11,7 +11,7 @@ type Stats = {
 }
 
 const cards = [
-  { label: "支給管理", key: "supplyCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: ClipboardList },
+  { label: "支給管理表", key: "supplyCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: ClipboardList },
   { label: "保留中", key: "holdCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: AlertTriangle },
   { label: "支給先会社", key: "companyCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Building2 },
   { label: "貼り付けパーツ", key: "partCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Tags },
@@ -81,9 +81,6 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
             <div className={peelAnim ? "peel-anim" : ""}>
               <SealIcon size={phase >= 2 ? 30 : 42} className="transition-all duration-500" />
             </div>
-            {phase < 2 && (
-              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-300 ring-opacity-50 animate-ping" />
-            )}
           </div>
 
           <div className="flex flex-col justify-center gap-0.5">
@@ -105,7 +102,7 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
                 transform: visibleChars === fullText.length ? "translateY(0)" : "translateY(4px)",
               }}
             >
-              サンプルシール支給システム — 支給状況の概要
+              サンプルシール支給管理システム — 支給状況の概要
             </p>
           </div>
         </div>
