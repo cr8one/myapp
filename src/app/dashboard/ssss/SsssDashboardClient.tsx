@@ -11,46 +11,10 @@ type Stats = {
 }
 
 const cards = [
-  {
-    label: "支給管理",
-    key: "supplyCount" as keyof Stats,
-    href: "/dashboard/ssss/supplies",
-    icon: ClipboardList,
-    bg: "bg-yellow-50",
-    text: "text-yellow-600",
-    border: "border-yellow-200",
-    hover: "hover:border-yellow-400",
-  },
-  {
-    label: "保留中",
-    key: "holdCount" as keyof Stats,
-    href: "/dashboard/ssss/supplies",
-    icon: AlertTriangle,
-    bg: "bg-yellow-50",
-    text: "text-yellow-600",
-    border: "border-yellow-200",
-    hover: "hover:border-yellow-400",
-  },
-  {
-    label: "支給先会社",
-    key: "companyCount" as keyof Stats,
-    href: "/dashboard/ssss/masters",
-    icon: Building2,
-    bg: "bg-yellow-50",
-    text: "text-yellow-600",
-    border: "border-yellow-200",
-    hover: "hover:border-yellow-400",
-  },
-  {
-    label: "貼り付けパーツ",
-    key: "partCount" as keyof Stats,
-    href: "/dashboard/ssss/masters",
-    icon: Tags,
-    bg: "bg-yellow-50",
-    text: "text-yellow-600",
-    border: "border-yellow-200",
-    hover: "hover:border-yellow-400",
-  },
+  { label: "支給管理", key: "supplyCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: ClipboardList, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
+  { label: "保留中", key: "holdCount" as keyof Stats, href: "/dashboard/ssss/supplies", icon: AlertTriangle, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
+  { label: "支給先会社", key: "companyCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Building2, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
+  { label: "貼り付けパーツ", key: "partCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Tags, bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", hover: "hover:border-yellow-400" },
 ]
 
 function SealIcon({ size, className }: { size: number; className?: string }) {
@@ -106,11 +70,11 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
           <div
-            className="relative flex items-center justify-center rounded-2xl shadow-lg flex-shrink-0 overflow-hidden"
+            className="relative flex items-center justify-center rounded-2xl shadow-lg flex-shrink-0"
             style={{
               width: logoSize,
               height: logoSize,
-              background: "linear-gradient(135deg, #ca8a04 0%, #eab308 60%, #fde047 100%)",
+              backgroundColor: "#ca8a04",
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
@@ -118,7 +82,7 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
               <SealIcon size={phase >= 2 ? 30 : 42} className="transition-all duration-500" />
             </div>
             {phase < 2 && (
-              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-200 ring-opacity-60 animate-ping" />
+              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-300 ring-opacity-50 animate-ping" />
             )}
           </div>
 
@@ -126,10 +90,10 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl font-black tracking-tight text-gray-900">SSSS</span>
               {phase >= 2 && (
-                <span className="text-xs font-semibold text-yellow-500 tracking-widest uppercase">
+                <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: "#ca8a04" }}>
                   {fullText.slice(0, visibleChars)}
                   {visibleChars < fullText.length && (
-                    <span className="inline-block w-px h-3 bg-yellow-400 ml-0.5 animate-pulse align-middle" />
+                    <span className="inline-block w-px h-3 ml-0.5 animate-pulse align-middle" style={{ backgroundColor: "#ca8a04" }} />
                   )}
                 </span>
               )}
