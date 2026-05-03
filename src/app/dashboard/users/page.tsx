@@ -13,6 +13,12 @@ type Permission = {
   partsEdit: boolean
   devView: boolean
   devEdit: boolean
+  ssssView: boolean
+  ssssEdit: boolean
+  ssssIsIssuer: boolean
+  ssssIsSupplier: boolean
+  ssssIsReceiver: boolean
+  ssssIsOutsourceReceiver: boolean
 }
 
 type User = {
@@ -28,27 +34,68 @@ type User = {
 }
 
 const defaultPermission: Permission = {
-  productsView: true,
-  productsEdit: false,
-  partsView: true,
-  partsEdit: false,
-  devView: true,
-  devEdit: false,
+  productsView: true, productsEdit: false,
+  partsView: true, partsEdit: false,
+  devView: true, devEdit: false,
+  ssssView: true, ssssEdit: false,
+  ssssIsIssuer: false, ssssIsSupplier: false,
+  ssssIsReceiver: false, ssssIsOutsourceReceiver: false,
 }
 
-const permissionLabels: { key: keyof Permission; label: string }[] = [
-  { key: "productsView", label: "製品：閲覧" },
-  { key: "productsEdit", label: "製品：編集" },
-  { key: "partsView",    label: "パーツ：閲覧" },
-  { key: "partsEdit",    label: "パーツ：編集" },
-  { key: "devView",      label: "新規開発：閲覧" },
-  { key: "devEdit",      label: "新規開発：編集" },
+const permissionGroups: { group: string; items: { key: keyof Permission; label: string }[] }[] = [
+  {
+    group: "製品管理",
+    items: [
+      { key: "productsView", label: "閲覧" },
+      { key: "productsEdit", label: "編集" },
+    ],
+  },
+  {
+    group: "パーツ管理",
+    items: [
+      { key: "partsView", label: "閲覧" },
+      { key: "partsEdit", label: "編集" },
+    ],
+  },
+  {
+    group: "BPMS",
+    items: [
+      { key: "devView", label: "閲覧" },
+      { key: "devEdit", label: "編集" },
+    ],
+  },
+  {
+    group: "SSSS",
+    items: [
+      { key: "ssssView", label: "閲覧" },
+      { key: "ssssEdit", label: "編集" },
+      { key: "ssssIsIssuer", label: "起票者" },
+      { key: "ssssIsSupplier", label: "支給者" },
+      { key: "ssssIsReceiver", label: "受領者" },
+      { key: "ssssIsOutsourceReceiver", label: "外注受領担当" },
+    ],
+  },
+]
+
+// 一覧表示用ラベル（有効なフラグのみ表示）
+const allPermissionLabels: { key: keyof Permission; label: string; group: string }[] = [
+  { key: "productsView", label: "製品：閲覧", group: "製品" },
+  { key: "productsEdit", label: "製品：編集", group: "製品" },
+  { key: "partsView", label: "パーツ：閲覧", group: "パーツ" },
+  { key: "partsEdit", label: "パーツ：編集", group: "パーツ" },
+  { key: "devView", label: "BPMS：閲覧", group: "BPMS" },
+  { key: "devEdit", label: "BPMS：編集", group: "BPMS" },
+  { key: "ssssView", label: "SSSS：閲覧", group: "SSSS" },
+  { key: "ssssEdit", label: "SSSS：編集", group: "SSSS" },
+  { key: "ssssIsIssuer", label: "SSSS：起票者", group: "SSSS" },
+  { key: "ssssIsSupplier", label: "SSSS：支給者", group: "SSSS" },
+  { key: "ssssIsReceiver", label: "SSSS：受領者", group: "SSSS" },
+  { key: "ssssIsOutsourceReceiver", label: "SSSS：外注受領", group: "SSSS" },
 ]
 
 export default function UsersPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
-
   const [users, setUsers] = useState<User[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
@@ -57,7 +104,6 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
 
-  // フォーム
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -72,7 +118,6 @@ export default function UsersPage() {
     const data = await res.json()
     setUsers(data)
   }
-
   useEffect(() => { fetchUsers() }, [])
 
   const filteredUsers = users.filter((user) => {
@@ -101,13 +146,12 @@ export default function UsersPage() {
     setPhone(user.phone ?? "")
     setPassword("")
     setRole(user.role)
-    setPermission(user.permission ?? defaultPermission)
+    setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
     setShowForm(true)
   }
 
   const handleSubmit = async () => {
-    setLoading(true)
-    setError("")
+    setLoading(true); setError("")
     const body = {
       name, email, password: password || undefined,
       department, position, phone, role,
@@ -115,40 +159,27 @@ export default function UsersPage() {
     }
     const res = editUser
       ? await fetch(`/api/users/${editUser.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
         })
       : await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
         })
     if (!res.ok) {
       const data = await res.json()
       setError(data.error ?? "処理に失敗しました")
-      setLoading(false)
-      return
+      setLoading(false); return
     }
-    resetForm()
-    setLoading(false)
-    fetchUsers()
+    resetForm(); setLoading(false); fetchUsers()
   }
 
   const handleDelete = async (id: string) => {
-    if (id === session?.user?.id) {
-      alert("自分自身は削除できません")
-      return
-    }
+    if (id === session?.user?.id) { alert("自分自身は削除できません"); return }
     if (!confirm("このユーザーを削除しますか？")) return
     await fetch(`/api/users/${id}`, { method: "DELETE" })
     fetchUsers()
   }
 
-  const handleExport = () => {
-    window.location.href = "/api/users/export"
-  }
-
+  const handleExport = () => { window.location.href = "/api/users/export" }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -192,66 +223,64 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>名前</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
+                <Input value={name} onChange={e => setName(e.target.value)} />
               </div>
               {!editUser && (
                 <div className="space-y-2">
                   <Label>メールアドレス</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{editUser ? "新しいパスワード（変更する場合のみ）" : "パスワード"}</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>電話番号</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>部署</Label>
-                <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
+                <Input value={department} onChange={e => setDepartment(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>役職</Label>
-                <Input value={position} onChange={(e) => setPosition(e.target.value)} />
+                <Input value={position} onChange={e => setPosition(e.target.value)} />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label>ロール</Label>
-              <select
-                className="w-full border rounded px-3 py-2 text-sm"
-                value={role}
-                onChange={(e) => setRole(e.target.value as "ADMIN" | "USER")}
-              >
+              <select className="w-full border rounded px-3 py-2 text-sm" value={role}
+                onChange={e => setRole(e.target.value as "ADMIN" | "USER")}>
                 <option value="USER">一般ユーザー</option>
                 <option value="ADMIN">管理者（ADMIN）</option>
               </select>
             </div>
-
             {role === "USER" && (
               <div className="space-y-2">
                 <Label>権限設定</Label>
-                <div className="grid grid-cols-3 gap-2 border rounded p-3">
-                  {permissionLabels.map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={permission[key]}
-                        onChange={(e) => setPermission((p) => ({ ...p, [key]: e.target.checked }))}
-                      />
-                      {label}
-                    </label>
+                <div className="border rounded p-3 space-y-3">
+                  {permissionGroups.map(({ group, items }) => (
+                    <div key={group}>
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5">{group}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                        {items.map(({ key, label }) => (
+                          <label key={key} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <input type="checkbox" checked={permission[key]}
+                              onChange={e => setPermission(p => ({ ...p, [key]: e.target.checked }))} />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
-
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button onClick={handleSubmit} disabled={loading} className="w-full">
               {loading ? "処理中..." : editUser ? "更新する" : "登録する"}
@@ -261,43 +290,53 @@ export default function UsersPage() {
       )}
 
       <div className="mb-4">
-        <Input
-          placeholder="名前・メール・部署・役職で検索..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <Input placeholder="名前・メール・部署・役職で検索..." value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)} />
       </div>
 
       <div className="space-y-4">
-        {filteredUsers.map((user) => (
+        {filteredUsers.map(user => (
           <Card key={user.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
-                <div className="grid grid-cols-2 gap-4 flex-1">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold">{user.name}</p>
-                      {user.role === "ADMIN" && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ADMIN</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-bold">{user.name}</p>
+                    {user.role === "ADMIN" && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ADMIN</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                  <div className="flex gap-4 mt-0.5">
                     {user.department && <p className="text-sm text-gray-500">部署: {user.department}</p>}
-                    {user.position  && <p className="text-sm text-gray-500">役職: {user.position}</p>}
-                    {user.phone     && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
+                    {user.position && <p className="text-sm text-gray-500">役職: {user.position}</p>}
+                    {user.phone && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
                   </div>
                   {user.role === "USER" && user.permission && (
-                    <div>
-                      <p className="text-xs text-gray-400 mb-1">権限</p>
-                      <div className="flex flex-wrap gap-1">
-                        {permissionLabels
-                          .filter(({ key }) => user.permission![key])
-                          .map(({ key, label }) => (
-                            <span key={key} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                              {label}
-                            </span>
-                          ))}
-                      </div>
+                    <div className="mt-2 space-y-1">
+                      {/* グループごとに有効なフラグを表示 */}
+                      {permissionGroups.map(({ group, items }) => {
+                        const active = items.filter(({ key }) => user.permission![key])
+                        if (active.length === 0) return null
+                        return (
+                          <div key={group} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-20">{group}</span>
+                            <div className="flex flex-wrap gap-1">
+                              {active.map(({ key, label }) => (
+                                <span key={key} className={`text-xs px-2 py-0.5 rounded font-medium ${
+                                  group === "SSSS"
+                                    ? "bg-purple-50 text-purple-700"
+                                    : group === "BPMS"
+                                    ? "bg-indigo-50 text-indigo-700"
+                                    : "bg-blue-50 text-blue-700"
+                                }`}>
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
