@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { usePDF, Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer"
 
 Font.register({
@@ -158,27 +158,39 @@ function SlipDocument({ data }: { data: PdfData }) {
 
 export default function PdfDownloadButton({ data, onExported }: { data: PdfData; onExported: () => void }) {
   const [instance, updateInstance] = usePDF({ document: <SlipDocument data={data} /> })
+  const [clicking, setClicking] = useState(false)
 
   useEffect(() => {
     updateInstance(<SlipDocument data={data} />)
   }, [data, updateInstance])
 
-  const handleClick = () => {
-    if (!instance.url) return
+  const handleClick = async () => {
+    if (clicking) return
+    setClicking(true)
+    // まだ準備中なら待つ
+    let url = instance.url
+    if (!url) {
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (instance.url) { url = instance.url; clearInterval(interval); resolve() }
+        }, 100)
+      })
+    }
+    if (!url) { setClicking(false); return }
     const link = document.createElement("a")
-    link.href = instance.url
+    link.href = url
     link.download = `送り状_${data.serialCode}.pdf`
     link.click()
-    setTimeout(onExported, 500)
+    setTimeout(() => { onExported(); setClicking(false) }, 500)
   }
 
   return (
     <button
       onClick={handleClick}
-      disabled={instance.loading}
+      disabled={clicking}
       className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors disabled:opacity-50"
     >
-      {instance.loading ? "準備中..." : "📄 PDF出力"}
+      {clicking ? "出力中..." : "📄 PDF出力"}
     </button>
   )
 }
