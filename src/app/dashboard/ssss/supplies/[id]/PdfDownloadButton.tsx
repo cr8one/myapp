@@ -1,37 +1,47 @@
 "use client"
 import { useEffect } from "react"
-import { usePDF, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
+import { usePDF, Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer"
 
-const styles = StyleSheet.create({
-  page: { padding: 30, fontSize: 10 },
-  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
-  companyName: { fontSize: 14, fontWeight: "bold" },
-  honorific: { fontSize: 12, fontWeight: "bold" },
-  headerLine: { borderBottom: 2, borderColor: "#000", width: 120, marginTop: 4 },
+Font.register({
+  family: "NotoSansJP",
+  src: "/NotoSansJP.otf",
+})
+
+const S = StyleSheet.create({
+  page: { fontFamily: "NotoSansJP", padding: "15mm", fontSize: 9, display: "flex", flexDirection: "column" },
+  // 上半分（送り状）
+  half: { flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-start" },
+  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  companyName: { fontSize: 13, fontWeight: "bold" },
+  honorific: { fontSize: 11, fontWeight: "bold" },
+  headerLine: { borderBottom: 2, borderColor: "#000", width: 130, marginTop: 3 },
   serialBlock: { alignItems: "flex-end" },
   serialCode: { fontSize: 11, fontWeight: "bold" },
-  intro: { marginBottom: 12, fontSize: 9 },
-  table: { borderTop: 1, borderLeft: 1, borderColor: "#999", marginBottom: 12 },
-  tableRow: { flexDirection: "row", borderBottom: 1, borderColor: "#999" },
-  tableLabel: { width: 90, backgroundColor: "#f5f5f5", borderRight: 1, borderColor: "#999", padding: 5, textAlign: "center" },
+  intro: { marginBottom: 10, fontSize: 9 },
+  table: { borderTop: 1, borderLeft: 1, borderColor: "#888", marginBottom: 10 },
+  tableRow: { flexDirection: "row", borderBottom: 1, borderColor: "#888" },
+  tableLabel: { width: 85, backgroundColor: "#f3f3f3", borderRight: 1, borderColor: "#888", padding: 5, textAlign: "center" },
   tableValue: { flex: 1, padding: 5 },
-  tableSplitLeft: { flex: 1, borderRight: 1, borderColor: "#999", padding: 5 },
+  tableSplitLeft: { flex: 1, borderRight: 1, borderColor: "#888", padding: 5 },
   tableSplitRight: { flex: 1, padding: 5 },
-  logoArea: { alignItems: "flex-end", marginBottom: 4 },
-  companyLogo: { fontSize: 10 },
-  supplierLine: { fontSize: 9, textAlign: "right" },
-  cutText: { fontSize: 8, color: "#aaa", textAlign: "center", marginBottom: 4 },
-  cutLine: { borderBottom: 1, borderStyle: "dashed", borderColor: "#aaa", marginBottom: 16 },
-  receiptHeader: { marginBottom: 12 },
-  receiptNameRow: { flexDirection: "row", alignItems: "flex-end" },
-  receiptName: { fontSize: 11, fontWeight: "bold", borderBottom: 1, borderColor: "#000" },
-  receiptSuffix: { fontSize: 9, marginLeft: 4, marginBottom: 2 },
+  logoArea: { alignItems: "flex-end" },
+  logoText: { fontSize: 10, fontWeight: "bold" },
+  supplierLine: { fontSize: 9, textAlign: "right", marginTop: 2 },
+  // キリトリ線（中央）
+  cutArea: { flexDirection: "row", alignItems: "center", marginVertical: 8 },
+  cutLine: { flex: 1, borderBottom: 1, borderStyle: "dashed", borderColor: "#aaa" },
+  cutText: { fontSize: 7, color: "#aaa", marginHorizontal: 6 },
+  // 下半分（受領書）
+  receiptHeaderRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 2 },
+  receiptName: { fontSize: 11, fontWeight: "bold" },
+  receiptSuffix: { fontSize: 9, marginLeft: 4, marginBottom: 1 },
+  receiptNameLine: { borderBottom: 1, borderColor: "#000", marginBottom: 10 },
   rightAlign: { alignItems: "flex-end" },
-  destCompany: { fontSize: 11, fontWeight: "bold", marginBottom: 8 },
-  signTable: { borderTop: 1, borderLeft: 1, borderColor: "#999" },
-  signRow: { flexDirection: "row", borderBottom: 1, borderColor: "#999" },
-  signLabel: { width: 50, backgroundColor: "#f5f5f5", borderRight: 1, borderColor: "#999", padding: 5 },
-  signValue: { width: 100, padding: 5 },
+  destCompany: { fontSize: 11, fontWeight: "bold", marginBottom: 6 },
+  signTable: { borderTop: 1, borderLeft: 1, borderColor: "#888" },
+  signRow: { flexDirection: "row", borderBottom: 1, borderColor: "#888" },
+  signLabel: { width: 45, backgroundColor: "#f3f3f3", borderRight: 1, borderColor: "#888", padding: 5, fontSize: 8 },
+  signValue: { width: 110, padding: 5 },
 })
 
 type PdfData = {
@@ -47,6 +57,19 @@ type PdfData = {
   salesPersonName: string
 }
 
+function TableRows({ rows }: { rows: { label: string; value: string }[] }) {
+  return (
+    <>
+      {rows.map(({ label, value }) => (
+        <View key={label} style={S.tableRow}>
+          <Text style={S.tableLabel}>{label}</Text>
+          <Text style={S.tableValue}>{value}</Text>
+        </View>
+      ))}
+    </>
+  )
+}
+
 function SlipDocument({ data }: { data: PdfData }) {
   const rows = [
     { label: "品　番", value: data.productCode },
@@ -57,83 +80,84 @@ function SlipDocument({ data }: { data: PdfData }) {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* 送り状 */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.companyName}>{data.companyName}</Text>
-            <Text style={styles.honorific}>御中</Text>
-            <View style={styles.headerLine} />
-          </View>
-          <View style={styles.serialBlock}>
-            <Text style={styles.serialCode}>{data.serialCode}</Text>
-            <Text>発行日　{data.issueDate}</Text>
-          </View>
-        </View>
+      <Page size="A4" style={S.page}>
 
-        <Text style={styles.intro}>下記の摘要にてサンプルシールを支給いたします。</Text>
-
-        <View style={styles.table}>
-          {rows.map(({ label, value }) => (
-            <View key={label} style={styles.tableRow}>
-              <Text style={styles.tableLabel}>{label}</Text>
-              <Text style={styles.tableValue}>{value}</Text>
+        {/* 上半分：送り状 */}
+        <View style={S.half}>
+          <View style={S.header}>
+            <View>
+              <Text style={S.companyName}>{data.companyName}</Text>
+              <Text style={S.honorific}>御中</Text>
+              <View style={S.headerLine} />
             </View>
-          ))}
-          <View style={styles.tableRow}>
-            <Text style={styles.tableLabel}>JS営業担当者</Text>
-            <Text style={styles.tableSplitLeft}>{data.salesDepartment}</Text>
-            <Text style={styles.tableSplitRight}>{data.salesPersonName}</Text>
-          </View>
-        </View>
-
-        <View style={styles.logoArea}>
-          <Text style={styles.companyLogo}>株式会社 ジャパン・スリーブ</Text>
-          <Text style={styles.supplierLine}>支給担当：　{data.supplierName}</Text>
-        </View>
-
-        {/* キリトリ */}
-        <Text style={styles.cutText}>キ リ ト リ</Text>
-        <View style={styles.cutLine} />
-
-        {/* 受領書 */}
-        <View style={styles.receiptHeader}>
-          <Text style={styles.companyLogo}>株式会社 ジャパン・スリーブ</Text>
-          <View style={styles.receiptNameRow}>
-            <Text style={styles.receiptName}>{data.supplierName}</Text>
-            <Text style={styles.receiptSuffix}>様</Text>
-          </View>
-        </View>
-
-        <Text style={styles.intro}>下記の摘要にてサンプルシールを受領しました。</Text>
-
-        <View style={styles.table}>
-          {rows.map(({ label, value }) => (
-            <View key={label} style={styles.tableRow}>
-              <Text style={styles.tableLabel}>{label}</Text>
-              <Text style={styles.tableValue}>{value}</Text>
-            </View>
-          ))}
-          <View style={styles.tableRow}>
-            <Text style={styles.tableLabel}>JS営業担当者</Text>
-            <Text style={styles.tableSplitLeft}>{data.salesDepartment}</Text>
-            <Text style={styles.tableSplitRight}>{data.salesPersonName}</Text>
-          </View>
-        </View>
-
-        <View style={styles.rightAlign}>
-          <Text style={styles.destCompany}>{data.companyName}</Text>
-          <View style={styles.signTable}>
-            <View style={styles.signRow}>
-              <Text style={styles.signLabel}>受領日</Text>
-              <Text style={styles.signValue}></Text>
-            </View>
-            <View style={styles.signRow}>
-              <Text style={styles.signLabel}>サイン</Text>
-              <Text style={styles.signValue}></Text>
+            <View style={S.serialBlock}>
+              <Text style={S.serialCode}>{data.serialCode}</Text>
+              <Text>発行日　{data.issueDate}</Text>
             </View>
           </View>
+
+          <Text style={S.intro}>下記の摘要にてサンプルシールを支給いたします。</Text>
+
+          <View style={S.table}>
+            <TableRows rows={rows} />
+            <View style={S.tableRow}>
+              <Text style={S.tableLabel}>JS営業担当者</Text>
+              <Text style={S.tableSplitLeft}>{data.salesDepartment}</Text>
+              <Text style={S.tableSplitRight}>{data.salesPersonName}</Text>
+            </View>
+          </View>
+
+          <View style={S.logoArea}>
+            <Text style={S.logoText}>株式会社 ジャパン・スリーブ</Text>
+            <Text style={S.supplierLine}>支給担当：　{data.supplierName}</Text>
+          </View>
         </View>
+
+        {/* キリトリ線（中央） */}
+        <View style={S.cutArea}>
+          <View style={S.cutLine} />
+          <Text style={S.cutText}>キ リ ト リ</Text>
+          <View style={S.cutLine} />
+        </View>
+
+        {/* 下半分：受領書 */}
+        <View style={S.half}>
+          <View style={{ marginBottom: 10 }}>
+            <Text style={S.logoText}>株式会社 ジャパン・スリーブ</Text>
+            <View style={S.receiptNameLine}>
+              <View style={S.receiptHeaderRow}>
+                <Text style={S.receiptName}>{data.supplierName}</Text>
+                <Text style={S.receiptSuffix}>様</Text>
+              </View>
+            </View>
+          </View>
+
+          <Text style={S.intro}>下記の摘要にてサンプルシールを受領しました。</Text>
+
+          <View style={S.table}>
+            <TableRows rows={rows} />
+            <View style={S.tableRow}>
+              <Text style={S.tableLabel}>JS営業担当者</Text>
+              <Text style={S.tableSplitLeft}>{data.salesDepartment}</Text>
+              <Text style={S.tableSplitRight}>{data.salesPersonName}</Text>
+            </View>
+          </View>
+
+          <View style={S.rightAlign}>
+            <Text style={S.destCompany}>{data.companyName}</Text>
+            <View style={S.signTable}>
+              <View style={S.signRow}>
+                <Text style={S.signLabel}>受領日</Text>
+                <Text style={S.signValue}></Text>
+              </View>
+              <View style={S.signRow}>
+                <Text style={S.signLabel}>サイン</Text>
+                <Text style={S.signValue}></Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
       </Page>
     </Document>
   )
