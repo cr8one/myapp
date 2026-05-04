@@ -8,7 +8,7 @@ Font.register({
 })
 
 const S = StyleSheet.create({
-  page: { fontFamily: "NotoSansJP", paddingTop: "15mm", paddingBottom: "15mm", paddingLeft: "15mm", paddingRight: "15mm", fontSize: 9, flexDirection: "column" },
+  page: { fontFamily: "NotoSansJP", paddingTop: "15mm", paddingBottom: "15mm", paddingLeft: "18mm", paddingRight: "18mm", fontSize: 9, flexDirection: "column" },
   half: { flex: 1, flexDirection: "column" },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
   companyName: { fontSize: 13, fontWeight: "bold" },
@@ -18,7 +18,7 @@ const S = StyleSheet.create({
   serialCode: { fontSize: 11, fontWeight: "bold" },
   intro: { marginBottom: 10, fontSize: 9 },
   // テーブル
-  table: { marginBottom: 10, borderTopWidth: 1, borderTopColor: "#888", borderTopStyle: "solid", borderLeftWidth: 1, borderLeftColor: "#888", borderLeftStyle: "solid" },
+  table: { marginBottom: 10, borderTopWidth: 1, borderTopColor: "#888", borderTopStyle: "solid", borderLeftWidth: 1, borderLeftColor: "#888", borderLeftStyle: "solid", borderRightWidth: 1, borderRightColor: "#888", borderRightStyle: "solid" },
   tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#888", borderBottomStyle: "solid" },
   tableLabel: { width: 85, backgroundColor: "#f3f3f3", borderRightWidth: 1, borderRightColor: "#888", borderRightStyle: "solid", padding: 5, textAlign: "center" },
   tableValue: { flex: 1, padding: 5 },
@@ -40,7 +40,7 @@ const S = StyleSheet.create({
   // 右下
   rightAlign: { alignItems: "flex-end", marginTop: 4 },
   destCompany: { fontSize: 11, fontWeight: "bold", marginBottom: 6 },
-  signTable: { borderTopWidth: 1, borderTopColor: "#888", borderTopStyle: "solid", borderLeftWidth: 1, borderLeftColor: "#888", borderLeftStyle: "solid" },
+  signTable: { borderTopWidth: 1, borderTopColor: "#888", borderTopStyle: "solid", borderLeftWidth: 1, borderLeftColor: "#888", borderLeftStyle: "solid", borderRightWidth: 1, borderRightColor: "#888", borderRightStyle: "solid" },
   signRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#888", borderBottomStyle: "solid" },
   signLabel: { width: 45, backgroundColor: "#f3f3f3", borderRightWidth: 1, borderRightColor: "#888", borderRightStyle: "solid", padding: 5, fontSize: 8 },
   signValue: { width: 110, padding: 5 },
