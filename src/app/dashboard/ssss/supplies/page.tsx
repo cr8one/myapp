@@ -1,7 +1,7 @@
 "use client"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Link from "next/link"
-import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2 } from "lucide-react"
+import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2, Download, Upload } from "lucide-react"
 import MailModal from "@/components/ssss/MailModal"
 
 type Staff = { id: string; name: string }
@@ -392,6 +392,7 @@ export default function SealSupplyListPage() {
   const [modalMode, setModalMode] = useState<"new" | "edit" | null>(null)
   const [selectedSupply, setSelectedSupply] = useState<SealSupply | null>(null)
   const [mailSupply, setMailSupply] = useState<SealSupply | null>(null)
+  const importRef = useRef<HTMLInputElement>(null)
   const [masters, setMasters] = useState<MasterData>({
     companies: [], parts: [], issuers: [], suppliers: [], receivers: [], outsourceReceivers: []
   })
@@ -424,6 +425,24 @@ export default function SealSupplyListPage() {
     setMasters({ companies, parts, issuers, suppliers, receivers, outsourceReceivers })
   }
 
+  const handleExport = () => { window.location.href = "/api/ssss/supplies/export" }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await fetch("/api/ssss/supplies/import", { method: "POST", body: formData })
+    const result = await res.json()
+    if (res.ok) {
+      alert(`インポート完了：${result.created}件登録、${result.updated}件更新${result.errors.length > 0 ? `\nエラー：${result.errors.join("\n")}` : ""}`)
+      fetchItems()
+    } else {
+      alert(`エラー：${result.error}`)
+    }
+    e.target.value = ""
+  }
+
   const openNew = async () => { await loadMasters(); setSelectedSupply(null); setModalMode("new") }
   const openEdit = async (item: SealSupply) => { await loadMasters(); setSelectedSupply(item); setModalMode("edit") }
 
@@ -435,10 +454,21 @@ export default function SealSupplyListPage() {
             <h1 className="text-xl font-bold text-gray-900">支給管理一覧</h1>
             <p className="text-xs text-gray-400 mt-0.5">全 {total.toLocaleString()} 件</p>
           </div>
-          <button onClick={openNew}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-            <Plus className="w-4 h-4" />新規作成
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExport}
+              className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+              <Download className="w-4 h-4" />エクスポート
+            </button>
+            <button onClick={() => importRef.current?.click()}
+              className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-3 py-2 rounded-lg transition-colors">
+              <Upload className="w-4 h-4" />インポート
+            </button>
+            <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            <button onClick={openNew}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+              <Plus className="w-4 h-4" />新規作成
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
