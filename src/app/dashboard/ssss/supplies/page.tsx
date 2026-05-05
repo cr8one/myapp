@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { Search, Plus, Mail, AlertCircle, X, ChevronDown, Trash2 } from "lucide-react"
+import MailModal from "@/components/ssss/MailModal"
 
 type Staff = { id: string; name: string }
 type Company = { id: number; name: string }
@@ -30,6 +31,9 @@ type SealSupply = {
   receiptDateAtSupplier: string | null
   outsourceReceiver: Staff | null
   outsourceReceiverName: string | null
+  salesDepartment: string | null
+  salesPerson: Staff | null
+  salesPersonName: string | null
   mailSentFlag: string
   notes: string | null
 }
@@ -387,6 +391,7 @@ export default function SealSupplyListPage() {
   const [holdFilter, setHoldFilter] = useState<"all" | "hold" | "normal">("all")
   const [modalMode, setModalMode] = useState<"new" | "edit" | null>(null)
   const [selectedSupply, setSelectedSupply] = useState<SealSupply | null>(null)
+  const [mailSupply, setMailSupply] = useState<SealSupply | null>(null)
   const [masters, setMasters] = useState<MasterData>({
     companies: [], parts: [], issuers: [], suppliers: [], receivers: [], outsourceReceivers: []
   })
@@ -539,12 +544,16 @@ export default function SealSupplyListPage() {
                       </td>
                       <td className="px-3 py-3"><span className="text-xs text-gray-700">{getOutsourceReceiverDisplay(item)}</span></td>
                       <td className="px-3 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={e => { e.stopPropagation(); setMailSupply(item) }}
+                          className={`flex items-center justify-center gap-1 mx-auto px-2 py-1 rounded-md transition-colors ${
+                            item.mailSentFlag === "済"
+                              ? "text-blue-600 hover:bg-blue-50"
+                              : "text-gray-400 hover:bg-gray-50"
+                          }`}>
                           <Mail className={`w-3.5 h-3.5 ${item.mailSentFlag === "済" ? "text-blue-500" : "text-gray-300"}`} />
-                          <span className={`text-xs font-medium ${item.mailSentFlag === "済" ? "text-blue-600" : "text-gray-400"}`}>
-                            {item.mailSentFlag}
-                          </span>
-                        </div>
+                          <span className="text-xs font-medium">{item.mailSentFlag}</span>
+                        </button>
                       </td>
                       <td className="px-3 py-3 text-center">
                         <Link href={`/dashboard/ssss/supplies/${item.id}`} onClick={e => e.stopPropagation()}
@@ -560,6 +569,14 @@ export default function SealSupplyListPage() {
           </div>
         )}
       </div>
+
+      {mailSupply && (
+        <MailModal
+          supply={mailSupply}
+          onClose={() => setMailSupply(null)}
+          onSent={fetchItems}
+        />
+      )}
 
       {modalMode && (
         <SupplyModal
