@@ -18,14 +18,23 @@ function SsssIcon({ className }: { className?: string }) {
 function DlmsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* 木台（フル幅） */}
       <rect x="3" y="3" width="18" height="6" rx="1" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.1"/>
-      {/* パッキン帯（少し横幅短く） */}
       <rect x="6" y="9" width="12" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.1" fill="currentColor" fillOpacity="0.22"/>
-      {/* 刃（中央1本） */}
       <line x1="12" y1="7" x2="12" y2="20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-      {/* 刃先三角 */}
       <path d="M10.5 19 L12 21.5 L13.5 19" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" fill="currentColor" fillOpacity="0.3"/>
+    </svg>
+  )
+}
+
+function EApplicationIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="13" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.07"/>
+      <line x1="6" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="6" y1="11" x2="13" y2="11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <path d="M16 14 L21 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M17 9 L21 9 L21 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
@@ -48,6 +57,16 @@ const menuItems = [
     ],
   },
   {
+    label: "電子申請",
+    icon: "eapp",
+    children: [
+      { label: "得意先", href: "/dashboard/eapp/customers" },
+      { label: "納品先", href: "/dashboard/eapp/deliveries" },
+      { label: "仕入先", href: "/dashboard/eapp/suppliers" },
+      { label: "用紙", href: "/dashboard/eapp/papers" },
+    ],
+  },
+  {
     label: "BPMS",
     href: "/dashboard/bpms",
     icon: "bpms",
@@ -64,6 +83,7 @@ const menuItems = [
     icon: "dlms",
     children: [
       { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
+      { label: "図面管理", href: "/dashboard/dlms/drawings" },
     ],
   },
   {
@@ -90,6 +110,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
+  if (icon === "eapp") return <EApplicationIcon className={className} />
   if (icon === "bpms") return <Handshake className={className} />
   if (icon === "dlms") return <DlmsIcon className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
@@ -103,6 +124,7 @@ export function Sidebar() {
   const defaultOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
+    if (label === "電子申請") return pathname.startsWith("/dashboard/eapp")
     if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "DLMS") return pathname.startsWith("/dashboard/dlms")
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
@@ -113,6 +135,7 @@ export function Sidebar() {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     仕様書: defaultOpen("仕様書"),
     見積書: defaultOpen("見積書"),
+    電子申請: defaultOpen("電子申請"),
     BPMS: defaultOpen("BPMS"),
     DLMS: defaultOpen("DLMS"),
     SSSS: defaultOpen("SSSS"),
