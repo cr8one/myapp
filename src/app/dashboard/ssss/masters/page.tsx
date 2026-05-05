@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
 import { Plus, Pencil, Trash2, X, Check, AlertCircle } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 type Company = { id: number; name: string; sortOrder: number; isActive: boolean }
 type Part = { id: number; name: string; sortOrder: number; isActive: boolean }
@@ -9,8 +10,9 @@ type Staff = {
   isIssuer: boolean; isSupplier: boolean; isReceiver: boolean; isOutsourceReceiver: boolean
   issuerOrder: number; supplierOrder: number; receiverOrder: number; outsourceReceiverOrder: number
 }
+type SerialConfig = { id: number; nextValue: number; increment: number; prefix: string | null }
 
-type Tab = "companies" | "parts" | "staffs"
+type Tab = "companies" | "parts" | "staffs" | "serialConfig"
 
 function RoleBadge({ label, active }: { label: string; active: boolean }) {
   return (
@@ -29,10 +31,14 @@ function SortOrderInput({ value, onChange }: { value: number; onChange: (v: numb
 }
 
 export default function MastersPage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
+
   const [tab, setTab] = useState<Tab>("companies")
   const [companies, setCompanies] = useState<Company[]>([])
   const [parts, setParts] = useState<Part[]>([])
   const [staffs, setStaffs] = useState<Staff[]>([])
+  const [serialConfig, setSerialConfig] = useState<SerialConfig | null>(null)
   const [fetching, setFetching] = useState(true)
 
   // 会社
@@ -48,16 +54,22 @@ export default function MastersPage() {
   // 担当者
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
 
+  // 採番設定
+  const [editingSerial, setEditingSerial] = useState(false)
+  const [serialForm, setSerialForm] = useState({ nextValue: 0, increment: 1, prefix: "" })
+
   const fetchAll = useCallback(async () => {
     setFetching(true)
-    const [c, p, s] = await Promise.all([
+    const [c, p, s, sc] = await Promise.all([
       fetch("/api/ssss/companies?all=1").then(r => r.json()),
       fetch("/api/ssss/parts?all=1").then(r => r.json()),
       fetch("/api/ssss/staffs?all=1").then(r => r.json()),
+      fetch("/api/ssss/serial-config").then(r => r.json()),
     ])
     setCompanies(Array.isArray(c) ? c : [])
     setParts(Array.isArray(p) ? p : [])
     setStaffs(Array.isArray(s) ? s : [])
+    setSerialConfig(sc)
     setFetching(false)
   }, [])
 
@@ -131,17 +143,40 @@ export default function MastersPage() {
     setEditingStaff(null); fetchAll()
   }
 
-  const tabs: [Tab, string, number][] = [
+  // 採番設定更新
+  const startEditSerial = () => {
+    if (!serialConfig) return
+    setSerialForm({
+      nextValue: serialConfig.nextValue,
+      increment: serialConfig.increment,
+      prefix: serialConfig.prefix ?? "",
+    })
+    setEditingSerial(true)
+  }
+  const saveSerial = async () => {
+    await fetch("/api/ssss/serial-config", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nextValue: serialForm.nextValue,
+        increment: serialForm.increment,
+        prefix: serialForm.prefix || null,
+      }),
+    })
+    setEditingSerial(false); fetchAll()
+  }
+
+  const tabs: [Tab, string, number | null][] = [
     ["companies", "支給先会社", companies.length],
     ["parts", "貼り付けパーツ", parts.length],
     ["staffs", "担当者", staffs.length],
+    ["serialConfig", "採番設定", null],
   ]
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">マスタ管理</h1>
-        <p className="text-xs text-gray-400 mt-0.5">支給先会社・パーツ・担当者の登録・編集</p>
+        <h1 className="text-xl font-bold text-gray-900">SSSSマスタ管理</h1>
+        <p className="text-xs text-gray-400 mt-0.5">支給先会社・パーツ・担当者・採番設定の管理</p>
       </div>
 
       <div className="bg-white border-b px-6">
@@ -152,7 +187,7 @@ export default function MastersPage() {
                 tab === key ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}>
               {label}
-              <span className="ml-2 text-xs text-gray-400">{count}</span>
+              {count !== null && <span className="ml-2 text-xs text-gray-400">{count}</span>}
             </button>
           ))}
         </div>
@@ -177,8 +212,7 @@ export default function MastersPage() {
                 {addingCompany && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
                     <input type="text" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
-                      onKeyDown={e => e.key === "Enter" && saveCompany()}
-                      placeholder="会社名" autoFocus
+                      onKeyDown={e => e.key === "Enter" && saveCompany()} placeholder="会社名" autoFocus
                       className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500">順序</span>
@@ -201,8 +235,8 @@ export default function MastersPage() {
                           <>
                             <input type="text" value={editingCompany.name}
                               onChange={e => setEditingCompany({ ...editingCompany, name: e.target.value })}
-                              onKeyDown={e => e.key === "Enter" && updateCompany(editingCompany)}
-                              autoFocus className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              onKeyDown={e => e.key === "Enter" && updateCompany(editingCompany)} autoFocus
+                              className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-gray-500">順序</span>
                               <SortOrderInput value={editingCompany.sortOrder} onChange={v => setEditingCompany({ ...editingCompany, sortOrder: v })} />
@@ -241,8 +275,7 @@ export default function MastersPage() {
                 {addingPart && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
                     <input type="text" value={newPart.name} onChange={e => setNewPart(p => ({ ...p, name: e.target.value }))}
-                      onKeyDown={e => e.key === "Enter" && savePart()}
-                      placeholder="パーツ名" autoFocus
+                      onKeyDown={e => e.key === "Enter" && savePart()} placeholder="パーツ名" autoFocus
                       className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500">順序</span>
@@ -265,8 +298,8 @@ export default function MastersPage() {
                           <>
                             <input type="text" value={editingPart.name}
                               onChange={e => setEditingPart({ ...editingPart, name: e.target.value })}
-                              onKeyDown={e => e.key === "Enter" && updatePart(editingPart)}
-                              autoFocus className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              onKeyDown={e => e.key === "Enter" && updatePart(editingPart)} autoFocus
+                              className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-gray-500">順序</span>
                               <SortOrderInput value={editingPart.sortOrder} onChange={v => setEditingPart({ ...editingPart, sortOrder: v })} />
@@ -354,6 +387,87 @@ export default function MastersPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* 採番設定 */}
+            {tab === "serialConfig" && (
+              <div className="space-y-3">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700">シリアルコード採番設定</h3>
+                    {isAdmin && !editingSerial && (
+                      <button onClick={startEditSerial}
+                        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800">
+                        <Pencil className="w-4 h-4" />編集
+                      </button>
+                    )}
+                  </div>
+
+                  {serialConfig && !editingSerial && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-gray-500 w-32">次の採番値</span>
+                        <span className="font-mono font-bold text-gray-900 text-lg">
+                          {serialConfig.prefix ?? ""}{String(serialConfig.nextValue).padStart(7, "0")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-gray-500 w-32">増分</span>
+                        <span className="font-mono text-gray-700">{serialConfig.increment}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-gray-500 w-32">プレフィックス</span>
+                        <span className="font-mono text-gray-700">{serialConfig.prefix ?? "（なし）"}</span>
+                      </div>
+                      {!isAdmin && (
+                        <p className="text-xs text-gray-400 mt-2">※ 編集は管理者のみ可能です</p>
+                      )}
+                    </div>
+                  )}
+
+                  {serialConfig && editingSerial && isAdmin && (
+                    <div className="space-y-4">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-700">
+                        ⚠ 次の採番値を変更すると、次回登録時のシリアルコードが変わります。重複に注意してください。
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">次の採番値</label>
+                          <input type="number" value={serialForm.nextValue}
+                            onChange={e => setSerialForm(p => ({ ...p, nextValue: parseInt(e.target.value) || 0 }))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">増分</label>
+                          <input type="number" value={serialForm.increment} min={1}
+                            onChange={e => setSerialForm(p => ({ ...p, increment: parseInt(e.target.value) || 1 }))}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">プレフィックス（任意）</label>
+                          <input type="text" value={serialForm.prefix}
+                            onChange={e => setSerialForm(p => ({ ...p, prefix: e.target.value }))}
+                            placeholder="例: JSS-"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div className="flex items-end">
+                          <div className="text-xs text-gray-500">
+                            プレビュー：<span className="font-mono font-bold text-gray-800 text-sm ml-1">
+                              {serialForm.prefix}{String(serialForm.nextValue).padStart(7, "0")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingSerial(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                        <button onClick={saveSerial} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                          <Check className="w-4 h-4" />保存
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>
