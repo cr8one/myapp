@@ -15,6 +15,21 @@ function SsssIcon({ className }: { className?: string }) {
   )
 }
 
+function DlmsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* 木台（フル幅） */}
+      <rect x="3" y="3" width="18" height="6" rx="1" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.1"/>
+      {/* パッキン帯（少し横幅短く） */}
+      <rect x="6" y="9" width="12" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.1" fill="currentColor" fillOpacity="0.22"/>
+      {/* 刃（中央1本） */}
+      <line x1="12" y1="7" x2="12" y2="20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      {/* 刃先三角 */}
+      <path d="M10.5 19 L12 21.5 L13.5 19" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" fill="currentColor" fillOpacity="0.3"/>
+    </svg>
+  )
+}
+
 const menuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   {
@@ -44,6 +59,14 @@ const menuItems = [
     ],
   },
   {
+    label: "DLMS",
+    href: "/dashboard/dlms",
+    icon: "dlms",
+    children: [
+      { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
+    ],
+  },
+  {
     label: "SSSS",
     href: "/dashboard/ssss",
     icon: "ssss",
@@ -68,6 +91,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "bpms") return <Handshake className={className} />
+  if (icon === "dlms") return <DlmsIcon className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
   if (icon === "masters") return <Settings className={className} />
   return null
@@ -80,6 +104,7 @@ export function Sidebar() {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
     if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
+    if (label === "DLMS") return pathname.startsWith("/dashboard/dlms")
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     return false
@@ -89,6 +114,7 @@ export function Sidebar() {
     仕様書: defaultOpen("仕様書"),
     見積書: defaultOpen("見積書"),
     BPMS: defaultOpen("BPMS"),
+    DLMS: defaultOpen("DLMS"),
     SSSS: defaultOpen("SSSS"),
     マスタ管理: defaultOpen("マスタ管理"),
   })
