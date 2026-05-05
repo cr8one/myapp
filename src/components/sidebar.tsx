@@ -58,6 +58,7 @@ const menuItems = [
   },
   {
     label: "電子申請",
+    href: "/dashboard/eapp",
     icon: "eapp",
     children: [
       { label: "得意先", href: "/dashboard/eapp/customers" },
