@@ -38,7 +38,7 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
 
   useEffect(() => {
     const t1 = setTimeout(() => setPeelAnim(true), 200)
-    const t2 = setTimeout(() => setPeelAnim(false), 700)
+    const t2 = setTimeout(() => setPeelAnim(false), 900)
     const t3 = setTimeout(() => setPhase(1), 300)
     const t4 = setTimeout(() => setPhase(2), 900)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
@@ -57,14 +57,17 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
   return (
     <div className="p-8">
       <style>{`
-        @keyframes peel {
-          0%   { transform: scale(1) rotate(0deg); }
-          25%  { transform: scale(1.1) rotate(-5deg) skewX(-3deg); }
-          50%  { transform: scale(1.15) rotate(4deg) skewX(2deg); }
-          75%  { transform: scale(1.08) rotate(-2deg); }
-          100% { transform: scale(1) rotate(0deg); }
+        @keyframes sealPeel {
+          0%   { transform: perspective(200px) rotateX(0deg) rotateY(0deg) translateY(0px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+          20%  { transform: perspective(200px) rotateX(10deg) rotateY(-15deg) translateY(-6px) scale(1.05); box-shadow: 6px 12px 20px rgba(0,0,0,0.3); }
+          45%  { transform: perspective(200px) rotateX(18deg) rotateY(-25deg) translateY(-10px) scale(1.08); box-shadow: 10px 18px 28px rgba(0,0,0,0.25); }
+          70%  { transform: perspective(200px) rotateX(6deg) rotateY(-8deg) translateY(-3px) scale(1.03); box-shadow: 4px 8px 14px rgba(0,0,0,0.2); }
+          100% { transform: perspective(200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         }
-        .peel-anim { animation: peel 0.5s ease; }
+        .peel-anim {
+          animation: sealPeel 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transform-origin: bottom right;
+        }
       `}</style>
 
       <div className="mb-10 flex flex-col gap-2">
@@ -78,9 +81,12 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
-            <div className={peelAnim ? "peel-anim" : ""}>
+            <div className={peelAnim ? "peel-anim" : ""} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
               <SealIcon size={phase >= 2 ? 30 : 42} className="transition-all duration-500" />
             </div>
+            {phase < 2 && (
+              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-300 ring-opacity-50 animate-ping" />
+            )}
           </div>
 
           <div className="flex flex-col justify-center gap-0.5">
