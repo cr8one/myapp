@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -16,12 +16,20 @@ function SsssIcon({ className }: { className?: string }) {
 }
 
 const menuItems = [
-  { label: "ダッシュボード", href: "/dashboard" },
+  { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   {
-    label: "製品管理",
+    label: "仕様書",
+    icon: "spec",
     children: [
       { label: "仕様一覧", href: "/dashboard/products" },
       { label: "パーツ一覧", href: "/dashboard/parts" },
+    ],
+  },
+  {
+    label: "見積書",
+    icon: "estimate",
+    children: [
+      { label: "見積一覧", href: "/dashboard/estimates" },
     ],
   },
   {
@@ -56,6 +64,9 @@ const menuItems = [
 ]
 
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
+  if (icon === "dashboard") return <Gauge className={className} />
+  if (icon === "spec") return <ScrollText className={className} />
+  if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "bpms") return <Handshake className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
   if (icon === "masters") return <Settings className={className} />
@@ -66,7 +77,8 @@ export function Sidebar() {
   const pathname = usePathname()
 
   const defaultOpen = (label: string) => {
-    if (label === "製品管理") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+    if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+    if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
     if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
@@ -74,7 +86,8 @@ export function Sidebar() {
   }
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    製品管理: defaultOpen("製品管理"),
+    仕様書: defaultOpen("仕様書"),
+    見積書: defaultOpen("見積書"),
     BPMS: defaultOpen("BPMS"),
     SSSS: defaultOpen("SSSS"),
     マスタ管理: defaultOpen("マスタ管理"),
@@ -90,11 +103,11 @@ export function Sidebar() {
         {menuItems.map(item => {
           if (item.children) {
             const isOpen = openMenus[item.label] ?? false
-            const isActive = item.href === pathname || item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
+            const isActive = ("href" in item && item.href === pathname) || item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
             return (
               <div key={item.label}>
                 <div className="flex items-center">
-                  {item.href ? (
+                  {"href" in item && item.href ? (
                     <Link
                       href={item.href}
                       className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}
@@ -132,8 +145,9 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href!}
-              className={`block px-6 py-3 text-sm hover:bg-gray-50 ${pathname === item.href ? "bg-gray-100 font-semibold text-blue-600" : "text-gray-700"}`}
+              className={`flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${pathname === item.href ? "bg-gray-100 font-semibold text-blue-600" : "text-gray-700"}`}
             >
+              {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${pathname === item.href ? "text-blue-600" : "text-gray-500"}`} />}
               {item.label}
             </Link>
           )
