@@ -17,15 +17,31 @@ const cards = [
   { label: "貼り付けパーツ", key: "partCount" as keyof Stats, href: "/dashboard/ssss/masters", icon: Tags },
 ]
 
-function SealIcon({ size, className }: { size: number; className?: string }) {
+function SealIcon({ size, peeling }: { size: number; peeling: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* シール本体 */}
       <rect x="4" y="8" width="36" height="26" rx="3" fill="white" fillOpacity="0.3" stroke="white" strokeWidth="2"/>
       <line x1="10" y1="18" x2="34" y2="18" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="24" x2="28" y2="24" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
       <line x1="10" y1="30" x2="22" y2="30" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-      <path d="M28 34 L40 34 L40 22 Z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
-      <path d="M28 34 Q34 34 40 28" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+
+      {/* めくれた角（右下） */}
+      {peeling ? (
+        <>
+          {/* めくれた部分の影（三角形・暗め） */}
+          <path d="M28 34 L42 34 L42 20 Z" fill="rgba(0,0,0,0.15)"/>
+          {/* めくれた紙の裏面（白っぽい三角） */}
+          <path d="M28 34 L42 34 L42 20 Z" fill="white" fillOpacity="0.45" stroke="white" strokeWidth="1" strokeLinejoin="round"/>
+          {/* めくれの折り目ライン */}
+          <line x1="28" y1="34" x2="42" y2="20" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.6"/>
+        </>
+      ) : (
+        <>
+          <path d="M28 34 L40 34 L40 22 Z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+          <path d="M28 34 Q34 34 40 28" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        </>
+      )}
     </svg>
   )
 }
@@ -33,12 +49,12 @@ function SealIcon({ size, className }: { size: number; className?: string }) {
 export default function SsssDashboardClient({ stats }: { stats: Stats }) {
   const [phase, setPhase] = useState<0 | 1 | 2>(0)
   const [visibleChars, setVisibleChars] = useState(0)
-  const [peelAnim, setPeelAnim] = useState(false)
+  const [peeling, setPeeling] = useState(false)
   const fullText = "Sample Seal Supply System"
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPeelAnim(true), 200)
-    const t2 = setTimeout(() => setPeelAnim(false), 900)
+    const t1 = setTimeout(() => setPeeling(true), 200)
+    const t2 = setTimeout(() => setPeeling(false), 800)
     const t3 = setTimeout(() => setPhase(1), 300)
     const t4 = setTimeout(() => setPhase(2), 900)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
@@ -56,20 +72,6 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
 
   return (
     <div className="p-8">
-      <style>{`
-        @keyframes sealPeel {
-          0%   { transform: perspective(200px) rotateX(0deg) rotateY(0deg) translateY(0px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-          20%  { transform: perspective(200px) rotateX(10deg) rotateY(-15deg) translateY(-6px) scale(1.05); box-shadow: 6px 12px 20px rgba(0,0,0,0.3); }
-          45%  { transform: perspective(200px) rotateX(18deg) rotateY(-25deg) translateY(-10px) scale(1.08); box-shadow: 10px 18px 28px rgba(0,0,0,0.25); }
-          70%  { transform: perspective(200px) rotateX(6deg) rotateY(-8deg) translateY(-3px) scale(1.03); box-shadow: 4px 8px 14px rgba(0,0,0,0.2); }
-          100% { transform: perspective(200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        }
-        .peel-anim {
-          animation: sealPeel 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          transform-origin: bottom right;
-        }
-      `}</style>
-
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
           <div
@@ -81,12 +83,7 @@ export default function SsssDashboardClient({ stats }: { stats: Stats }) {
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
-            <div className={peelAnim ? "peel-anim" : ""} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <SealIcon size={phase >= 2 ? 30 : 42} className="transition-all duration-500" />
-            </div>
-            {phase < 2 && (
-              <span className="absolute inset-0 rounded-2xl ring-4 ring-yellow-300 ring-opacity-50 animate-ping" />
-            )}
+            <SealIcon size={phase >= 2 ? 30 : 42} peeling={peeling} />
           </div>
 
           <div className="flex flex-col justify-center gap-0.5">
