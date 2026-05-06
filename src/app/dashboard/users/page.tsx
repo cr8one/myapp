@@ -175,7 +175,12 @@ export default function UsersPage() {
   const handleDelete = async (id: string) => {
     if (id === session?.user?.id) { alert("自分自身は削除できません"); return }
     if (!confirm("このユーザーを削除しますか？")) return
-    await fetch(`/api/users/${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/users/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(`削除失敗: ${data.error ?? res.status}`)
+      return
+    }
     fetchUsers()
   }
 
