@@ -87,9 +87,6 @@ const menuItems = [
       { label: "図面管理", href: "/dashboard/dlms/drawings" },
       { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
       { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
-      { label: "判型マスタ", href: "/dashboard/dlms/masters/formats" },
-      { label: "パーツマスタ", href: "/dashboard/dlms/masters/parts" },
-      { label: "注記マスタ", href: "/dashboard/dlms/masters/notes" },
     ],
   },
   {
@@ -186,7 +183,7 @@ export function Sidebar() {
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={`block pl-10 pr-6 py-2.5 text-sm hover:bg-gray-100 ${pathname === child.href || pathname.startsWith(child.href) ? "font-semibold text-blue-600" : "text-gray-600"}`}
+                        className={`block pl-10 pr-6 py-2.5 text-sm hover:bg-gray-100 ${pathname === child.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
                       >
                         {child.label}
                       </Link>
