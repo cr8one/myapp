@@ -1,33 +1,75 @@
 "use client"
 import { useState } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError("")
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    // 認証チェック用APIを呼ぶ
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     })
-    if (result?.error) {
+
+    if (!res.ok) {
       setError("メールアドレスまたはパスワードが正しくありません")
       setLoading(false)
-    } else {
-      router.push("/dashboard")
+      return
     }
+
+    // ブラウザにパスワード保存を促すため、フォームをネイティブsubmitで再送信
+    const form = document.createElement("form")
+    form.method = "POST"
+    form.action = "/api/auth/callback/credentials"
+    form.style.display = "none"
+
+    const emailInput = document.createElement("input")
+    emailInput.name = "email"
+    emailInput.value = email
+    emailInput.autocomplete = "email"
+
+    const passwordInput = document.createElement("input")
+    passwordInput.type = "password"
+    passwordInput.name = "password"
+    passwordInput.value = password
+    passwordInput.autocomplete = "current-password"
+
+    const csrfInput = document.createElement("input")
+    csrfInput.name = "csrfToken"
+
+    // CSRFトークン取得
+    const csrfRes = await fetch("/api/auth/csrf")
+    const { csrfToken } = await csrfRes.json()
+    csrfInput.value = csrfToken
+
+    const redirectInput = document.createElement("input")
+    redirectInput.name = "callbackUrl"
+    redirectInput.value = "/dashboard"
+
+    form.appendChild(emailInput)
+    form.appendChild(passwordInput)
+    form.appendChild(csrfInput)
+    form.appendChild(redirectInput)
+    document.body.appendChild(form)
+    form.submit()
   }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
@@ -43,8 +85,6 @@ export default function LoginPage() {
                 type="email"
                 name="email"
                 autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -55,8 +95,6 @@ export default function LoginPage() {
                 type="password"
                 name="password"
                 autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
