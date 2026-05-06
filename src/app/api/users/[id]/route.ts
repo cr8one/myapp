@@ -34,6 +34,11 @@ export async function PUT(
     data.password = await bcrypt.hash(password, 10)
   }
 
+  // 既存のorderを取得（フロントから送られない場合に上書きしないため）
+  const existing = permission
+    ? await prisma.userPermission.findUnique({ where: { userId: id } })
+    : null
+
   const user = await prisma.user.update({
     where: { id },
     data: {
@@ -54,10 +59,10 @@ export async function PUT(
                 ssssIsSupplier:          permission.ssssIsSupplier          ?? false,
                 ssssIsReceiver:          permission.ssssIsReceiver          ?? false,
                 ssssIsOutsourceReceiver: permission.ssssIsOutsourceReceiver ?? false,
-                ssssIssuerOrder:            permission.ssssIssuerOrder            ?? 0,
-                ssssSupplierOrder:          permission.ssssSupplierOrder          ?? 0,
-                ssssReceiverOrder:          permission.ssssReceiverOrder          ?? 0,
-                ssssOutsourceReceiverOrder: permission.ssssOutsourceReceiverOrder ?? 0,
+                ssssIssuerOrder:            0,
+                ssssSupplierOrder:          0,
+                ssssReceiverOrder:          0,
+                ssssOutsourceReceiverOrder: 0,
               },
               update: {
                 productsView: permission.productsView,
@@ -72,10 +77,11 @@ export async function PUT(
                 ssssIsSupplier:          permission.ssssIsSupplier,
                 ssssIsReceiver:          permission.ssssIsReceiver,
                 ssssIsOutsourceReceiver: permission.ssssIsOutsourceReceiver,
-                ssssIssuerOrder:            permission.ssssIssuerOrder,
-                ssssSupplierOrder:          permission.ssssSupplierOrder,
-                ssssReceiverOrder:          permission.ssssReceiverOrder,
-                ssssOutsourceReceiverOrder: permission.ssssOutsourceReceiverOrder,
+                // orderはフロントから来ない場合は既存値を維持
+                ssssIssuerOrder:            existing?.ssssIssuerOrder            ?? 0,
+                ssssSupplierOrder:          existing?.ssssSupplierOrder          ?? 0,
+                ssssReceiverOrder:          existing?.ssssReceiverOrder          ?? 0,
+                ssssOutsourceReceiverOrder: existing?.ssssOutsourceReceiverOrder ?? 0,
               },
             },
           }
