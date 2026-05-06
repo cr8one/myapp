@@ -3,7 +3,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen } from "lucide-react"
-
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -14,7 +13,6 @@ function SsssIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
 function DlmsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -25,7 +23,6 @@ function DlmsIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
 function EApplicationIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -38,7 +35,6 @@ function EApplicationIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
 const menuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   {
@@ -104,11 +100,17 @@ const menuItems = [
     href: "/dashboard/masters",
     icon: "masters",
     children: [
-      { label: "ユーザー管理", href: "/dashboard/users" },
+      { label: "ユーザーマスタ", href: "/dashboard/users" },
+      {
+        label: "PRINSERマスタ",
+        href: "/dashboard/masters/prinser",
+        children: [
+          { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
+        ],
+      },
     ],
   },
 ]
-
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
   if (icon === "spec") return <ScrollText className={className} />
@@ -120,10 +122,8 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "masters") return <Settings className={className} />
   return null
 }
-
 export function Sidebar() {
   const pathname = usePathname()
-
   const defaultOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
@@ -134,7 +134,6 @@ export function Sidebar() {
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     return false
   }
-
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     仕様書: defaultOpen("仕様書"),
     見積書: defaultOpen("見積書"),
@@ -143,12 +142,59 @@ export function Sidebar() {
     DLMS: defaultOpen("DLMS"),
     SSSS: defaultOpen("SSSS"),
     マスタ管理: defaultOpen("マスタ管理"),
+    PRINSERマスタ: pathname.startsWith("/dashboard/masters/prinser"),
   })
-
   const toggleMenu = (label: string) => {
     setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }))
   }
-
+  const renderChildren = (children: any[], depth: number = 0) => {
+    return children.map(child => {
+      if (child.children) {
+        const isOpen = openMenus[child.label] ?? false
+        const isActive = child.children.some((c: any) => pathname === c.href || pathname.startsWith(c.href))
+        return (
+          <div key={child.label}>
+            <div className="flex items-center">
+              <Link
+                href={child.href}
+                className={`flex-1 flex items-center gap-2 py-2.5 text-sm hover:bg-gray-100 ${isActive ? "font-semibold text-blue-600" : "text-gray-600"}`}
+                style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}
+              >
+                {child.label}
+              </Link>
+              <button onClick={() => toggleMenu(child.label)} className="px-3 py-2.5 hover:bg-gray-100">
+                {isOpen ? <ChevronDown className="w-3 h-3 text-gray-500" /> : <ChevronRight className="w-3 h-3 text-gray-500" />}
+              </button>
+            </div>
+            {isOpen && (
+              <div className="bg-gray-100">
+                {child.children.map((grandchild: any) => (
+                  <Link
+                    key={grandchild.href}
+                    href={grandchild.href}
+                    className={`block py-2 text-sm hover:bg-gray-200 ${pathname === grandchild.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
+                    style={{ paddingLeft: `${(depth + 4) * 16}px` }}
+                  >
+                    {grandchild.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      }
+      return (
+        <Link
+          key={child.href}
+          href={child.href}
+          className={`block py-2.5 text-sm hover:bg-gray-100 ${pathname === child.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
+          style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}
+        >
+          {child.label}
+        </Link>
+      )
+    })
+  }
   return (
     <aside className="w-56 min-h-screen bg-white border-r">
       <nav className="py-4">
@@ -179,15 +225,7 @@ export function Sidebar() {
                 </div>
                 {isOpen && (
                   <div className="bg-gray-50">
-                    {item.children.map(child => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={`block pl-10 pr-6 py-2.5 text-sm hover:bg-gray-100 ${pathname === child.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
+                    {renderChildren(item.children)}
                   </div>
                 )}
               </div>
