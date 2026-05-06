@@ -34,7 +34,6 @@ export async function PUT(
     data.password = await bcrypt.hash(password, 10)
   }
 
-  // 既存のorderを取得（フロントから送られない場合に上書きしないため）
   const existing = permission
     ? await prisma.userPermission.findUnique({ where: { userId: id } })
     : null
@@ -77,7 +76,6 @@ export async function PUT(
                 ssssIsSupplier:          permission.ssssIsSupplier,
                 ssssIsReceiver:          permission.ssssIsReceiver,
                 ssssIsOutsourceReceiver: permission.ssssIsOutsourceReceiver,
-                // orderはフロントから来ない場合は既存値を維持
                 ssssIssuerOrder:            existing?.ssssIssuerOrder            ?? 0,
                 ssssSupplierOrder:          existing?.ssssSupplierOrder          ?? 0,
                 ssssReceiverOrder:          existing?.ssssReceiverOrder          ?? 0,
@@ -104,6 +102,22 @@ export async function DELETE(
   }
 
   const { id } = await params
-  await prisma.user.delete({ where: { id } })
+
+  // 関連レコードを先にnull化・削除してから本体を削除
+  await prisma.$transaction([
+    // DevProjectAssigneeの削除
+    prisma.devProjectAssignee.deleteMany({ where: { userId: id } }),
+    // DevExhibitionVisitorの削除
+    prisma.devExhibitionVisitor.deleteMany({ where: { userId: id } }),
+    // SealSupplyの各担当者フィールドをnullに
+    prisma.sealSupply.updateMany({ where: { issuerId: id },            data: { issuerId: null } }),
+    prisma.sealSupply.updateMany({ where: { supplierId: id },          data: { supplierId: null } }),
+    prisma.sealSupply.updateMany({ where: { receiverId: id },          data: { receiverId: null } }),
+    prisma.sealSupply.updateMany({ where: { outsourceReceiverId: id }, data: { outsourceReceiverId: null } }),
+    prisma.sealSupply.updateMany({ where: { salesPersonId: id },       data: { salesPersonId: null } }),
+    // ユーザー本体削除（UserPermissionはCascadeで自動削除）
+    prisma.user.delete({ where: { id } }),
+  ])
+
   return NextResponse.json({ success: true })
 }
