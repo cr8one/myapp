@@ -87,6 +87,9 @@ const menuItems = [
       { label: "図面管理", href: "/dashboard/dlms/drawings" },
       { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
       { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
+      { label: "判型マスタ", href: "/dashboard/dlms/masters/formats" },
+      { label: "パーツマスタ", href: "/dashboard/dlms/masters/parts" },
+      { label: "注記マスタ", href: "/dashboard/dlms/masters/notes" },
     ],
   },
   {

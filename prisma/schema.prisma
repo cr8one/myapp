@@ -298,3 +298,39 @@ model SealSupply {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("seal_supplies")
 }
+
+model DlmsFormatMaster {
+  id        Int      @id @default(autoincrement())
+  name      String
+  width     Float
+  height    Float
+  unit      String   @default("mm")
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("dlms_format_masters")
+}
+
+model DlmsPartMaster {
+  id        Int      @id @default(autoincrement())
+  name      String
+  width     Float
+  height    Float
+  shape     String   @default("rect")
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("dlms_part_masters")
+}
+
+model DlmsNoteMaster {
+  id         Int      @id @default(autoincrement())
+  name       String
+  content    String
+  fontSize   Int      @default(12) @map("font_size")
+  color      String   @default("#1a1a1a")
+  fontWeight String   @default("normal") @map("font_weight")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  @@map("dlms_note_masters")
+}
