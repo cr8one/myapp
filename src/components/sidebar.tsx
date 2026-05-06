@@ -85,6 +85,7 @@ const menuItems = [
     children: [
       { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
       { label: "図面管理", href: "/dashboard/dlms/drawings" },
+      { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
     ],
   },
   {
