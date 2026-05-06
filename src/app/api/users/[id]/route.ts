@@ -48,6 +48,16 @@ export async function PUT(
                 partsEdit:    permission.partsEdit    ?? false,
                 devView:      permission.devView      ?? true,
                 devEdit:      permission.devEdit      ?? false,
+                ssssView:     permission.ssssView     ?? true,
+                ssssEdit:     permission.ssssEdit     ?? false,
+                ssssIsIssuer:            permission.ssssIsIssuer            ?? false,
+                ssssIsSupplier:          permission.ssssIsSupplier          ?? false,
+                ssssIsReceiver:          permission.ssssIsReceiver          ?? false,
+                ssssIsOutsourceReceiver: permission.ssssIsOutsourceReceiver ?? false,
+                ssssIssuerOrder:            permission.ssssIssuerOrder            ?? 0,
+                ssssSupplierOrder:          permission.ssssSupplierOrder          ?? 0,
+                ssssReceiverOrder:          permission.ssssReceiverOrder          ?? 0,
+                ssssOutsourceReceiverOrder: permission.ssssOutsourceReceiverOrder ?? 0,
               },
               update: {
                 productsView: permission.productsView,
@@ -56,6 +66,16 @@ export async function PUT(
                 partsEdit:    permission.partsEdit,
                 devView:      permission.devView,
                 devEdit:      permission.devEdit,
+                ssssView:     permission.ssssView,
+                ssssEdit:     permission.ssssEdit,
+                ssssIsIssuer:            permission.ssssIsIssuer,
+                ssssIsSupplier:          permission.ssssIsSupplier,
+                ssssIsReceiver:          permission.ssssIsReceiver,
+                ssssIsOutsourceReceiver: permission.ssssIsOutsourceReceiver,
+                ssssIssuerOrder:            permission.ssssIssuerOrder,
+                ssssSupplierOrder:          permission.ssssSupplierOrder,
+                ssssReceiverOrder:          permission.ssssReceiverOrder,
+                ssssOutsourceReceiverOrder: permission.ssssOutsourceReceiverOrder,
               },
             },
           }
@@ -63,6 +83,7 @@ export async function PUT(
     },
     select: userSelect,
   })
+
   return NextResponse.json(user)
 }
 
