@@ -194,7 +194,7 @@ export default function DevLogsPage() {
             </div>
             <div className="space-y-1">
               <Label>タイトル</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="例：v1.2.0リリース" />
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoComplete="off" placeholder="例：v1.2.0リリース" />
             </div>
             <div className="space-y-1">
               <Label>内容</Label>
