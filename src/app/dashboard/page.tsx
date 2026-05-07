@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  const [productCount, partCount, userCount, announcements] = await Promise.all([
+  const [productCount, partCount, userCount, rawAnnouncements] = await Promise.all([
     prisma.product.count(),
     prisma.part.count(),
     prisma.user.count(),
@@ -17,6 +17,13 @@ export default async function DashboardPage() {
       include: { createdBy: { select: { name: true, email: true } } },
     }),
   ])
+
+  const announcements = rawAnnouncements.map(a => ({
+    ...a,
+    publishedAt: a.publishedAt.toISOString(),
+    createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
+  }))
 
   return (
     <DashboardClient
