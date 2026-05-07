@@ -64,7 +64,7 @@ export default function DevLogsPage() {
   useEffect(() => { fetchLogs() }, [])
 
   const handleFilterChange = (value: string | null) => {
-    setFilterCategory(value)
+    setFilterCategory(value ?? "all")
     fetchLogs(value ?? undefined)
   }
 
