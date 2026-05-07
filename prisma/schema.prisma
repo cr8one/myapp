@@ -393,3 +393,55 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model DlmsDielineParent {
+  id            String   @id @default(cuid())
+  uid_ntemp     String   @unique
+  flg_del       Int      @default(0)
+  kyugataban    String?
+  genre         String?
+  spec          String?
+  hinmoku       String?
+  developy      Float?
+  developx      Float?
+  sizey         Float?
+  sizex         Float?
+  widthy        Float?
+  dtindt        DateTime @default(now())
+  dtupdt        DateTime @updatedAt
+  conditions    DlmsDielineCondition[]
+  children      DlmsDielineChild[]
+
+  @@map("dlms_dieline_parents")
+}
+
+model DlmsDielineCondition {
+  id        String             @id @default(cuid())
+  parentId  String
+  value     String
+  sortOrder Int                @default(0)
+  parent    DlmsDielineParent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("dlms_dieline_conditions")
+}
+
+model DlmsDielineChild {
+  id          String             @id @default(cuid())
+  parentId    String
+  edaban      String
+  han         String?
+  me          String?
+  kiri        String?
+  men         String?
+  sizey       Float?
+  sizex       Float?
+  咥え        Float?
+  location    String?
+  dxf_filename String?
+  flg_del     Int                @default(0)
+  dtindt      DateTime           @default(now())
+  dtupdt      DateTime           @updatedAt
+  parent      DlmsDielineParent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("dlms_dieline_children")
+}
