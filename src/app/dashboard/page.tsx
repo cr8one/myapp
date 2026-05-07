@@ -7,16 +7,11 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  const [productCount, partCount, userCount, rawAnnouncements] = await Promise.all([
-    prisma.product.count(),
-    prisma.part.count(),
-    prisma.user.count(),
-    prisma.announcement.findMany({
-      orderBy: { publishedAt: "desc" },
-      take: 5,
-      include: { createdBy: { select: { name: true, email: true } } },
-    }),
-  ])
+  const rawAnnouncements = await prisma.announcement.findMany({
+    orderBy: { publishedAt: "desc" },
+    take: 5,
+    include: { createdBy: { select: { name: true, email: true } } },
+  })
 
   const announcements = rawAnnouncements.map(a => ({
     ...a,
@@ -29,9 +24,6 @@ export default async function DashboardPage() {
     <DashboardClient
       userName={session.user?.name ?? session.user?.email ?? ""}
       isAdmin={session.user?.role === "ADMIN"}
-      productCount={productCount}
-      partCount={partCount}
-      userCount={userCount}
       announcements={announcements}
     />
   )

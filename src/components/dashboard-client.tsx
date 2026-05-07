@@ -23,9 +23,6 @@ type Announcement = {
 type Props = {
   userName: string
   isAdmin: boolean
-  productCount: number
-  partCount: number
-  userCount: number
   announcements: Announcement[]
 }
 
@@ -72,7 +69,7 @@ function EApplicationIcon({ className }: { className?: string }) {
   )
 }
 
-const MODULE_CARDS = [
+const SERVICE_CARDS = [
   { label: "仕様書", href: "/dashboard/products", icon: "spec", desc: "仕様一覧・パーツ一覧", color: "text-indigo-600 bg-indigo-50" },
   { label: "見積書", href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧", color: "text-emerald-600 bg-emerald-50" },
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", desc: "得意先・納品先・仕入先・用紙", color: "text-sky-600 bg-sky-50" },
@@ -83,7 +80,7 @@ const MODULE_CARDS = [
   { label: "システム管理", href: "/dashboard/system", icon: "system", desc: "開発記録", color: "text-rose-600 bg-rose-50" },
 ]
 
-function ModuleIcon({ icon, className }: { icon: string; className?: string }) {
+function ServiceIcon({ icon, className }: { icon: string; className?: string }) {
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "eapp") return <EApplicationIcon className={className} />
@@ -98,7 +95,7 @@ function ModuleIcon({ icon, className }: { icon: string; className?: string }) {
 type FormData = { title: string; content: string; category: string; publishedAt: string }
 const emptyForm: FormData = { title: "", content: "", category: "", publishedAt: "" }
 
-export default function DashboardClient({ userName, isAdmin, productCount, partCount, userCount, announcements: initial }: Props) {
+export default function DashboardClient({ userName, isAdmin, announcements: initial }: Props) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initial)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Announcement | null>(null)
@@ -151,12 +148,6 @@ export default function DashboardClient({ userName, isAdmin, productCount, partC
     setDeleteTarget(null)
     fetchAnnouncements()
   }
-
-  const stats = [
-    { label: "製品数", value: productCount, unit: "件" },
-    { label: "パーツ数", value: partCount, unit: "件" },
-    { label: "ユーザー数", value: userCount, unit: "名" },
-  ]
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -219,34 +210,18 @@ export default function DashboardClient({ userName, isAdmin, productCount, partC
         )}
       </div>
 
-      {/* モジュール入口カード */}
+      {/* サービスエリア */}
       <div className="mb-8">
-        <h2 className="text-base font-semibold text-gray-700 mb-3">モジュール</h2>
+        <h2 className="text-base font-semibold text-gray-700 mb-3">サービス</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {MODULE_CARDS.map(m => (
+          {SERVICE_CARDS.map(m => (
             <Link key={m.href} href={m.href} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all group">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${m.color}`}>
-                <ModuleIcon icon={m.icon} className="w-5 h-5" />
+                <ServiceIcon icon={m.icon} className="w-5 h-5" />
               </div>
               <p className="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{m.label}</p>
               <p className="text-xs text-gray-400 mt-0.5">{m.desc}</p>
             </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* 統計 */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">統計</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {stats.map(stat => (
-            <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-gray-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {stat.value.toLocaleString()}
-                <span className="ml-1 text-base font-normal text-gray-500">{stat.unit}</span>
-              </p>
-            </div>
           ))}
         </div>
       </div>
