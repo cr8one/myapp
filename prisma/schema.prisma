@@ -30,6 +30,7 @@ model User {
   suppliesAsOutsourceReceiver SealSupply[] @relation("SealOutsourceReceiver")
   suppliesAsSalesPerson       SealSupply[] @relation("SealSalesPerson")
   devLogs                     DevLog[]
+  announcements               Announcement[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -348,4 +349,18 @@ model DevLog {
   updatedAt   DateTime @updatedAt
 
   @@map("dev_logs")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  category    String
+  publishedAt DateTime
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("announcements")
 }
