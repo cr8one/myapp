@@ -411,6 +411,7 @@ model DlmsDielineParent {
   dtupdt        DateTime @updatedAt
   conditions    DlmsDielineCondition[]
   children      DlmsDielineChild[]
+  requests      DlmsDielineRequest[]
 
   @@map("dlms_dieline_parents")
 }
@@ -442,6 +443,32 @@ model DlmsDielineChild {
   dtindt      DateTime           @default(now())
   dtupdt      DateTime           @updatedAt
   parent      DlmsDielineParent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  requests    DlmsDielineRequest[]
 
   @@map("dlms_dieline_children")
+}
+
+model DlmsDielineRequest {
+  id                String    @id @default(cuid())
+  request_no        String    @unique
+  flg_del           Int       @default(0)
+  parentId          String
+  childId           String?
+  shohin_no         String?
+  location          String?
+  seisan_tanto      String?
+  use_date          DateTime?
+  use_time          String?
+  request_note      String?
+  haichi_kakunin_by String?
+  haichi_kakunin    String    @default("未手配")
+  kansei_date       DateTime?
+  kansei_time       String?
+  haichi_note       String?
+  dtindt            DateTime  @default(now())
+  dtupdt            DateTime  @updatedAt
+  parent            DlmsDielineParent @relation(fields: [parentId], references: [id])
+  child             DlmsDielineChild? @relation(fields: [childId], references: [id])
+
+  @@map("dlms_dieline_requests")
 }
