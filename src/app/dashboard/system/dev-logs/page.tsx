@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 
@@ -63,11 +62,6 @@ export default function DevLogsPage() {
   }
 
   useEffect(() => { fetchLogs() }, [])
-
-  const handleFilterChange = (value: string) => {
-    setFilterCategory(value)
-    fetchLogs(value)
-  }
 
   const openCreate = () => {
     setEditTarget(null)
@@ -131,17 +125,14 @@ export default function DevLogsPage() {
 
       <div className="mb-4 flex items-center gap-3">
         <Label className="text-sm text-gray-600">カテゴリ絞り込み：</Label>
-        <Select value={filterCategory} onValueChange={handleFilterChange}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            {CATEGORIES.map(c => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={filterCategory}
+          onChange={e => { setFilterCategory(e.target.value); fetchLogs(e.target.value) }}
+          className="border rounded px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">すべて</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
       </div>
 
       {loading ? (
@@ -192,16 +183,14 @@ export default function DevLogsPage() {
             </div>
             <div className="space-y-1">
               <Label>カテゴリ</Label>
-              <Select value={form.category} onValueChange={(v: string) => setForm(f => ({ ...f, category: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full border rounded px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">選択してください</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div className="space-y-1">
               <Label>タイトル</Label>
