@@ -2,7 +2,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck } from "lucide-react"
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,7 +36,7 @@ function EApplicationIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-const menuItems = [
+const baseMenuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   {
     label: "仕様書",
@@ -111,6 +112,16 @@ const menuItems = [
     ],
   },
 ]
+const adminMenuItems = [
+  {
+    label: "システム管理",
+    href: "/dashboard/system",
+    icon: "system",
+    children: [
+      { label: "開発記録", href: "/dashboard/system/dev-logs" },
+    ],
+  },
+]
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
   if (icon === "spec") return <ScrollText className={className} />
@@ -120,10 +131,14 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dlms") return <DlmsIcon className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
   if (icon === "masters") return <Settings className={className} />
+  if (icon === "system") return <ShieldCheck className={className} />
   return null
 }
 export function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
+  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
   const defaultOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
@@ -132,6 +147,8 @@ export function Sidebar() {
     if (label === "DLMS") return pathname.startsWith("/dashboard/dlms")
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
+    if (label === "システム管理") return pathname.startsWith("/dashboard/system")
+    if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
     return false
   }
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
@@ -142,7 +159,8 @@ export function Sidebar() {
     DLMS: defaultOpen("DLMS"),
     SSSS: defaultOpen("SSSS"),
     マスタ管理: defaultOpen("マスタ管理"),
-    PRINSERマスタ: pathname.startsWith("/dashboard/masters/prinser"),
+    PRINSERマスタ: defaultOpen("PRINSERマスタ"),
+    システム管理: defaultOpen("システム管理"),
   })
   const toggleMenu = (label: string) => {
     setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }))

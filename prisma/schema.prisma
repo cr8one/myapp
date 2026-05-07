@@ -29,6 +29,7 @@ model User {
   suppliesAsReceiver          SealSupply[] @relation("SealReceiver")
   suppliesAsOutsourceReceiver SealSupply[] @relation("SealOutsourceReceiver")
   suppliesAsSalesPerson       SealSupply[] @relation("SealSalesPerson")
+  devLogs                     DevLog[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -333,4 +334,18 @@ model DlmsNoteMaster {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   @@map("dlms_note_masters")
+}
+
+model DevLog {
+  id          String   @id @default(cuid())
+  date        DateTime
+  title       String
+  content     String
+  category    String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("dev_logs")
 }
