@@ -63,9 +63,9 @@ export default function DevLogsPage() {
 
   useEffect(() => { fetchLogs() }, [])
 
-  const handleFilterChange = (value: string) => {
+  const handleFilterChange = (value: string | null) => {
     setFilterCategory(value)
-    fetchLogs(value)
+    fetchLogs(value ?? undefined)
   }
 
   const openCreate = () => {
