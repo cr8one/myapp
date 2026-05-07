@@ -472,3 +472,11 @@ model DlmsDielineRequest {
 
   @@map("dlms_dieline_requests")
 }
+
+model DlmsConditionMaster {
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  sortOrder Int    @default(0)
+
+  @@map("dlms_condition_masters")
+}

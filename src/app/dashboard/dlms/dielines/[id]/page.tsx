@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2, X } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
@@ -16,6 +16,7 @@ const ME_OPTIONS = ["Y", "T"]
 const KIRI_OPTIONS = ["1", "2", "3", "4", "長6", "角6", "8"]
 const MEN_OPTIONS = Array.from({ length: 18 }, (_, i) => String(i + 1))
 
+type ConditionMaster = { id: number; name: string }
 type Condition = { id: string; value: string; sortOrder: number }
 type Child = {
   id: string; edaban: string; han: string | null; me: string | null
@@ -42,8 +43,8 @@ export default function DielineDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [conditionMasters, setConditionMasters] = useState<ConditionMaster[]>([])
 
-  // 親編集フォーム
   const [genre, setGenre] = useState("")
   const [spec, setSpec] = useState("")
   const [hinmoku, setHinmoku] = useState("")
@@ -53,9 +54,8 @@ export default function DielineDetailPage() {
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
-  const [conditions, setConditions] = useState(["", "", "", ""])
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
 
-  // 枝番
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [editChild, setEditChild] = useState<Child | null>(null)
   const [childForm, setChildForm] = useState<ChildForm>(emptyChildForm)
@@ -67,7 +67,16 @@ export default function DielineDetailPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchParent() }, [id])
+  useEffect(() => {
+    fetchParent()
+    fetch("/api/dlms/conditions").then(r => r.json()).then(setConditionMasters)
+  }, [id])
+
+  const toggleCondition = (name: string) => {
+    setSelectedConditions(prev =>
+      prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
+    )
+  }
 
   const startEdit = () => {
     if (!parent) return
@@ -80,9 +89,7 @@ export default function DielineDetailPage() {
     setSizey(parent.sizey?.toString() ?? "")
     setSizex(parent.sizex?.toString() ?? "")
     setWidthy(parent.widthy?.toString() ?? "")
-    const conds = parent.conditions.map(c => c.value)
-    while (conds.length < 4) conds.push("")
-    setConditions(conds)
+    setSelectedConditions(parent.conditions.map(c => c.value))
     setEditing(true)
   }
 
@@ -99,7 +106,7 @@ export default function DielineDetailPage() {
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
-        conditions: conditions.filter(c => c.trim() !== ""),
+        conditions: selectedConditions,
       }),
     })
     setSaving(false)
@@ -171,7 +178,6 @@ export default function DielineDetailPage() {
       </div>
 
       <div className="space-y-6">
-        {/* 基本情報 */}
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent>
@@ -246,17 +252,38 @@ export default function DielineDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm text-gray-500 mb-2 block">条件（最大4件）</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {conditions.map((c, i) => (
-                      <div key={i} className="space-y-1">
-                        <Label className="text-xs">条件{i + 1}</Label>
-                        <Input value={c} onChange={e => {
-                          const conds = [...conditions]; conds[i] = e.target.value; setConditions(conds)
-                        }} autoComplete="off" />
+                  <Label className="text-sm text-gray-500 mb-2 block">条件</Label>
+                  {conditionMasters.length === 0 ? (
+                    <p className="text-sm text-gray-400">条件マスタが登録されていません。</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {conditionMasters.map(c => (
+                          <button key={c.id} type="button" onClick={() => toggleCondition(c.name)}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                              selectedConditions.includes(c.name)
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                            }`}>
+                            {c.name}
+                          </button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      {selectedConditions.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-2 border-t">
+                          <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
+                          {selectedConditions.map(c => (
+                            <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              {c}
+                              <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
@@ -267,7 +294,6 @@ export default function DielineDetailPage() {
           </CardContent>
         </Card>
 
-        {/* 枝番一覧 */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -329,7 +355,6 @@ export default function DielineDetailPage() {
         </Card>
       </div>
 
-      {/* 枝番モーダル */}
       {childModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">

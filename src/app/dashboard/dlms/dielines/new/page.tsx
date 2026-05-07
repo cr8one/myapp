@@ -1,14 +1,17 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { X } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
+
+type ConditionMaster = { id: number; name: string }
 
 export default function NewDielinePage() {
   const router = useRouter()
@@ -23,7 +26,18 @@ export default function NewDielinePage() {
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
-  const [conditions, setConditions] = useState(["", "", "", ""])
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+  const [conditionMasters, setConditionMasters] = useState<ConditionMaster[]>([])
+
+  useEffect(() => {
+    fetch("/api/dlms/conditions").then(r => r.json()).then(setConditionMasters)
+  }, [])
+
+  const toggleCondition = (name: string) => {
+    setSelectedConditions(prev =>
+      prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
+    )
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -39,7 +53,7 @@ export default function NewDielinePage() {
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
-        conditions: conditions.filter(c => c.trim() !== ""),
+        conditions: selectedConditions,
       }),
     })
     if (!res.ok) { setError("登録に失敗しました"); setLoading(false); return }
@@ -111,18 +125,39 @@ export default function NewDielinePage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>条件（最大4件）</CardTitle></CardHeader>
+          <CardHeader><CardTitle>条件</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              {conditions.map((c, i) => (
-                <div key={i} className="space-y-1">
-                  <Label className="text-xs">条件{i + 1}</Label>
-                  <Input value={c} onChange={e => {
-                    const conds = [...conditions]; conds[i] = e.target.value; setConditions(conds)
-                  }} autoComplete="off" />
+            {conditionMasters.length === 0 ? (
+              <p className="text-sm text-gray-400">条件マスタが登録されていません。DLMSマスタ管理から追加してください。</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {conditionMasters.map(c => (
+                    <button key={c.id} type="button" onClick={() => toggleCondition(c.name)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                        selectedConditions.includes(c.name)
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                      }`}>
+                      {c.name}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+                {selectedConditions.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-2 border-t">
+                    <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
+                    {selectedConditions.map(c => (
+                      <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        {c}
+                        <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
