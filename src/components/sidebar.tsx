@@ -120,6 +120,7 @@ const adminMenuItems = [
     children: [
       { label: "開発記録", href: "/dashboard/system/dev-logs" },
       { label: "ログイン履歴", href: "/dashboard/system/login-logs" },
+      { label: "修正履歴", href: "/dashboard/system/audit-logs" },
     ],
   },
 ]

@@ -32,6 +32,7 @@ model User {
   devLogs                     DevLog[]
   announcements               Announcement[]
   loginLogs                   LoginLog[]
+  auditLogs                   AuditLog[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -377,4 +378,18 @@ model LoginLog {
   user       User?    @relation(fields: [userId], references: [id])
 
   @@map("login_logs")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  targetModel String
+  targetId    String
+  targetLabel String?
+  diff        String?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
 }
