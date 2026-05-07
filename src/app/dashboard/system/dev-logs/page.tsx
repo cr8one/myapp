@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 
 const CATEGORIES = ["リリース", "機能追加", "バグ修正", "メンテナンス", "その他"]
@@ -54,7 +53,9 @@ export default function DevLogsPage() {
 
   const fetchLogs = async (category?: string) => {
     setLoading(true)
-    const url = category && category !== "all" ? `/api/dev-logs?category=${encodeURIComponent(category)}` : "/api/dev-logs"
+    const url = category && category !== "all"
+      ? `/api/dev-logs?category=${encodeURIComponent(category)}`
+      : "/api/dev-logs"
     const res = await fetch(url)
     const data = await res.json()
     setLogs(data)
@@ -63,9 +64,9 @@ export default function DevLogsPage() {
 
   useEffect(() => { fetchLogs() }, [])
 
-  const handleFilterChange = (value: string | null) => {
-    setFilterCategory(value ?? "all")
-    fetchLogs(value ?? undefined)
+  const handleFilterChange = (value: string) => {
+    setFilterCategory(value)
+    fetchLogs(value)
   }
 
   const openCreate = () => {
@@ -128,7 +129,6 @@ export default function DevLogsPage() {
         )}
       </div>
 
-      {/* フィルター */}
       <div className="mb-4 flex items-center gap-3">
         <Label className="text-sm text-gray-600">カテゴリ絞り込み：</Label>
         <Select value={filterCategory} onValueChange={handleFilterChange}>
@@ -144,7 +144,6 @@ export default function DevLogsPage() {
         </Select>
       </div>
 
-      {/* 一覧 */}
       {loading ? (
         <div className="text-center py-12 text-gray-400">読み込み中...</div>
       ) : logs.length === 0 ? (
@@ -181,7 +180,6 @@ export default function DevLogsPage() {
         </div>
       )}
 
-      {/* 作成・編集ダイアログ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -194,7 +192,7 @@ export default function DevLogsPage() {
             </div>
             <div className="space-y-1">
               <Label>カテゴリ</Label>
-              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+              <Select value={form.category} onValueChange={(v: string) => setForm(f => ({ ...f, category: v }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="選択してください" />
                 </SelectTrigger>
@@ -223,7 +221,6 @@ export default function DevLogsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 削除確認ダイアログ */}
       <Dialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
