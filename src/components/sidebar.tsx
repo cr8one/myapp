@@ -3,7 +3,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Car, BookOpen, FileText, CalendarDays } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays } from "lucide-react"
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -162,7 +162,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "eapp") return <EApplicationIcon className={className} />
-  if (icon === "travel") return <Car className={className} />
+  if (icon === "travel") return <Train className={className} />
   if (icon === "sop") return <BookOpen className={className} />
   if (icon === "report") return <FileText className={className} />
   if (icon === "bpms") return <Handshake className={className} />

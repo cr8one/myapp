@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
   Plus, Pencil, Trash2, Megaphone, Wrench, Tag,
-  Car, BookOpen, FileText, CalendarDays
+  Train, BookOpen, FileText, CalendarDays
 } from "lucide-react"
 
 type Announcement = {
@@ -89,7 +89,7 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "eapp") return <EApplicationIcon className={className} />
-  if (icon === "travel") return <Car className={className} />
+  if (icon === "travel") return <Train className={className} />
   if (icon === "sop") return <BookOpen className={className} />
   if (icon === "report") return <FileText className={className} />
   if (icon === "bpms") return <Handshake className={className} />
