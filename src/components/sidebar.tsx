@@ -3,7 +3,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Car, BookOpen, FileText, CalendarDays } from "lucide-react"
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,6 +65,30 @@ const baseMenuItems = [
     ],
   },
   {
+    label: "交通費精算",
+    href: "/dashboard/travel",
+    icon: "travel",
+    children: [
+      { label: "精算一覧", href: "/dashboard/travel" },
+    ],
+  },
+  {
+    label: "作業標準書",
+    href: "/dashboard/sop",
+    icon: "sop",
+    children: [
+      { label: "標準書一覧", href: "/dashboard/sop" },
+    ],
+  },
+  {
+    label: "業務報告書",
+    href: "/dashboard/report",
+    icon: "report",
+    children: [
+      { label: "報告書一覧", href: "/dashboard/report" },
+    ],
+  },
+  {
     label: "BPMS",
     href: "/dashboard/bpms",
     icon: "bpms",
@@ -85,6 +109,14 @@ const baseMenuItems = [
       { label: "図面管理", href: "/dashboard/dlms/drawings" },
       { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
       { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
+    ],
+  },
+  {
+    label: "DPP予定表",
+    href: "/dashboard/dpp",
+    icon: "dpp",
+    children: [
+      { label: "予定表", href: "/dashboard/dpp" },
     ],
   },
   {
@@ -130,8 +162,12 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "spec") return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "eapp") return <EApplicationIcon className={className} />
+  if (icon === "travel") return <Car className={className} />
+  if (icon === "sop") return <BookOpen className={className} />
+  if (icon === "report") return <FileText className={className} />
   if (icon === "bpms") return <Handshake className={className} />
   if (icon === "dlms") return <DlmsIcon className={className} />
+  if (icon === "dpp") return <CalendarDays className={className} />
   if (icon === "ssss") return <SsssIcon className={className} />
   if (icon === "masters") return <Settings className={className} />
   if (icon === "system") return <ShieldCheck className={className} />
@@ -146,8 +182,12 @@ export function Sidebar() {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
     if (label === "電子申請") return pathname.startsWith("/dashboard/eapp")
+    if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
+    if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
+    if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
     if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "DLMS") return pathname.startsWith("/dashboard/dlms")
+    if (label === "DPP予定表") return pathname.startsWith("/dashboard/dpp")
     if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     if (label === "システム管理") return pathname.startsWith("/dashboard/system")
@@ -158,8 +198,12 @@ export function Sidebar() {
     仕様書: defaultOpen("仕様書"),
     見積書: defaultOpen("見積書"),
     電子申請: defaultOpen("電子申請"),
+    交通費精算: defaultOpen("交通費精算"),
+    作業標準書: defaultOpen("作業標準書"),
+    業務報告書: defaultOpen("業務報告書"),
     BPMS: defaultOpen("BPMS"),
     DLMS: defaultOpen("DLMS"),
+    DPP予定表: defaultOpen("DPP予定表"),
     SSSS: defaultOpen("SSSS"),
     マスタ管理: defaultOpen("マスタ管理"),
     PRINSERマスタ: defaultOpen("PRINSERマスタ"),
