@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays } from "lucide-react"
 function SsssIcon({ className }: { className?: string }) {
@@ -178,7 +178,8 @@ export function Sidebar() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
-  const defaultOpen = (label: string) => {
+
+  const isMenuOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
     if (label === "電子申請") return pathname.startsWith("/dashboard/eapp")
@@ -194,28 +195,26 @@ export function Sidebar() {
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
     return false
   }
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    仕様書: defaultOpen("仕様書"),
-    見積書: defaultOpen("見積書"),
-    電子申請: defaultOpen("電子申請"),
-    交通費精算: defaultOpen("交通費精算"),
-    作業標準書: defaultOpen("作業標準書"),
-    業務報告書: defaultOpen("業務報告書"),
-    BPMS: defaultOpen("BPMS"),
-    DLMS: defaultOpen("DLMS"),
-    DPP予定表: defaultOpen("DPP予定表"),
-    SSSS: defaultOpen("SSSS"),
-    マスタ管理: defaultOpen("マスタ管理"),
-    PRINSERマスタ: defaultOpen("PRINSERマスタ"),
-    システム管理: defaultOpen("システム管理"),
-  })
-  const toggleMenu = (label: string) => {
-    setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }))
+
+  const [manualOverrides, setManualOverrides] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    setManualOverrides({})
+  }, [pathname])
+
+  const isOpen = (label: string) => {
+    if (label in manualOverrides) return manualOverrides[label]
+    return isMenuOpen(label)
   }
+
+  const toggleMenu = (label: string) => {
+    setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
+  }
+
   const renderChildren = (children: any[], depth: number = 0) => {
     return children.map(child => {
       if (child.children) {
-        const isOpen = openMenus[child.label] ?? false
+        const open = isOpen(child.label)
         const isActive = child.children.some((c: any) => pathname === c.href || pathname.startsWith(c.href))
         return (
           <div key={child.label}>
@@ -228,10 +227,10 @@ export function Sidebar() {
                 {child.label}
               </Link>
               <button onClick={() => toggleMenu(child.label)} className="px-3 py-2.5 hover:bg-gray-100">
-                {isOpen ? <ChevronDown className="w-3 h-3 text-gray-500" /> : <ChevronRight className="w-3 h-3 text-gray-500" />}
+                {open ? <ChevronDown className="w-3 h-3 text-gray-500" /> : <ChevronRight className="w-3 h-3 text-gray-500" />}
               </button>
             </div>
-            {isOpen && (
+            {open && (
               <div className="bg-gray-100">
                 {child.children.map((grandchild: any) => (
                   <Link
@@ -260,12 +259,13 @@ export function Sidebar() {
       )
     })
   }
+
   return (
     <aside className="w-56 min-h-screen bg-white border-r">
       <nav className="py-4">
         {menuItems.map(item => {
           if (item.children) {
-            const isOpen = openMenus[item.label] ?? false
+            const open = isOpen(item.label)
             const isActive = ("href" in item && item.href === pathname) || item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
             return (
               <div key={item.label}>
@@ -285,10 +285,10 @@ export function Sidebar() {
                     </span>
                   )}
                   <button onClick={() => toggleMenu(item.label)} className="px-3 py-3 hover:bg-gray-50">
-                    {isOpen ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                    {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
                   </button>
                 </div>
-                {isOpen && (
+                {open && (
                   <div className="bg-gray-50">
                     {renderChildren(item.children)}
                   </div>
