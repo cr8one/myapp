@@ -100,7 +100,7 @@ export default function PrinserMUserPage() {
         e.target.value = ""
         return
       }
-      const chunkSize = 50
+      const chunkSize = 10
       for (let i = 0; i < records.length; i += chunkSize) {
         const chunk = records.slice(i, i + chunkSize)
         const res = await fetch("/api/prinser/m-user", {
