@@ -480,3 +480,32 @@ model DlmsConditionMaster {
 
   @@map("dlms_condition_masters")
 }
+
+model PrinserMUser {
+  uid           String   @id
+  upass         String?
+  unm           String?
+  ukana         String?
+  kencd         String?
+  biko          String?
+  ukbn          String?
+  ulevel        String?
+  listflg       String?
+  kanriuid      String?
+  bumon_cd      String?
+  utel          String?
+  ufax          String?
+  umail         String?
+  del_flg       String?
+  dtindt        String?
+  dtupdt        String?
+  kanribumon    String?
+  jimusyo       String?
+  gaichu_flg    String?
+  gaichu_cd     String?
+  rawData       String?
+  importedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("prinser_m_users")
+}
