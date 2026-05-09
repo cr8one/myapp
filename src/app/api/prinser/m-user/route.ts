@@ -43,7 +43,7 @@ function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
     const row: Record<string, string> = {}
     CSV_COLUMNS.forEach((col, i) => { row[col] = values[i] ?? "" })
     return row
-  }).filter(r => r.uid && r.uid.trim() !== "")
+  }).filter((r: Record<string, string>) => r.uid && r.uid.trim() !== "")
 }
 
 export async function GET(req: NextRequest) {
@@ -72,7 +72,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(users)
 }
 
-// presigned URL発行
 export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -87,7 +86,6 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ url, key })
 }
 
-// S3からCSVを取得してDB保存
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -95,7 +93,6 @@ export async function POST(req: NextRequest) {
   const { key } = await req.json()
   if (!key) return NextResponse.json({ error: "No key" }, { status: 400 })
 
-  // S3からファイル取得
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key })
   const response = await s3.send(command)
   const chunks: Uint8Array[] = []
@@ -104,13 +101,11 @@ export async function POST(req: NextRequest) {
   }
   const buffer = Buffer.concat(chunks)
 
-  // Shift-JISパース
   const records = parseShiftJisCsv(buffer)
   if (records.length === 0) {
     return NextResponse.json({ error: "No records" }, { status: 400 })
   }
 
-  // DB保存（upsert）
   let count = 0
   for (const r of records) {
     if (!r.uid) continue
