@@ -5,25 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Upload, Search, Database, Trash2 } from "lucide-react"
 
-// m_userのカラム順序定義（ヘッダーなしCSV用）
-const CSV_COLUMNS = [
-  "uid","upass","unm","ukana","kencd","biko","ukbn","ulevel","listflg","folder_dl",
-  "kanriuid","bumon_cd","ukbn_eigyo","ukbn_koumu","ukbn_prep","ukbn_press","ukbn_kako",
-  "ukbn_gaichu","ukbn_yoshi","ukbn_haiso","ukbn_sappan","ukbn_dansai","ukbn_koujyo",
-  "ukbn_cv","ukbn_gehan","utel","ufax","umail","del_flg","dtindt","dtintm","dtupdt",
-  "dtuptm","cv_upfolder","smc_uid","smc_upass","ukbn_kobetuseikyu","ukbn_sz","smc_unm",
-  "ukbn_tray","ukbn_genka","menu_kbn","siyo_disp_kako","siyo_disp_sample_seal",
-  "siyo_disp_youchui","siyo_disp__tray","siyo_disp_henkorireki","jt_disp_kako",
-  "jt_disp_gaichu","jt_disp_henkoirai","jt_disp_genkauchiwake","jt_disp_nohinjyoho",
-  "jt_disp_henkorireki","yoteihyo_tanto_gehan","yoteihyo_tanto_ctp","yoteihyo_tanto_film",
-  "yoteihyo_tanto_kenpan","yoteihyo_tanto_insatsu","yoteihyo_tanto_hyomenkako",
-  "yoteihyo_tanto_nuki","yoteihyo_tanto_ori","yoteihyo_tanto_seihon","yoteihyo_tanto_nagekomi",
-  "yoteihyo_tanto_dansai","yoteihyo_tanto_siage","yoteihyo_tanto_hari","yoteihyo_tanto_trayhari",
-  "hinban_sakujyo","ukbn_nyuryoku","kanribumon","jimusyo","ukbn_password","wgs_login_flg",
-  "wgs_login_dt","wgs_login_tm","wgs_logout_dt","wgs_logout_tm","gaichu_flg","gaichu_cd",
-  "mitsumonavi_user_flg"
-]
-
 type MUser = {
   uid: string
   unm: string | null
@@ -38,27 +19,6 @@ type MUser = {
   kanribumon: string | null
   jimusyo: string | null
   importedAt: string
-}
-
-function parseShiftJisCsv(buffer: ArrayBuffer): Record<string, string>[] {
-  const decoder = new TextDecoder("shift-jis")
-  const text = decoder.decode(buffer)
-  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean)
-
-  return lines.map(line => {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
-    for (const char of line) {
-      if (char === '"') { inQuotes = !inQuotes }
-      else if (char === "," && !inQuotes) { values.push(current); current = "" }
-      else { current += char }
-    }
-    values.push(current)
-    const row: Record<string, string> = {}
-    CSV_COLUMNS.forEach((col, i) => { row[col] = values[i] ?? "" })
-    return row
-  }).filter(r => r.uid && r.uid.trim() !== "")
 }
 
 export default function PrinserMUserPage() {
@@ -90,44 +50,47 @@ export default function PrinserMUserPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setImporting(true)
-    setImportMessage("")
+    setImportMessage("アップロード準備中...")
+
     try {
-      const buffer = await file.arrayBuffer()
-      const records = parseShiftJisCsv(buffer)
-      if (records.length === 0) {
-        setImportMessage("エラー：レコードが見つかりません")
-        setImporting(false)
-        e.target.value = ""
-        return
+      // ① presigned URL取得
+      const putRes = await fetch("/api/prinser/m-user", { method: "PUT" })
+      if (!putRes.ok) throw new Error("presigned URL取得失敗")
+      const { url, key } = await putRes.json()
+
+      // ② S3に直接アップロード
+      setImportMessage("S3にアップロード中...")
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": "text/csv" },
+      })
+      if (!uploadRes.ok) throw new Error("S3アップロード失敗")
+
+      // ③ サーバー側でパース・DB保存
+      setImportMessage("データを取り込み中...")
+      const importRes = await fetch("/api/prinser/m-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      })
+      if (!importRes.ok) {
+        const data = await importRes.json()
+        throw new Error(data.error ?? "インポート失敗")
       }
-      const chunkSize = 10
-      for (let i = 0; i < records.length; i += chunkSize) {
-        const chunk = records.slice(i, i + chunkSize)
-        const res = await fetch("/api/prinser/m-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ records: chunk }),
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          setImportMessage(`エラー：${data.error}`)
-          setImporting(false)
-          e.target.value = ""
-          return
-        }
-        setImportMessage(`インポート中... ${Math.min(i + chunkSize, records.length)}/${records.length}件`)
-      }
-      setImportMessage(`インポート完了：${records.length}件`)
+      const result = await importRes.json()
+      setImportMessage(`インポート完了：${result.count}件`)
       fetchUsers()
-    } catch (err) {
-      setImportMessage("エラー：CSVの読み込みに失敗しました")
+    } catch (err: any) {
+      setImportMessage(`エラー：${err.message}`)
     }
+
     setImporting(false)
     e.target.value = ""
   }
 
   const handleDeleteAll = async () => {
-    if (!confirm("全レコードを削除しますか？次回インポート時に再取り込みできます。")) return
+    if (!confirm("全レコードを削除しますか？")) return
     await fetch("/api/prinser/m-user", { method: "DELETE" })
     setUsers([])
     setTotalCount(0)
