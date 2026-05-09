@@ -5,19 +5,28 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Upload, Search, Database, Trash2 } from "lucide-react"
 
+const CSV_COLUMNS = [
+  "uid","upass","unm","ukana","kencd","biko","ukbn","ulevel","listflg","folder_dl",
+  "kanriuid","bumon_cd","ukbn_eigyo","ukbn_koumu","ukbn_prep","ukbn_press","ukbn_kako",
+  "ukbn_gaichu","ukbn_yoshi","ukbn_haiso","ukbn_sappan","ukbn_dansai","ukbn_koujyo",
+  "ukbn_cv","ukbn_gehan","utel","ufax","umail","del_flg","dtindt","dtintm","dtupdt",
+  "dtuptm","cv_upfolder","smc_uid","smc_upass","ukbn_kobetuseikyu","ukbn_sz","smc_unm",
+  "ukbn_tray","ukbn_genka","menu_kbn","siyo_disp_kako","siyo_disp_sample_seal",
+  "siyo_disp_youchui","siyo_disp__tray","siyo_disp_henkorireki","jt_disp_kako",
+  "jt_disp_gaichu","jt_disp_henkoirai","jt_disp_genkauchiwake","jt_disp_nohinjyoho",
+  "jt_disp_henkorireki","yoteihyo_tanto_gehan","yoteihyo_tanto_ctp","yoteihyo_tanto_film",
+  "yoteihyo_tanto_kenpan","yoteihyo_tanto_insatsu","yoteihyo_tanto_hyomenkako",
+  "yoteihyo_tanto_nuki","yoteihyo_tanto_ori","yoteihyo_tanto_seihon","yoteihyo_tanto_nagekomi",
+  "yoteihyo_tanto_dansai","yoteihyo_tanto_siage","yoteihyo_tanto_hari","yoteihyo_tanto_trayhari",
+  "hinban_sakujyo","ukbn_nyuryoku","kanribumon","jimusyo","ukbn_password","wgs_login_flg",
+  "wgs_login_dt","wgs_login_tm","wgs_logout_dt","wgs_logout_tm","gaichu_flg","gaichu_cd",
+  "mitsumonavi_user_flg"
+]
+
 type MUser = {
   uid: string
-  unm: string | null
-  ukana: string | null
-  kencd: string | null
-  bumon_cd: string | null
-  umail: string | null
-  utel: string | null
-  ulevel: string | null
-  ukbn: string | null
   del_flg: string | null
-  kanribumon: string | null
-  jimusyo: string | null
+  rawData: string | null
   importedAt: string
 }
 
@@ -90,6 +99,18 @@ export default function PrinserMUserPage() {
     setImportMessage("全レコードを削除しました")
   }
 
+  const getVal = (user: MUser, col: string): string => {
+    if (col === "uid") return user.uid
+    if (col === "del_flg") return user.del_flg ?? ""
+    if (!user.rawData) return ""
+    try {
+      const raw = JSON.parse(user.rawData)
+      return raw[col] ?? ""
+    } catch {
+      return ""
+    }
+  }
+
   return (
     <div className="min-w-0 overflow-hidden">
       <div className="p-6">
@@ -99,7 +120,8 @@ export default function PrinserMUserPage() {
             <p className="text-sm text-gray-500 mt-1">PRINSERユーザーマスタ（{totalCount}件）</p>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
-            <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/masters/prinser/m-user/definition")}
+            <Button variant="outline" size="sm"
+              onClick={() => router.push("/dashboard/masters/prinser/m-user/definition")}
               className="flex items-center gap-1">
               <Database className="w-4 h-4" />DB定義
             </Button>
@@ -150,38 +172,37 @@ export default function PrinserMUserPage() {
         ) : (
           <div className="border rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="text-sm bg-white" style={{ minWidth: "800px" }}>
-                <thead className="bg-gray-50 border-b">
+              <table className="text-xs bg-white" style={{ minWidth: "max-content" }}>
+                <thead className="bg-gray-50 border-b sticky top-0 z-10">
                   <tr>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">UID</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">氏名</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">カナ</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">部門CD</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">管理部門</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">事務所</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">メール</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">電話</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">レベル</th>
-                    <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">削除</th>
+                    {CSV_COLUMNS.map(col => (
+                      <th key={col}
+                        className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap border-r last:border-r-0">
+                        {col}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {users.map(u => (
-                    <tr key={u.uid} className={`hover:bg-gray-50 ${u.del_flg === "1" ? "opacity-50" : ""}`}>
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-700 whitespace-nowrap">{u.uid}</td>
-                      <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{u.unm ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{u.ukana ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{u.bumon_cd ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{u.kanribumon ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{u.jimusyo ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 text-xs whitespace-nowrap">{u.umail ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{u.utel ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-600 text-center">{u.ulevel ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-center">
-                        {u.del_flg === "1"
-                          ? <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">削除</span>
-                          : <span className="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded">有効</span>}
-                      </td>
+                    <tr key={u.uid} className={`hover:bg-blue-50 ${u.del_flg === "1" ? "opacity-50 bg-red-50" : ""}`}>
+                      {CSV_COLUMNS.map(col => {
+                        const val = getVal(u, col)
+                        if (col === "del_flg") {
+                          return (
+                            <td key={col} className="px-3 py-2 whitespace-nowrap text-center border-r last:border-r-0">
+                              {val === "1"
+                                ? <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-xs">削除</span>
+                                : <span className="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs">有効</span>}
+                            </td>
+                          )
+                        }
+                        return (
+                          <td key={col} className="px-3 py-2 text-gray-700 whitespace-nowrap border-r last:border-r-0 max-w-[200px] truncate">
+                            {val || <span className="text-gray-300">—</span>}
+                          </td>
+                        )
+                      })}
                     </tr>
                   ))}
                 </tbody>
