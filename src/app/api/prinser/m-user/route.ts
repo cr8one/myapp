@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-const s3 = new S3Client({ region: "ap-northeast-1" })
+const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
 
 const CSV_COLUMNS = [
