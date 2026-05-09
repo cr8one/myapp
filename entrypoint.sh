@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-
 if [ -n "$DB_HOST" ]; then
   echo "Fetching latest credentials from Secrets Manager..."
   SECRET=$(aws secretsmanager get-secret-value \
@@ -8,14 +7,13 @@ if [ -n "$DB_HOST" ]; then
     --region ap-northeast-1 \
     --query SecretString \
     --output text)
-
   DB_USER=$(echo "$SECRET" | jq -r '.username')
   DB_PASSWORD=$(echo "$SECRET" | jq -r '.password')
-
-  export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}?sslmode=no-verify"
+  # パスワードの特殊文字をURLエンコード
+  DB_PASSWORD_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$DB_PASSWORD")
+  export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD_ENCODED}@${DB_HOST}:5432/${DB_NAME}?sslmode=no-verify"
   echo "DATABASE_URL constructed."
 fi
-
 echo "Running prisma migrate deploy..."
 npx prisma migrate deploy
 echo "Migration done. Starting app..."
