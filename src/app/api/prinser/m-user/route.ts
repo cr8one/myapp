@@ -30,7 +30,7 @@ function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
   const decoder = new TextDecoder("shift-jis")
   const text = decoder.decode(buffer)
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean)
-  return lines.map(line => {
+  return lines.map((line: string) => {
     const values: string[] = []
     let current = ""
     let inQuotes = false
