@@ -154,7 +154,7 @@ export default function PrinserMUserPage() {
       ) : users.length === 0 ? (
         <p className="text-center text-gray-500 py-8">データがありません。CSVをインポートしてください。</p>
       ) : (
-        <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-white border rounded-lg overflow-hidden shadow-sm min-w-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">

@@ -3,66 +3,96 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 const COLUMNS = [
-  { no: 1, field: "uid", type: "character varying(10)", notNull: true, pk: true, desc: "ユーザーID" },
-  { no: 2, field: "upass", type: "character varying(10)", notNull: true, pk: false, desc: "パスワード" },
-  { no: 3, field: "unm", type: "character varying(64)", notNull: true, pk: false, desc: "ユーザー名" },
-  { no: 4, field: "ukana", type: "character varying(32)", notNull: true, pk: false, desc: "ユーザー名（カナ）" },
-  { no: 5, field: "kencd", type: "numeric(2,0)", notNull: true, pk: false, desc: "権限コード" },
-  { no: 6, field: "biko", type: "character varying(64)", notNull: false, pk: false, desc: "備考" },
-  { no: 7, field: "ukbn", type: "numeric(1,0)", notNull: false, pk: false, desc: "ユーザー区分" },
-  { no: 8, field: "ulevel", type: "smallint", notNull: false, pk: false, desc: "ユーザーレベル" },
-  { no: 9, field: "listflg", type: "numeric(1,0)", notNull: true, pk: false, desc: "一覧表示フラグ" },
-  { no: 10, field: "folder_dl", type: "character varying(256)", notNull: false, pk: false, desc: "フォルダDLパス" },
-  { no: 11, field: "kanriuid", type: "character varying(10)", notNull: false, pk: false, desc: "管理UID" },
-  { no: 12, field: "bumon_cd", type: "character varying(6)", notNull: false, pk: false, desc: "部門コード" },
-  { no: 13, field: "ukbn_eigyo", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：営業" },
-  { no: 14, field: "ukbn_koumu", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：工務" },
-  { no: 15, field: "ukbn_prep", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：製版" },
-  { no: 16, field: "ukbn_press", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：印刷" },
-  { no: 17, field: "ukbn_kako", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：加工" },
-  { no: 18, field: "ukbn_gaichu", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：外注" },
-  { no: 19, field: "ukbn_yoshi", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：用紙" },
-  { no: 20, field: "ukbn_haiso", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：配送" },
-  { no: 21, field: "ukbn_sappan", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：刷版" },
-  { no: 22, field: "ukbn_dansai", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：断裁" },
-  { no: 23, field: "ukbn_koujyo", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：工場" },
-  { no: 24, field: "ukbn_cv", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：CV" },
-  { no: 25, field: "ukbn_gehan", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：下版" },
-  { no: 26, field: "utel", type: "character varying(20)", notNull: false, pk: false, desc: "電話番号" },
-  { no: 27, field: "ufax", type: "character varying(20)", notNull: false, pk: false, desc: "FAX番号" },
-  { no: 28, field: "umail", type: "character varying(30)", notNull: false, pk: false, desc: "メールアドレス" },
-  { no: 29, field: "del_flg", type: "integer", notNull: true, pk: false, desc: "削除フラグ" },
-  { no: 30, field: "dtindt", type: "character varying(8)", notNull: true, pk: false, default: "0", desc: "データ作成日" },
-  { no: 31, field: "dtintm", type: "character varying(8)", notNull: true, pk: false, desc: "データ作成時間" },
-  { no: 32, field: "dtupdt", type: "character varying(8)", notNull: true, pk: false, desc: "データ更新日" },
-  { no: 33, field: "dtuptm", type: "character varying(8)", notNull: true, pk: false, desc: "データ更新時間" },
-  { no: 34, field: "cv_upfolder", type: "character varying(256)", notNull: false, pk: false, desc: "CVアップロードフォルダ" },
-  { no: 35, field: "smc_uid", type: "character varying(20)", notNull: false, pk: false, desc: "SMC UID" },
-  { no: 36, field: "smc_upass", type: "character varying(256)", notNull: false, pk: false, desc: "SMC パスワード" },
-  { no: 37, field: "ukbn_kobetuseikyu", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：個別請求" },
-  { no: 38, field: "ukbn_sz", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：SZ" },
-  { no: 39, field: "smc_unm", type: "character varying(50)", notNull: false, pk: false, desc: "SMC ユーザー名" },
-  { no: 40, field: "ukbn_tray", type: "smallint", notNull: false, pk: false, default: "0", desc: "区分：トレー" },
-  { no: 41, field: "ukbn_genka", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：原価" },
-  { no: 42, field: "menu_kbn", type: "smallint", notNull: true, pk: false, default: "1", desc: "メニュー区分" },
-  { no: 43, field: "kanribumon", type: "character varying(50)", notNull: true, pk: false, default: "1", desc: "管理部門" },
-  { no: 44, field: "jimusyo", type: "character varying(50)", notNull: true, pk: false, default: "1", desc: "事務所" },
-  { no: 45, field: "ukbn_password", type: "smallint", notNull: true, pk: false, default: "0", desc: "区分：パスワード" },
-  { no: 46, field: "wgs_login_flg", type: "smallint", notNull: true, pk: false, default: "0", desc: "WGSログインフラグ" },
-  { no: 47, field: "wgs_login_dt", type: "character varying(10)", notNull: true, pk: false, default: "", desc: "WGSログイン日" },
-  { no: 48, field: "wgs_login_tm", type: "character varying(8)", notNull: true, pk: false, default: "", desc: "WGSログイン時間" },
-  { no: 49, field: "wgs_logout_dt", type: "character varying(10)", notNull: true, pk: false, default: "", desc: "WGSログアウト日" },
-  { no: 50, field: "wgs_logout_tm", type: "character varying(8)", notNull: true, pk: false, default: "", desc: "WGSログアウト時間" },
-  { no: 51, field: "gaichu_flg", type: "smallint", notNull: true, pk: false, default: "0", desc: "外注フラグ" },
-  { no: 52, field: "gaichu_cd", type: "character varying(8)", notNull: false, pk: false, desc: "外注コード" },
-  { no: 53, field: "mitsumonavi_user_flg", type: "smallint", notNull: true, pk: false, default: "0", desc: "見積ナビユーザーフラグ" },
+  { no: 1, name: "ユーザID", field: "uid", type: "Varchar(10)", notNull: true, pk: true, index: "", note: "" },
+  { no: 2, name: "パスワード", field: "upass", type: "Varchar(10)", notNull: true, pk: false, index: "", note: "" },
+  { no: 3, name: "ユーザ名", field: "unm", type: "Varchar(64)", notNull: true, pk: false, index: "", note: "" },
+  { no: 4, name: "権限コード", field: "kencd", type: "Numeric(2,0)", notNull: true, pk: false, index: "1", note: "参：権限マスタ" },
+  { no: 5, name: "プリプレス管理フラグ", field: "priflg", type: "tinyint(1)", notNull: true, pk: false, index: "", note: "0:プリプレス管理者でない 1:プリプレス管理者" },
+  { no: 6, name: "DTP(MZ)用参照フォルダ", field: "regfolder_dtp", type: "Varchar(256)", notNull: false, pk: false, index: "", note: "" },
+  { no: 7, name: "写真用参照フォルダ", field: "regfolder_photo", type: "Varchar(256)", notNull: false, pk: false, index: "", note: "" },
+  { no: 8, name: "備考", field: "biko", type: "Varchar(64)", notNull: false, pk: false, index: "", note: "" },
+  { no: 9, name: "担当区分", field: "ukbn", type: "Numeric(1,0)", notNull: true, pk: false, index: "2", note: "1：営業、2：工務、3：プリプレス、4：工場(印刷)、5：工場(加工)、6：工場(印刷加工)、7：配送" },
+  { no: 10, name: "リスト表示", field: "listflg", type: "Numeric(1,0)", notNull: true, pk: false, index: "3", note: "0：表示しない 1：表示する" },
+  { no: 11, name: "論理削除フラグ", field: "del_flg", type: "int", notNull: true, pk: false, index: "", note: "" },
+  { no: 12, name: "データ作成日", field: "dtindt", type: "Varchar(8)", notNull: true, pk: false, index: "", note: "yyyymmdd" },
+  { no: 13, name: "データ作成時間", field: "dtintm", type: "Varchar(8)", notNull: true, pk: false, index: "", note: "hh:mm:ss" },
+  { no: 14, name: "データ更新日", field: "dtupdt", type: "Varchar(8)", notNull: true, pk: false, index: "", note: "yyyymmdd" },
+  { no: 15, name: "データ更新時間", field: "dtuptm", type: "Varchar(8)", notNull: true, pk: false, index: "", note: "hh:mm:ss" },
+  { no: 16, name: "ユーザ名カナ", field: "ukana", type: "Varchar(32)", notNull: false, pk: false, index: "", note: "全角カナ" },
+  { no: 17, name: "ダウンロード用参照フォルダ", field: "folder_dl", type: "Varchar(256)", notNull: false, pk: false, index: "", note: "" },
+  { no: 18, name: "承認者ユーザID", field: "kanriuid", type: "Varchar(10)", notNull: false, pk: false, index: "", note: "" },
+  { no: 19, name: "部門コード", field: "bumon_cd", type: "Varchar(6)", notNull: false, pk: false, index: "", note: "" },
+  { no: 20, name: "管理レベル", field: "ulevel", type: "tinyint", notNull: false, pk: false, index: "", note: "0：担当者、1：管理者" },
+  { no: 21, name: "担当区分 営業", field: "ukbn_eigyo", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 22, name: "担当区分 工務", field: "ukbn_koumu", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 23, name: "担当区分 プリプレス", field: "ukbn_prep", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当 2:管理者 3:担当＋管理者 4:WebNative" },
+  { no: 24, name: "担当区分 印刷", field: "ukbn_press", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 25, name: "担当区分 加工", field: "ukbn_kako", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 26, name: "担当区分 外注", field: "ukbn_gaichu", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 27, name: "担当区分 用紙", field: "ukbn_yoshi", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 28, name: "担当区分 配送", field: "ukbn_haiso", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 29, name: "担当区分 刷版", field: "ukbn_sappan", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 30, name: "担当区分 断裁", field: "ukbn_dansai", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 31, name: "担当区分 工場", field: "ukbn_koujyo", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 32, name: "担当区分 下版", field: "ukbn_gehan", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 33, name: "担当者TEL", field: "utel", type: "varchar(20)", notNull: false, pk: false, index: "", note: "" },
+  { no: 34, name: "担当者FAX", field: "ufax", type: "varchar(20)", notNull: false, pk: false, index: "", note: "" },
+  { no: 35, name: "担当者E-mail", field: "umail", type: "varchar(30)", notNull: false, pk: false, index: "", note: "" },
+  { no: 36, name: "担当区分 製品登録", field: "ukbn_cv", type: "tinyint", notNull: false, pk: false, index: "", note: "0：-(担当外) 1：登録担当 2：登録担当＆承認者 3：承認者" },
+  { no: 37, name: "製品登録用参照フォルダ", field: "cv_upfolder", type: "varchar(256)", notNull: false, pk: false, index: "", note: "" },
+  { no: 38, name: "SMCユーザID", field: "smc_uid", type: "Varchar(20)", notNull: false, pk: false, index: "", note: "smc連動で使用" },
+  { no: 39, name: "SMCパスワード", field: "smc_upass", type: "Varchar(256)", notNull: false, pk: false, index: "", note: "smc連動で使用" },
+  { no: 40, name: "担当区分 個別請求", field: "ukbn_kobetuseikyu", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:管理者" },
+  { no: 41, name: "担当区分 購買", field: "ukbn_sz", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:一般 2:購買" },
+  { no: 42, name: "SMCユーザ名", field: "smc_unm", type: "varchar(50)", notNull: false, pk: false, index: "", note: "" },
+  { no: 43, name: "担当区分 用紙トレイ", field: "ukbn_tray", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 44, name: "担当区分 原価", field: "ukbn_genka", type: "tinyint", notNull: false, pk: false, index: "", note: "0:担当外 1:担当" },
+  { no: 45, name: "メニュー区分", field: "menu_kbn", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 46, name: "仕様表示 加工", field: "siyo_disp_kako", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 47, name: "仕様表示 サンプルシール", field: "siyo_disp_sample_seal", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 48, name: "仕様表示 要注意", field: "siyo_disp_youchui", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 49, name: "仕様表示 トレイ", field: "siyo_disp__tray", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 50, name: "仕様表示 変更履歴", field: "siyo_disp_henkorireki", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 51, name: "JT表示 加工", field: "jt_disp_kako", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 52, name: "JT表示 外注", field: "jt_disp_gaichu", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 53, name: "JT表示 変更依頼", field: "jt_disp_henkoirai", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 54, name: "JT表示 原価内訳", field: "jt_disp_genkauchiwake", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 55, name: "JT表示 納品情報", field: "jt_disp_nohinjyoho", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 56, name: "JT表示 変更履歴", field: "jt_disp_henkorireki", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 57, name: "予定表担当 下版", field: "yoteihyo_tanto_gehan", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 58, name: "予定表担当 CTP", field: "yoteihyo_tanto_ctp", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 59, name: "予定表担当 フィルム", field: "yoteihyo_tanto_film", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 60, name: "予定表担当 検版", field: "yoteihyo_tanto_kenpan", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 61, name: "予定表担当 印刷", field: "yoteihyo_tanto_insatsu", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 62, name: "予定表担当 表面加工", field: "yoteihyo_tanto_hyomenkako", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 63, name: "予定表担当 抜き", field: "yoteihyo_tanto_nuki", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 64, name: "予定表担当 折り", field: "yoteihyo_tanto_ori", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 65, name: "予定表担当 製本", field: "yoteihyo_tanto_seihon", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 66, name: "予定表担当 投げ込み", field: "yoteihyo_tanto_nagekomi", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 67, name: "予定表担当 断裁", field: "yoteihyo_tanto_dansai", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 68, name: "予定表担当 仕上げ", field: "yoteihyo_tanto_siage", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 69, name: "予定表担当 貼り", field: "yoteihyo_tanto_hari", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 70, name: "予定表担当 トレイ貼り", field: "yoteihyo_tanto_trayhari", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 71, name: "品番削除", field: "hinban_sakujyo", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 72, name: "担当区分 入力", field: "ukbn_nyuryoku", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 73, name: "管理部門", field: "kanribumon", type: "varchar(50)", notNull: true, pk: false, index: "", note: "" },
+  { no: 74, name: "事務所", field: "jimusyo", type: "varchar(50)", notNull: true, pk: false, index: "", note: "" },
+  { no: 75, name: "パスワード区分", field: "ukbn_password", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 76, name: "WGSログインフラグ", field: "wgs_login_flg", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 77, name: "WGSログイン日", field: "wgs_login_dt", type: "varchar(10)", notNull: true, pk: false, index: "", note: "" },
+  { no: 78, name: "WGSログイン時間", field: "wgs_login_tm", type: "varchar(8)", notNull: true, pk: false, index: "", note: "" },
+  { no: 79, name: "WGSログアウト日", field: "wgs_logout_dt", type: "varchar(10)", notNull: true, pk: false, index: "", note: "" },
+  { no: 80, name: "WGSログアウト時間", field: "wgs_logout_tm", type: "varchar(8)", notNull: true, pk: false, index: "", note: "" },
+  { no: 81, name: "外注フラグ", field: "gaichu_flg", type: "smallint", notNull: true, pk: false, index: "", note: "" },
+  { no: 82, name: "外注コード", field: "gaichu_cd", type: "varchar(8)", notNull: false, pk: false, index: "", note: "" },
+  { no: 83, name: "見積ナビユーザーフラグ", field: "mitsumonavi_user_flg", type: "smallint", notNull: true, pk: false, index: "", note: "" },
 ]
 
 export default function MUserDefinitionPage() {
   const router = useRouter()
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-full">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
         <div>
@@ -73,40 +103,42 @@ export default function MUserDefinitionPage() {
 
       <div className="bg-gray-900 text-gray-300 rounded-lg px-4 py-3 mb-6 font-mono text-xs">
         <span className="text-blue-400">TABLE</span> dbo.m_user　
-        <span className="text-yellow-400">PK</span> uid (character varying 10)
+        <span className="text-yellow-400">PK</span> uid (Varchar 10)
       </div>
 
       <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="text-sm" style={{ minWidth: "900px" }}>
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium w-12">No.</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">フィールド名</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">データ型</th>
-                <th className="text-center px-4 py-3 text-gray-600 font-medium">PK</th>
-                <th className="text-center px-4 py-3 text-gray-600 font-medium">NOT NULL</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">デフォルト</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">説明</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap w-12">No.</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">名称</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">フィールド名</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">データ型</th>
+                <th className="text-center px-4 py-3 text-gray-600 font-medium whitespace-nowrap">PK</th>
+                <th className="text-center px-4 py-3 text-gray-600 font-medium whitespace-nowrap">NOT NULL</th>
+                <th className="text-center px-4 py-3 text-gray-600 font-medium whitespace-nowrap">Index</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">備考</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {COLUMNS.map(col => (
                 <tr key={col.no} className={`hover:bg-gray-50 ${col.pk ? "bg-blue-50" : ""}`}>
                   <td className="px-4 py-2.5 text-gray-400 text-xs">{col.no}</td>
+                  <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{col.name}</td>
                   <td className="px-4 py-2.5">
                     <span className="font-mono text-xs text-gray-800">{col.field}</span>
                     {col.pk && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">PK</span>}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-purple-700">{col.type}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-purple-700 whitespace-nowrap">{col.type}</td>
                   <td className="px-4 py-2.5 text-center">{col.pk ? "✓" : ""}</td>
                   <td className="px-4 py-2.5 text-center">
                     {col.notNull
                       ? <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">YES</span>
                       : <span className="text-xs text-gray-400">—</span>}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{"default" in col ? col.default : "—"}</td>
-                  <td className="px-4 py-2.5 text-gray-600 text-xs">{col.desc}</td>
+                  <td className="px-4 py-2.5 text-center text-xs text-gray-500">{col.index || "—"}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500">{col.note || "—"}</td>
                 </tr>
               ))}
             </tbody>
