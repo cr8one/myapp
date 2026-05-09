@@ -5,6 +5,25 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Upload, Search, Database, Trash2 } from "lucide-react"
 
+// m_userのカラム順序定義（ヘッダーなしCSV用）
+const CSV_COLUMNS = [
+  "uid","upass","unm","ukana","kencd","biko","ukbn","ulevel","listflg","folder_dl",
+  "kanriuid","bumon_cd","ukbn_eigyo","ukbn_koumu","ukbn_prep","ukbn_press","ukbn_kako",
+  "ukbn_gaichu","ukbn_yoshi","ukbn_haiso","ukbn_sappan","ukbn_dansai","ukbn_koujyo",
+  "ukbn_cv","ukbn_gehan","utel","ufax","umail","del_flg","dtindt","dtintm","dtupdt",
+  "dtuptm","cv_upfolder","smc_uid","smc_upass","ukbn_kobetuseikyu","ukbn_sz","smc_unm",
+  "ukbn_tray","ukbn_genka","menu_kbn","siyo_disp_kako","siyo_disp_sample_seal",
+  "siyo_disp_youchui","siyo_disp__tray","siyo_disp_henkorireki","jt_disp_kako",
+  "jt_disp_gaichu","jt_disp_henkoirai","jt_disp_genkauchiwake","jt_disp_nohinjyoho",
+  "jt_disp_henkorireki","yoteihyo_tanto_gehan","yoteihyo_tanto_ctp","yoteihyo_tanto_film",
+  "yoteihyo_tanto_kenpan","yoteihyo_tanto_insatsu","yoteihyo_tanto_hyomenkako",
+  "yoteihyo_tanto_nuki","yoteihyo_tanto_ori","yoteihyo_tanto_seihon","yoteihyo_tanto_nagekomi",
+  "yoteihyo_tanto_dansai","yoteihyo_tanto_siage","yoteihyo_tanto_hari","yoteihyo_tanto_trayhari",
+  "hinban_sakujyo","ukbn_nyuryoku","kanribumon","jimusyo","ukbn_password","wgs_login_flg",
+  "wgs_login_dt","wgs_login_tm","wgs_logout_dt","wgs_logout_tm","gaichu_flg","gaichu_cd",
+  "mitsumonavi_user_flg"
+]
+
 type MUser = {
   uid: string
   unm: string | null
@@ -21,23 +40,25 @@ type MUser = {
   importedAt: string
 }
 
-function parseCsv(text: string): Record<string, string>[] {
-  const lines = text.replace(/\r/g, "").split("\n").filter(Boolean)
-  const headers = lines[0].replace(/^\uFEFF/, "").split(",").map(h => h.trim().replace(/^"|"$/g, ""))
-  return lines.slice(1).map(line => {
+function parseShiftJisCsv(buffer: ArrayBuffer): Record<string, string>[] {
+  const decoder = new TextDecoder("shift-jis")
+  const text = decoder.decode(buffer)
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean)
+
+  return lines.map(line => {
     const values: string[] = []
     let current = ""
     let inQuotes = false
     for (const char of line) {
       if (char === '"') { inQuotes = !inQuotes }
-      else if (char === "," && !inQuotes) { values.push(current.trim()); current = "" }
+      else if (char === "," && !inQuotes) { values.push(current); current = "" }
       else { current += char }
     }
-    values.push(current.trim())
+    values.push(current)
     const row: Record<string, string> = {}
-    headers.forEach((h, i) => { row[h] = values[i] ?? "" })
+    CSV_COLUMNS.forEach((col, i) => { row[col] = values[i] ?? "" })
     return row
-  })
+  }).filter(r => r.uid && r.uid.trim() !== "")
 }
 
 export default function PrinserMUserPage() {
@@ -71,11 +92,12 @@ export default function PrinserMUserPage() {
     setImporting(true)
     setImportMessage("")
     try {
-      const text = await file.text()
-      const records = parseCsv(text)
+      const buffer = await file.arrayBuffer()
+      const records = parseShiftJisCsv(buffer)
       if (records.length === 0) {
         setImportMessage("エラー：レコードが見つかりません")
         setImporting(false)
+        e.target.value = ""
         return
       }
       const chunkSize = 50
@@ -97,7 +119,7 @@ export default function PrinserMUserPage() {
       }
       setImportMessage(`インポート完了：${records.length}件`)
       fetchUsers()
-    } catch {
+    } catch (err) {
       setImportMessage("エラー：CSVの読み込みに失敗しました")
     }
     setImporting(false)
@@ -142,7 +164,6 @@ export default function PrinserMUserPage() {
         </p>
       )}
 
-      {/* 検索 */}
       <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
         <div className="flex gap-3 items-end">
           <div className="flex-1">
@@ -165,7 +186,6 @@ export default function PrinserMUserPage() {
         </div>
       </div>
 
-      {/* 一覧 */}
       {loading ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : users.length === 0 ? (

@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
 
   let upsertCount = 0
   for (const r of records) {
+    if (!r.uid) continue
     await prisma.prinserMUser.upsert({
       where: { uid: r.uid },
       update: {
