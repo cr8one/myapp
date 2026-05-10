@@ -509,3 +509,77 @@ model PrinserMUser {
 
   @@map("prinser_m_users")
 }
+
+model PrinserMTokui {
+  tokuisaki_cd  String
+  siten_cd      String
+  tokuicd       String?
+  tokuinm       String?
+  tokuinm2      String?
+  tokuinm3      String?
+  ryk_nm        String?
+  tokuikana     String?
+  del_flg       Int?
+  dtindt        String?
+  dtintm        String?
+  dtupdt        String?
+  dtuptm        String?
+  aitesaki_bumon_kanji  String?
+  aitesaki_tantosya     String?
+  aitesaki_address1     String?
+  aitesaki_address2     String?
+  aitesaki_address3     String?
+  aitesaki_yubin_no     String?
+  aitesaki_tel_no       String?
+  tantosya_cd           String?
+  tiiki_cd              String?
+  gyosyu_cd             String?
+  best_juni             String?
+  kyakusaki_bunrui      String?
+  gaityu_bunrui         String?
+  nokyo_kbn             String?
+  sime_date             String?
+  zei_kbn               String?
+  aitesaki_kbn          String?
+  hon_kari_kbn          String?
+  president             String?
+  kabu                  String?
+  oya_tokui_cd          String?
+  aitesaki_fax_no       String?
+  group_tokui_cd        String?
+  seikyum_cd            String?
+  furikomis_cd          String?
+  tmail                 String?
+  kagami_flg            String?
+  ky_mon                String?
+  ky_dt                 String?
+  zzan_sei_flg          String?
+  ny_houhou             String?
+  ny_kamoku_cd          String?
+  nykoza_cd             String?
+  fx4_tokui_cd          String?
+  hasu_kbn              String?
+  shohizei_kbn          String?
+  syk_yobi_flg          String?
+  mitsumorisho_id       String?
+  mitsumori_calc_id     String?
+  syukin_syubetu1       String?
+  syukin_koza1          String?
+  syukin_syubetu2       String?
+  syukin_koza2          String?
+  syukin_tani           String?
+  syukin_kingaku        String?
+  kin_hasu_kbn          String?
+  zei_marume_tani       String?
+  mototyo_vis_flg       String?
+  sony_flg              String?
+  nohon_kensa_kikaku_id String?
+  seikyu_kbn            String?
+  non_entertainment_flg String?
+  smc_online_flg        String?
+  rawData               String?
+  importedAt            DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  @@id([tokuisaki_cd, siten_cd])
+  @@map("prinser_m_tokui")
+}
