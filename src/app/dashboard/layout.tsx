@@ -2,18 +2,16 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { SignOutButton } from "@/components/sign-out-button"
 import { Sidebar } from "@/components/sidebar"
-
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const session = await auth()
-
   if (!session) {
     redirect("/login")
   }
-
+  const isAdmin = session.user?.role === "ADMIN"
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-8 py-4 flex justify-between items-center">
@@ -24,7 +22,7 @@ export default async function DashboardLayout({
         </div>
       </header>
       <div className="flex">
-        <Sidebar />
+        <Sidebar isAdmin={isAdmin} />
         <main className="flex-1 min-w-0 overflow-hidden p-8">{children}</main>
       </div>
     </div>

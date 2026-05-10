@@ -2,7 +2,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays } from "lucide-react"
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -174,12 +173,9 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "system") return <ShieldCheck className={className} />
   return null
 }
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname()
-  const { data: session, status } = useSession()
-  const isAdmin = status === "loading" ? true : session?.user?.role === "ADMIN"
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
-
   const isMenuOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
@@ -196,22 +192,17 @@ export function Sidebar() {
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
     return false
   }
-
   const [manualOverrides, setManualOverrides] = useState<Record<string, boolean>>({})
-
   useEffect(() => {
     setManualOverrides({})
   }, [pathname])
-
   const isOpen = (label: string) => {
     if (label in manualOverrides) return manualOverrides[label]
     return isMenuOpen(label)
   }
-
   const toggleMenu = (label: string) => {
     setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
   }
-
   const renderChildren = (children: any[], depth: number = 0) => {
     return children.map(child => {
       if (child.children) {
@@ -260,7 +251,6 @@ export function Sidebar() {
       )
     })
   }
-
   return (
     <aside className="w-56 min-h-screen bg-white border-r">
       <nav className="py-4">
