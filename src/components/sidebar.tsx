@@ -176,8 +176,8 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
 }
 export function Sidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
-  const isAdmin = session?.user?.role === "ADMIN"
+  const { data: session, status } = useSession()
+  const isAdmin = status === "loading" ? true : session?.user?.role === "ADMIN"
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
 
   const isMenuOpen = (label: string) => {
