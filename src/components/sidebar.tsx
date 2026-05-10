@@ -3,6 +3,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays } from "lucide-react"
+
 function SsssIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,27 +36,53 @@ function EApplicationIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+type Permission = {
+  specView: boolean
+  estimateView: boolean
+  eappView: boolean
+  travelView: boolean
+  sopView: boolean
+  reportView: boolean
+  bpmsView: boolean
+  dlmsView: boolean
+  dppView: boolean
+  ssssView: boolean
+  mastersView: boolean
+} | null
+
+// アイコンキーとviewフラグのマッピング
+const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
+  spec:     "specView",
+  estimate: "estimateView",
+  eapp:     "eappView",
+  travel:   "travelView",
+  sop:      "sopView",
+  report:   "reportView",
+  bpms:     "bpmsView",
+  dlms:     "dlmsView",
+  dpp:      "dppView",
+  ssss:     "ssssView",
+  masters:  "mastersView",
+}
+
 const baseMenuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   {
-    label: "仕様書",
-    icon: "spec",
+    label: "仕様書", icon: "spec",
     children: [
       { label: "仕様一覧", href: "/dashboard/products" },
       { label: "パーツ一覧", href: "/dashboard/parts" },
     ],
   },
   {
-    label: "見積書",
-    icon: "estimate",
+    label: "見積書", icon: "estimate",
     children: [
       { label: "見積一覧", href: "/dashboard/estimates" },
     ],
   },
   {
-    label: "電子申請",
-    href: "/dashboard/eapp",
-    icon: "eapp",
+    label: "電子申請", href: "/dashboard/eapp", icon: "eapp",
     children: [
       { label: "得意先", href: "/dashboard/eapp/customers" },
       { label: "納品先", href: "/dashboard/eapp/deliveries" },
@@ -64,33 +91,25 @@ const baseMenuItems = [
     ],
   },
   {
-    label: "交通費精算",
-    href: "/dashboard/travel",
-    icon: "travel",
+    label: "交通費精算", href: "/dashboard/travel", icon: "travel",
     children: [
       { label: "精算一覧", href: "/dashboard/travel" },
     ],
   },
   {
-    label: "作業標準書",
-    href: "/dashboard/sop",
-    icon: "sop",
+    label: "作業標準書", href: "/dashboard/sop", icon: "sop",
     children: [
       { label: "標準書一覧", href: "/dashboard/sop" },
     ],
   },
   {
-    label: "業務報告書",
-    href: "/dashboard/report",
-    icon: "report",
+    label: "業務報告書", href: "/dashboard/report", icon: "report",
     children: [
       { label: "報告書一覧", href: "/dashboard/report" },
     ],
   },
   {
-    label: "BPMS",
-    href: "/dashboard/bpms",
-    icon: "bpms",
+    label: "BPMS", href: "/dashboard/bpms", icon: "bpms",
     children: [
       { label: "会社管理", href: "/dashboard/dev/companies" },
       { label: "案件管理", href: "/dashboard/dev/projects" },
@@ -99,9 +118,7 @@ const baseMenuItems = [
     ],
   },
   {
-    label: "DLMS",
-    href: "/dashboard/dlms",
-    icon: "dlms",
+    label: "DLMS", href: "/dashboard/dlms", icon: "dlms",
     children: [
       { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
       { label: "依頼書管理", href: "/dashboard/dlms/requests" },
@@ -111,17 +128,13 @@ const baseMenuItems = [
     ],
   },
   {
-    label: "DPP予定表",
-    href: "/dashboard/dpp",
-    icon: "dpp",
+    label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp",
     children: [
       { label: "予定表", href: "/dashboard/dpp" },
     ],
   },
   {
-    label: "SSSS",
-    href: "/dashboard/ssss",
-    icon: "ssss",
+    label: "SSSS", href: "/dashboard/ssss", icon: "ssss",
     children: [
       { label: "支給管理表", href: "/dashboard/ssss/supplies" },
       { label: "運用ルール", href: "/dashboard/ssss/rules" },
@@ -129,14 +142,11 @@ const baseMenuItems = [
     ],
   },
   {
-    label: "マスタ管理",
-    href: "/dashboard/masters",
-    icon: "masters",
+    label: "マスタ管理", href: "/dashboard/masters", icon: "masters",
     children: [
       { label: "ユーザーマスタ", href: "/dashboard/users" },
       {
-        label: "PRINSERマスタ",
-        href: "/dashboard/masters/prinser",
+        label: "PRINSERマスタ", href: "/dashboard/masters/prinser",
         children: [
           { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
           { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
@@ -145,11 +155,10 @@ const baseMenuItems = [
     ],
   },
 ]
+
 const adminMenuItems = [
   {
-    label: "システム管理",
-    href: "/dashboard/system",
-    icon: "system",
+    label: "システム管理", href: "/dashboard/system", icon: "system",
     children: [
       { label: "開発記録", href: "/dashboard/system/dev-logs" },
       { label: "ログイン履歴", href: "/dashboard/system/login-logs" },
@@ -157,6 +166,7 @@ const adminMenuItems = [
     ],
   },
 ]
+
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
   if (icon === "spec") return <ScrollText className={className} />
@@ -173,9 +183,19 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "system") return <ShieldCheck className={className} />
   return null
 }
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+
+export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission: Permission }) {
   const pathname = usePathname()
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
+
+  // viewフラグチェック：ADMINは常にtrue、permissionなしはtrue（デフォルト許可）、それ以外はフラグ参照
+  const canView = (icon?: string): boolean => {
+    if (isAdmin) return true
+    if (!icon || !VIEW_FLAG_MAP[icon]) return true
+    if (!permission) return true
+    return permission[VIEW_FLAG_MAP[icon]]
+  }
+
   const isMenuOpen = (label: string) => {
     if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
@@ -192,10 +212,10 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
     return false
   }
+
   const [manualOverrides, setManualOverrides] = useState<Record<string, boolean>>({})
-  useEffect(() => {
-    setManualOverrides({})
-  }, [pathname])
+  useEffect(() => { setManualOverrides({}) }, [pathname])
+
   const isOpen = (label: string) => {
     if (label in manualOverrides) return manualOverrides[label]
     return isMenuOpen(label)
@@ -203,6 +223,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const toggleMenu = (label: string) => {
     setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
   }
+
   const renderChildren = (children: any[], depth: number = 0) => {
     return children.map(child => {
       if (child.children) {
@@ -251,35 +272,47 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
       )
     })
   }
+
   return (
     <aside className="w-56 min-h-screen bg-white border-r">
       <nav className="py-4">
         {menuItems.map(item => {
+          const viewable = canView(item.icon)
           if (item.children) {
             const open = isOpen(item.label)
-            const isActive = ("href" in item && item.href === pathname) || item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
+            const isActive = ("href" in item && item.href === pathname) ||
+              item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
             return (
               <div key={item.label}>
                 <div className="flex items-center">
                   {"href" in item && item.href ? (
-                    <Link
-                      href={item.href}
-                      className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}
-                    >
-                      {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
-                      {item.label}
-                    </Link>
+                    viewable ? (
+                      <Link
+                        href={item.href}
+                        className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}
+                      >
+                        {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="flex-1 flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
+                        {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
+                        {item.label}
+                      </span>
+                    )
                   ) : (
                     <span className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}>
                       {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
                       {item.label}
                     </span>
                   )}
-                  <button onClick={() => toggleMenu(item.label)} className="px-3 py-3 hover:bg-gray-50">
-                    {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
-                  </button>
+                  {viewable && (
+                    <button onClick={() => toggleMenu(item.label)} className="px-3 py-3 hover:bg-gray-50">
+                      {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                    </button>
+                  )}
                 </div>
-                {open && (
+                {viewable && open && (
                   <div className="bg-gray-50">
                     {renderChildren(item.children)}
                   </div>

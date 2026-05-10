@@ -2,79 +2,33 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS prinser_m_tokui (
-      tokuisaki_cd VARCHAR(5) NOT NULL,
-      siten_cd VARCHAR(3) NOT NULL,
-      tokuicd VARCHAR(20),
-      tokuinm VARCHAR(64),
-      tokuinm2 VARCHAR(64),
-      tokuinm3 VARCHAR(64),
-      ryk_nm VARCHAR(40),
-      tokuikana VARCHAR(60),
-      del_flg INTEGER,
-      dtindt VARCHAR(8),
-      dtintm VARCHAR(8),
-      dtupdt VARCHAR(8),
-      dtuptm VARCHAR(8),
-      aitesaki_bumon_kanji VARCHAR(20),
-      aitesaki_tantosya VARCHAR(32),
-      aitesaki_address1 VARCHAR(100),
-      aitesaki_address2 VARCHAR(100),
-      aitesaki_address3 VARCHAR(50),
-      aitesaki_yubin_no VARCHAR(8),
-      aitesaki_tel_no VARCHAR(16),
-      tantosya_cd VARCHAR(10),
-      tiiki_cd VARCHAR(20),
-      gyosyu_cd VARCHAR(20),
-      best_juni VARCHAR(20),
-      kyakusaki_bunrui VARCHAR(1),
-      gaityu_bunrui VARCHAR(20),
-      nokyo_kbn VARCHAR(1),
-      sime_date VARCHAR(20),
-      zei_kbn VARCHAR(1),
-      aitesaki_kbn VARCHAR(1),
-      hon_kari_kbn VARCHAR(1),
-      president VARCHAR(20),
-      kabu VARCHAR(20),
-      oya_tokui_cd VARCHAR(20),
-      aitesaki_fax_no VARCHAR(16),
-      group_tokui_cd VARCHAR(20),
-      seikyum_cd VARCHAR(20),
-      furikomis_cd VARCHAR(20),
-      tmail VARCHAR(30),
-      kagami_flg VARCHAR(20),
-      ky_mon VARCHAR(20),
-      ky_dt VARCHAR(20),
-      zzan_sei_flg VARCHAR(20),
-      ny_houhou VARCHAR(20),
-      ny_kamoku_cd VARCHAR(20),
-      nykoza_cd VARCHAR(20),
-      fx4_tokui_cd VARCHAR(20),
-      hasu_kbn VARCHAR(20),
-      shohizei_kbn VARCHAR(20),
-      syk_yobi_flg VARCHAR(20),
-      mitsumorisho_id VARCHAR(20),
-      mitsumori_calc_id VARCHAR(20),
-      syukin_syubetu1 VARCHAR(20),
-      syukin_koza1 VARCHAR(20),
-      syukin_syubetu2 VARCHAR(20),
-      syukin_koza2 VARCHAR(20),
-      syukin_tani VARCHAR(20),
-      syukin_kingaku VARCHAR(20),
-      kin_hasu_kbn VARCHAR(20),
-      zei_marume_tani VARCHAR(20),
-      mototyo_vis_flg VARCHAR(20),
-      sony_flg VARCHAR(20),
-      nohon_kensa_kikaku_id VARCHAR(10),
-      seikyu_kbn VARCHAR(20),
-      non_entertainment_flg VARCHAR(20),
-      smc_online_flg VARCHAR(20),
-      "rawData" TEXT,
-      "importedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (tokuisaki_cd, siten_cd)
-    )
-  `)
+  // 新カラム追加・旧カラム削除
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS spec_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS spec_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS estimate_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS estimate_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS eapp_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS eapp_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS travel_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS travel_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS sop_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS sop_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS report_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS report_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS bpms_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS bpms_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS dlms_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS dlms_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS dpp_view BOOLEAN NOT NULL DEFAULT true`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS dpp_edit BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS masters_view BOOLEAN NOT NULL DEFAULT false`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions ADD COLUMN IF NOT EXISTS masters_edit BOOLEAN NOT NULL DEFAULT false`)
+  // 旧カラム削除
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS products_view`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS products_edit`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS parts_view`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS parts_edit`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS dev_view`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE user_permissions DROP COLUMN IF EXISTS dev_edit`)
   return NextResponse.json({ ok: true })
 }

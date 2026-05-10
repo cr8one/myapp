@@ -38,14 +38,28 @@ model UserPermission {
   id            String   @id @default(cuid())
   userId        String   @unique @map("user_id")
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productsView  Boolean  @default(true)  @map("products_view")
-  productsEdit  Boolean  @default(false) @map("products_edit")
-  partsView     Boolean  @default(true)  @map("parts_view")
-  partsEdit     Boolean  @default(false) @map("parts_edit")
-  devView       Boolean  @default(true)  @map("dev_view")
-  devEdit       Boolean  @default(false) @map("dev_edit")
+  specView      Boolean  @default(true)  @map("spec_view")
+  specEdit      Boolean  @default(false) @map("spec_edit")
+  estimateView  Boolean  @default(true)  @map("estimate_view")
+  estimateEdit  Boolean  @default(false) @map("estimate_edit")
+  eappView      Boolean  @default(true)  @map("eapp_view")
+  eappEdit      Boolean  @default(false) @map("eapp_edit")
+  travelView    Boolean  @default(true)  @map("travel_view")
+  travelEdit    Boolean  @default(false) @map("travel_edit")
+  sopView       Boolean  @default(true)  @map("sop_view")
+  sopEdit       Boolean  @default(false) @map("sop_edit")
+  reportView    Boolean  @default(true)  @map("report_view")
+  reportEdit    Boolean  @default(false) @map("report_edit")
+  bpmsView      Boolean  @default(true)  @map("bpms_view")
+  bpmsEdit      Boolean  @default(false) @map("bpms_edit")
+  dlmsView      Boolean  @default(true)  @map("dlms_view")
+  dlmsEdit      Boolean  @default(false) @map("dlms_edit")
+  dppView       Boolean  @default(true)  @map("dpp_view")
+  dppEdit       Boolean  @default(false) @map("dpp_edit")
   ssssView      Boolean  @default(true)  @map("ssss_view")
   ssssEdit      Boolean  @default(false) @map("ssss_edit")
+  mastersView   Boolean  @default(false) @map("masters_view")
+  mastersEdit   Boolean  @default(false) @map("masters_edit")
   ssssIsIssuer            Boolean @default(false) @map("ssss_is_issuer")
   ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")
   ssssIsReceiver          Boolean @default(false) @map("ssss_is_receiver")
@@ -228,9 +242,7 @@ model DevProjectFile {
   createdBy String?    @map("created_by")
   @@map("dev_project_files")
 }
-
 // ==================== SSSS: サンプルシール支給システム ====================
-
 model SealSerialConfig {
   id        Int      @id @default(autoincrement())
   nextValue Int      @default(3201)
@@ -239,7 +251,6 @@ model SealSerialConfig {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("seal_serial_configs")
 }
-
 model SealSupplyCompany {
   id        Int          @id @default(autoincrement())
   name      String       @unique
@@ -250,7 +261,6 @@ model SealSupplyCompany {
   supplies  SealSupply[]
   @@map("seal_supply_companies")
 }
-
 model SealSupplyPartMaster {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -260,7 +270,6 @@ model SealSupplyPartMaster {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("seal_supply_part_masters")
 }
-
 model SealSupply {
   id           Int      @id @default(autoincrement())
   serialCode   String   @unique @map("serial_code")
@@ -302,7 +311,6 @@ model SealSupply {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("seal_supplies")
 }
-
 model DlmsFormatMaster {
   id        Int      @id @default(autoincrement())
   name      String
@@ -314,7 +322,6 @@ model DlmsFormatMaster {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("dlms_format_masters")
 }
-
 model DlmsPartMaster {
   id        Int      @id @default(autoincrement())
   name      String
@@ -326,7 +333,6 @@ model DlmsPartMaster {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("dlms_part_masters")
 }
-
 model DlmsNoteMaster {
   id         Int      @id @default(autoincrement())
   name       String
@@ -338,7 +344,6 @@ model DlmsNoteMaster {
   updatedAt  DateTime @updatedAt @map("updated_at")
   @@map("dlms_note_masters")
 }
-
 model DevLog {
   id          String   @id @default(cuid())
   date        DateTime
@@ -349,10 +354,8 @@ model DevLog {
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@map("dev_logs")
 }
-
 model Announcement {
   id          String   @id @default(cuid())
   title       String
@@ -363,10 +366,8 @@ model Announcement {
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@map("announcements")
 }
-
 model LoginLog {
   id         String   @id @default(cuid())
   userId     String?
@@ -376,10 +377,8 @@ model LoginLog {
   status     String
   createdAt  DateTime @default(now())
   user       User?    @relation(fields: [userId], references: [id])
-
   @@map("login_logs")
 }
-
 model AuditLog {
   id          String   @id @default(cuid())
   userId      String?
@@ -390,10 +389,8 @@ model AuditLog {
   diff        String?
   createdAt   DateTime @default(now())
   user        User?    @relation(fields: [userId], references: [id])
-
   @@map("audit_logs")
 }
-
 model DlmsDielineParent {
   id            String   @id @default(cuid())
   uid_ntemp     String   @unique
@@ -412,20 +409,16 @@ model DlmsDielineParent {
   conditions    DlmsDielineCondition[]
   children      DlmsDielineChild[]
   requests      DlmsDielineRequest[]
-
   @@map("dlms_dieline_parents")
 }
-
 model DlmsDielineCondition {
   id        String             @id @default(cuid())
   parentId  String
   value     String
   sortOrder Int                @default(0)
   parent    DlmsDielineParent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
-
   @@map("dlms_dieline_conditions")
 }
-
 model DlmsDielineChild {
   id          String             @id @default(cuid())
   parentId    String
@@ -444,10 +437,8 @@ model DlmsDielineChild {
   dtupdt      DateTime           @updatedAt
   parent      DlmsDielineParent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
   requests    DlmsDielineRequest[]
-
   @@map("dlms_dieline_children")
 }
-
 model DlmsDielineRequest {
   id                String    @id @default(cuid())
   request_no        String    @unique
@@ -469,18 +460,14 @@ model DlmsDielineRequest {
   dtupdt            DateTime  @updatedAt
   parent            DlmsDielineParent @relation(fields: [parentId], references: [id])
   child             DlmsDielineChild? @relation(fields: [childId], references: [id])
-
   @@map("dlms_dieline_requests")
 }
-
 model DlmsConditionMaster {
   id        Int    @id @default(autoincrement())
   name      String @unique
   sortOrder Int    @default(0)
-
   @@map("dlms_condition_masters")
 }
-
 model PrinserMUser {
   uid           String   @id
   upass         String?
@@ -506,10 +493,8 @@ model PrinserMUser {
   rawData       String?
   importedAt    DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   @@map("prinser_m_users")
 }
-
 model PrinserMTokui {
   tokuisaki_cd  String
   siten_cd      String
