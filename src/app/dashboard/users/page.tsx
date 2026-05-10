@@ -7,90 +7,59 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type Permission = {
-  productsView: boolean
-  productsEdit: boolean
-  partsView: boolean
-  partsEdit: boolean
-  devView: boolean
-  devEdit: boolean
-  ssssView: boolean
-  ssssEdit: boolean
-  ssssIsIssuer: boolean
-  ssssIsSupplier: boolean
-  ssssIsReceiver: boolean
-  ssssIsOutsourceReceiver: boolean
+  specView: boolean;     specEdit: boolean
+  estimateView: boolean; estimateEdit: boolean
+  eappView: boolean;     eappEdit: boolean
+  travelView: boolean;   travelEdit: boolean
+  sopView: boolean;      sopEdit: boolean
+  reportView: boolean;   reportEdit: boolean
+  bpmsView: boolean;     bpmsEdit: boolean
+  dlmsView: boolean;     dlmsEdit: boolean
+  dppView: boolean;      dppEdit: boolean
+  ssssView: boolean;     ssssEdit: boolean
+  mastersView: boolean;  mastersEdit: boolean
+  ssssIsIssuer: boolean; ssssIsSupplier: boolean
+  ssssIsReceiver: boolean; ssssIsOutsourceReceiver: boolean
 }
 
 type User = {
-  id: string
-  name: string
-  email: string
-  department?: string
-  position?: string
-  phone?: string
-  role: "ADMIN" | "USER"
-  createdAt: string
-  permission?: Permission
+  id: string; name: string; email: string
+  department?: string; position?: string; phone?: string
+  role: "ADMIN" | "USER"; createdAt: string; permission?: Permission
 }
 
 const defaultPermission: Permission = {
-  productsView: true, productsEdit: false,
-  partsView: true, partsEdit: false,
-  devView: true, devEdit: false,
-  ssssView: true, ssssEdit: false,
+  specView: true,     specEdit: false,
+  estimateView: true, estimateEdit: false,
+  eappView: true,     eappEdit: false,
+  travelView: true,   travelEdit: false,
+  sopView: true,      sopEdit: false,
+  reportView: true,   reportEdit: false,
+  bpmsView: true,     bpmsEdit: false,
+  dlmsView: true,     dlmsEdit: false,
+  dppView: true,      dppEdit: false,
+  ssssView: true,     ssssEdit: false,
+  mastersView: false, mastersEdit: false,
   ssssIsIssuer: false, ssssIsSupplier: false,
   ssssIsReceiver: false, ssssIsOutsourceReceiver: false,
 }
 
-const permissionGroups: { group: string; items: { key: keyof Permission; label: string }[] }[] = [
-  {
-    group: "製品管理",
-    items: [
-      { key: "productsView", label: "閲覧" },
-      { key: "productsEdit", label: "編集" },
-    ],
-  },
-  {
-    group: "パーツ管理",
-    items: [
-      { key: "partsView", label: "閲覧" },
-      { key: "partsEdit", label: "編集" },
-    ],
-  },
-  {
-    group: "BPMS",
-    items: [
-      { key: "devView", label: "閲覧" },
-      { key: "devEdit", label: "編集" },
-    ],
-  },
-  {
-    group: "SSSS",
-    items: [
-      { key: "ssssView", label: "閲覧" },
-      { key: "ssssEdit", label: "編集" },
-      { key: "ssssIsIssuer", label: "起票者" },
-      { key: "ssssIsSupplier", label: "支給者" },
-      { key: "ssssIsReceiver", label: "受領者" },
-      { key: "ssssIsOutsourceReceiver", label: "外注受領担当" },
-    ],
-  },
-]
-
-// 一覧表示用ラベル（有効なフラグのみ表示）
-const allPermissionLabels: { key: keyof Permission; label: string; group: string }[] = [
-  { key: "productsView", label: "製品：閲覧", group: "製品" },
-  { key: "productsEdit", label: "製品：編集", group: "製品" },
-  { key: "partsView", label: "パーツ：閲覧", group: "パーツ" },
-  { key: "partsEdit", label: "パーツ：編集", group: "パーツ" },
-  { key: "devView", label: "BPMS：閲覧", group: "BPMS" },
-  { key: "devEdit", label: "BPMS：編集", group: "BPMS" },
-  { key: "ssssView", label: "SSSS：閲覧", group: "SSSS" },
-  { key: "ssssEdit", label: "SSSS：編集", group: "SSSS" },
-  { key: "ssssIsIssuer", label: "SSSS：起票者", group: "SSSS" },
-  { key: "ssssIsSupplier", label: "SSSS：支給者", group: "SSSS" },
-  { key: "ssssIsReceiver", label: "SSSS：受領者", group: "SSSS" },
-  { key: "ssssIsOutsourceReceiver", label: "SSSS：外注受領", group: "SSSS" },
+const permissionGroups: { group: string; color: string; items: { key: keyof Permission; label: string }[] }[] = [
+  { group: "仕様書",     color: "bg-blue-50 text-blue-700",    items: [{ key: "specView", label: "閲覧" }, { key: "specEdit", label: "編集" }] },
+  { group: "見積書",     color: "bg-green-50 text-green-700",  items: [{ key: "estimateView", label: "閲覧" }, { key: "estimateEdit", label: "編集" }] },
+  { group: "電子申請",   color: "bg-cyan-50 text-cyan-700",    items: [{ key: "eappView", label: "閲覧" }, { key: "eappEdit", label: "編集" }] },
+  { group: "交通費精算", color: "bg-teal-50 text-teal-700",    items: [{ key: "travelView", label: "閲覧" }, { key: "travelEdit", label: "編集" }] },
+  { group: "作業標準書", color: "bg-sky-50 text-sky-700",      items: [{ key: "sopView", label: "閲覧" }, { key: "sopEdit", label: "編集" }] },
+  { group: "業務報告書", color: "bg-violet-50 text-violet-700",items: [{ key: "reportView", label: "閲覧" }, { key: "reportEdit", label: "編集" }] },
+  { group: "BPMS",       color: "bg-indigo-50 text-indigo-700",items: [{ key: "bpmsView", label: "閲覧" }, { key: "bpmsEdit", label: "編集" }] },
+  { group: "DLMS",       color: "bg-orange-50 text-orange-700",items: [{ key: "dlmsView", label: "閲覧" }, { key: "dlmsEdit", label: "編集" }] },
+  { group: "DPP予定表",  color: "bg-pink-50 text-pink-700",    items: [{ key: "dppView", label: "閲覧" }, { key: "dppEdit", label: "編集" }] },
+  { group: "SSSS",       color: "bg-yellow-50 text-yellow-700",items: [
+    { key: "ssssView", label: "閲覧" }, { key: "ssssEdit", label: "編集" },
+    { key: "ssssIsIssuer", label: "起票者" }, { key: "ssssIsSupplier", label: "支給者" },
+    { key: "ssssIsReceiver", label: "受領者" }, { key: "ssssIsOutsourceReceiver", label: "外注受領" },
+  ]},
+  { group: "マスタ管理", color: "bg-gray-100 text-gray-700",   items: [{ key: "mastersView", label: "閲覧" }, { key: "mastersEdit", label: "編集" }] },
 ]
 
 export default function UsersPage() {
@@ -103,7 +72,6 @@ export default function UsersPage() {
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
-
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -115,19 +83,14 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     const res = await fetch("/api/users")
-    const data = await res.json()
-    setUsers(data)
+    setUsers(await res.json())
   }
   useEffect(() => { fetchUsers() }, [])
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase()
-    return (
-      user.name?.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q) ||
-      user.department?.toLowerCase().includes(q) ||
-      user.position?.toLowerCase().includes(q)
-    )
+    return u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) ||
+      u.department?.toLowerCase().includes(q) || u.position?.toLowerCase().includes(q)
   })
 
   const resetForm = () => {
@@ -139,13 +102,9 @@ export default function UsersPage() {
 
   const handleEdit = (user: User) => {
     setEditUser(user)
-    setName(user.name ?? "")
-    setEmail(user.email)
-    setDepartment(user.department ?? "")
-    setPosition(user.position ?? "")
-    setPhone(user.phone ?? "")
-    setPassword("")
-    setRole(user.role)
+    setName(user.name ?? ""); setEmail(user.email)
+    setDepartment(user.department ?? ""); setPosition(user.position ?? "")
+    setPhone(user.phone ?? ""); setPassword(""); setRole(user.role)
     setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
     setShowForm(true)
   }
@@ -158,17 +117,9 @@ export default function UsersPage() {
       permission: role === "ADMIN" ? undefined : permission,
     }
     const res = editUser
-      ? await fetch(`/api/users/${editUser.id}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-        })
-      : await fetch("/api/users", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-        })
-    if (!res.ok) {
-      const data = await res.json()
-      setError(data.error ?? "処理に失敗しました")
-      setLoading(false); return
-    }
+      ? await fetch(`/api/users/${editUser.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      : await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    if (!res.ok) { setError((await res.json()).error ?? "処理に失敗しました"); setLoading(false); return }
     resetForm(); setLoading(false); fetchUsers()
   }
 
@@ -176,28 +127,20 @@ export default function UsersPage() {
     if (id === session?.user?.id) { alert("自分自身は削除できません"); return }
     if (!confirm("このユーザーを削除しますか？")) return
     const res = await fetch(`/api/users/${id}`, { method: "DELETE" })
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      alert(`削除失敗: ${data.error ?? res.status}`)
-      return
-    }
+    if (!res.ok) { alert(`削除失敗: ${(await res.json().catch(() => ({}))).error ?? res.status}`); return }
     fetchUsers()
   }
 
   const handleExport = () => { window.location.href = "/api/users/export" }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const formData = new FormData()
-    formData.append("file", file)
+    const file = e.target.files?.[0]; if (!file) return
+    const formData = new FormData(); formData.append("file", file)
     const res = await fetch("/api/users/import", { method: "POST", body: formData })
     const result = await res.json()
     if (res.ok) {
       alert(`インポート完了：${result.created}件登録、${result.skipped}件スキップ${result.errors.length > 0 ? `\nエラー：${result.errors.join("\n")}` : ""}`)
       fetchUsers()
-    } else {
-      alert(`エラー：${result.error}`)
-    }
+    } else { alert(`エラー：${result.error}`) }
     e.target.value = ""
   }
 
@@ -221,9 +164,7 @@ export default function UsersPage() {
 
       {showForm && isAdmin && (
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>{editUser ? "ユーザー編集" : "ユーザー登録"}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>{editUser ? "ユーザー編集" : "ユーザー登録"}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -268,9 +209,9 @@ export default function UsersPage() {
             {role === "USER" && (
               <div className="space-y-2">
                 <Label>権限設定</Label>
-                <div className="border rounded p-3 space-y-3">
+                <div className="border rounded p-3 grid grid-cols-2 gap-3">
                   {permissionGroups.map(({ group, items }) => (
-                    <div key={group}>
+                    <div key={group} className="border rounded p-2">
                       <p className="text-xs font-semibold text-gray-500 mb-1.5">{group}</p>
                       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                         {items.map(({ key, label }) => (
@@ -318,29 +259,15 @@ export default function UsersPage() {
                     {user.phone && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
                   </div>
                   {user.role === "USER" && user.permission && (
-                    <div className="mt-2 space-y-1">
-                      {/* グループごとに有効なフラグを表示 */}
-                      {permissionGroups.map(({ group, items }) => {
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {permissionGroups.map(({ group, color, items }) => {
                         const active = items.filter(({ key }) => user.permission![key])
                         if (active.length === 0) return null
-                        return (
-                          <div key={group} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 w-20">{group}</span>
-                            <div className="flex flex-wrap gap-1">
-                              {active.map(({ key, label }) => (
-                                <span key={key} className={`text-xs px-2 py-0.5 rounded font-medium ${
-                                  group === "SSSS"
-                                    ? "bg-purple-50 text-purple-700"
-                                    : group === "BPMS"
-                                    ? "bg-indigo-50 text-indigo-700"
-                                    : "bg-blue-50 text-blue-700"
-                                }`}>
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )
+                        return active.map(({ key, label }) => (
+                          <span key={key} className={`text-xs px-2 py-0.5 rounded font-medium ${color}`}>
+                            {group}:{label}
+                          </span>
+                        ))
                       })}
                     </div>
                   )}
