@@ -1,22 +1,26 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-
 export type PermissionKey =
-  | "productsView" | "productsEdit"
-  | "partsView"    | "partsEdit"
-  | "devView"      | "devEdit"
-
+  | "specView"     | "specEdit"
+  | "estimateView" | "estimateEdit"
+  | "eappView"     | "eappEdit"
+  | "travelView"   | "travelEdit"
+  | "sopView"      | "sopEdit"
+  | "reportView"   | "reportEdit"
+  | "bpmsView"     | "bpmsEdit"
+  | "dlmsView"     | "dlmsEdit"
+  | "dppView"      | "dppEdit"
+  | "ssssView"     | "ssssEdit"
+  | "mastersView"  | "mastersEdit"
 export async function getSessionUser() {
   const session = await auth()
   if (!session?.user?.email) return null
-
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: { permission: true },
   })
   return user
 }
-
 export async function hasPermission(key: PermissionKey): Promise<boolean> {
   const user = await getSessionUser()
   if (!user) return false
@@ -24,7 +28,6 @@ export async function hasPermission(key: PermissionKey): Promise<boolean> {
   if (!user.permission) return false
   return user.permission[key] === true
 }
-
 export async function requirePermission(key: PermissionKey) {
   const allowed = await hasPermission(key)
   if (!allowed) {
