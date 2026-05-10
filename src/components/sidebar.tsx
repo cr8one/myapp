@@ -38,149 +38,94 @@ function EApplicationIcon({ className }: { className?: string }) {
 }
 
 type Permission = {
-  specView: boolean
-  estimateView: boolean
-  eappView: boolean
-  travelView: boolean
-  sopView: boolean
-  reportView: boolean
-  bpmsView: boolean
-  dlmsView: boolean
-  dppView: boolean
-  ssssView: boolean
-  mastersView: boolean
+  specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
+  sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
+  dppView: boolean; ssssView: boolean; mastersView: boolean
 } | null
 
-// アイコンキーとviewフラグのマッピング
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
-  spec:     "specView",
-  estimate: "estimateView",
-  eapp:     "eappView",
-  travel:   "travelView",
-  sop:      "sopView",
-  report:   "reportView",
-  bpms:     "bpmsView",
-  dlms:     "dlmsView",
-  dpp:      "dppView",
-  ssss:     "ssssView",
-  masters:  "mastersView",
+  spec: "specView", estimate: "estimateView", eapp: "eappView",
+  travel: "travelView", sop: "sopView", report: "reportView",
+  bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
+  ssss: "ssssView", masters: "mastersView",
 }
 
 const baseMenuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
-  {
-    label: "仕様書", icon: "spec",
-    children: [
-      { label: "仕様一覧", href: "/dashboard/products" },
-      { label: "パーツ一覧", href: "/dashboard/parts" },
-    ],
-  },
-  {
-    label: "見積書", icon: "estimate",
-    children: [
-      { label: "見積一覧", href: "/dashboard/estimates" },
-    ],
-  },
-  {
-    label: "電子申請", href: "/dashboard/eapp", icon: "eapp",
-    children: [
-      { label: "得意先", href: "/dashboard/eapp/customers" },
-      { label: "納品先", href: "/dashboard/eapp/deliveries" },
-      { label: "仕入先", href: "/dashboard/eapp/suppliers" },
-      { label: "用紙", href: "/dashboard/eapp/papers" },
-    ],
-  },
-  {
-    label: "交通費精算", href: "/dashboard/travel", icon: "travel",
-    children: [
-      { label: "精算一覧", href: "/dashboard/travel" },
-    ],
-  },
-  {
-    label: "作業標準書", href: "/dashboard/sop", icon: "sop",
-    children: [
-      { label: "標準書一覧", href: "/dashboard/sop" },
-    ],
-  },
-  {
-    label: "業務報告書", href: "/dashboard/report", icon: "report",
-    children: [
-      { label: "報告書一覧", href: "/dashboard/report" },
-    ],
-  },
-  {
-    label: "BPMS", href: "/dashboard/bpms", icon: "bpms",
-    children: [
-      { label: "会社管理", href: "/dashboard/dev/companies" },
-      { label: "案件管理", href: "/dashboard/dev/projects" },
-      { label: "展示会管理", href: "/dashboard/dev/exhibitions" },
-      { label: "種別管理", href: "/dashboard/dev/company-type-masters" },
-    ],
-  },
-  {
-    label: "DLMS", href: "/dashboard/dlms", icon: "dlms",
-    children: [
-      { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
-      { label: "依頼書管理", href: "/dashboard/dlms/requests" },
-      { label: "図面管理", href: "/dashboard/dlms/drawings" },
-      { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
-      { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
-    ],
-  },
-  {
-    label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp",
-    children: [
-      { label: "予定表", href: "/dashboard/dpp" },
-    ],
-  },
-  {
-    label: "SSSS", href: "/dashboard/ssss", icon: "ssss",
-    children: [
-      { label: "支給管理表", href: "/dashboard/ssss/supplies" },
-      { label: "運用ルール", href: "/dashboard/ssss/rules" },
-      { label: "SSSSマスタ管理", href: "/dashboard/ssss/masters" },
-    ],
-  },
-  {
-    label: "マスタ管理", href: "/dashboard/masters", icon: "masters",
-    children: [
-      { label: "ユーザーマスタ", href: "/dashboard/users" },
-      {
-        label: "PRINSERマスタ", href: "/dashboard/masters/prinser",
-        children: [
-          { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
-          { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
-        ],
-      },
-    ],
-  },
+  { label: "仕様書", icon: "spec", children: [
+    { label: "仕様一覧", href: "/dashboard/products" },
+    { label: "パーツ一覧", href: "/dashboard/parts" },
+  ]},
+  { label: "見積書", icon: "estimate", children: [
+    { label: "見積一覧", href: "/dashboard/estimates" },
+  ]},
+  { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
+    { label: "得意先", href: "/dashboard/eapp/customers" },
+    { label: "納品先", href: "/dashboard/eapp/deliveries" },
+    { label: "仕入先", href: "/dashboard/eapp/suppliers" },
+    { label: "用紙", href: "/dashboard/eapp/papers" },
+  ]},
+  { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [
+    { label: "精算一覧", href: "/dashboard/travel" },
+  ]},
+  { label: "作業標準書", href: "/dashboard/sop", icon: "sop", children: [
+    { label: "標準書一覧", href: "/dashboard/sop" },
+  ]},
+  { label: "業務報告書", href: "/dashboard/report", icon: "report", children: [
+    { label: "報告書一覧", href: "/dashboard/report" },
+  ]},
+  { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
+    { label: "会社管理", href: "/dashboard/dev/companies" },
+    { label: "案件管理", href: "/dashboard/dev/projects" },
+    { label: "展示会管理", href: "/dashboard/dev/exhibitions" },
+    { label: "種別管理", href: "/dashboard/dev/company-type-masters" },
+  ]},
+  { label: "DLMS", href: "/dashboard/dlms", icon: "dlms", children: [
+    { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
+    { label: "依頼書管理", href: "/dashboard/dlms/requests" },
+    { label: "図面管理", href: "/dashboard/dlms/drawings" },
+    { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
+    { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
+  ]},
+  { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
+    { label: "予定表", href: "/dashboard/dpp" },
+  ]},
+  { label: "SSSS", href: "/dashboard/ssss", icon: "ssss", children: [
+    { label: "支給管理表", href: "/dashboard/ssss/supplies" },
+    { label: "運用ルール", href: "/dashboard/ssss/rules" },
+    { label: "SSSSマスタ管理", href: "/dashboard/ssss/masters" },
+  ]},
+  { label: "マスタ管理", href: "/dashboard/masters", icon: "masters", children: [
+    { label: "ユーザーマスタ", href: "/dashboard/users" },
+    { label: "PRINSERマスタ", href: "/dashboard/masters/prinser", children: [
+      { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
+      { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
+    ]},
+  ]},
 ]
 
 const adminMenuItems = [
-  {
-    label: "システム管理", href: "/dashboard/system", icon: "system",
-    children: [
-      { label: "開発記録", href: "/dashboard/system/dev-logs" },
-      { label: "ログイン履歴", href: "/dashboard/system/login-logs" },
-      { label: "修正履歴", href: "/dashboard/system/audit-logs" },
-    ],
-  },
+  { label: "システム管理", href: "/dashboard/system", icon: "system", children: [
+    { label: "開発記録", href: "/dashboard/system/dev-logs" },
+    { label: "ログイン履歴", href: "/dashboard/system/login-logs" },
+    { label: "修正履歴", href: "/dashboard/system/audit-logs" },
+  ]},
 ]
 
 function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
-  if (icon === "spec") return <ScrollText className={className} />
-  if (icon === "estimate") return <JapaneseYen className={className} />
-  if (icon === "eapp") return <EApplicationIcon className={className} />
-  if (icon === "travel") return <Train className={className} />
-  if (icon === "sop") return <BookOpen className={className} />
-  if (icon === "report") return <FileText className={className} />
-  if (icon === "bpms") return <Handshake className={className} />
-  if (icon === "dlms") return <DlmsIcon className={className} />
-  if (icon === "dpp") return <CalendarDays className={className} />
-  if (icon === "ssss") return <SsssIcon className={className} />
-  if (icon === "masters") return <Settings className={className} />
-  if (icon === "system") return <ShieldCheck className={className} />
+  if (icon === "spec")      return <ScrollText className={className} />
+  if (icon === "estimate")  return <JapaneseYen className={className} />
+  if (icon === "eapp")      return <EApplicationIcon className={className} />
+  if (icon === "travel")    return <Train className={className} />
+  if (icon === "sop")       return <BookOpen className={className} />
+  if (icon === "report")    return <FileText className={className} />
+  if (icon === "bpms")      return <Handshake className={className} />
+  if (icon === "dlms")      return <DlmsIcon className={className} />
+  if (icon === "dpp")       return <CalendarDays className={className} />
+  if (icon === "ssss")      return <SsssIcon className={className} />
+  if (icon === "masters")   return <Settings className={className} />
+  if (icon === "system")    return <ShieldCheck className={className} />
   return null
 }
 
@@ -188,7 +133,6 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   const pathname = usePathname()
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems
 
-  // viewフラグチェック：ADMINは常にtrue、permissionなしはtrue（デフォルト許可）、それ以外はフラグ参照
   const canView = (icon?: string): boolean => {
     if (isAdmin) return true
     if (!icon || !VIEW_FLAG_MAP[icon]) return true
@@ -197,16 +141,16 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   }
 
   const isMenuOpen = (label: string) => {
-    if (label === "仕様書") return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
-    if (label === "見積書") return pathname.startsWith("/dashboard/estimates")
+    if (label === "仕様書")   return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+    if (label === "見積書")   return pathname.startsWith("/dashboard/estimates")
     if (label === "電子申請") return pathname.startsWith("/dashboard/eapp")
     if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
-    if (label === "BPMS") return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
-    if (label === "DLMS") return pathname.startsWith("/dashboard/dlms")
+    if (label === "BPMS")     return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
+    if (label === "DLMS")     return pathname.startsWith("/dashboard/dlms")
     if (label === "DPP予定表") return pathname.startsWith("/dashboard/dpp")
-    if (label === "SSSS") return pathname.startsWith("/dashboard/ssss")
+    if (label === "SSSS")     return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     if (label === "システム管理") return pathname.startsWith("/dashboard/system")
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
@@ -215,14 +159,8 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
 
   const [manualOverrides, setManualOverrides] = useState<Record<string, boolean>>({})
   useEffect(() => { setManualOverrides({}) }, [pathname])
-
-  const isOpen = (label: string) => {
-    if (label in manualOverrides) return manualOverrides[label]
-    return isMenuOpen(label)
-  }
-  const toggleMenu = (label: string) => {
-    setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
-  }
+  const isOpen = (label: string) => label in manualOverrides ? manualOverrides[label] : isMenuOpen(label)
+  const toggleMenu = (label: string) => setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
 
   const renderChildren = (children: any[], depth: number = 0) => {
     return children.map(child => {
@@ -232,11 +170,9 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
         return (
           <div key={child.label}>
             <div className="flex items-center">
-              <Link
-                href={child.href}
+              <Link href={child.href}
                 className={`flex-1 flex items-center gap-2 py-2.5 text-sm hover:bg-gray-100 ${isActive ? "font-semibold text-blue-600" : "text-gray-600"}`}
-                style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}
-              >
+                style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}>
                 {child.label}
               </Link>
               <button onClick={() => toggleMenu(child.label)} className="px-3 py-2.5 hover:bg-gray-100">
@@ -246,12 +182,9 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
             {open && (
               <div className="bg-gray-100">
                 {child.children.map((grandchild: any) => (
-                  <Link
-                    key={grandchild.href}
-                    href={grandchild.href}
+                  <Link key={grandchild.href} href={grandchild.href}
                     className={`block py-2 text-sm hover:bg-gray-200 ${pathname === grandchild.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
-                    style={{ paddingLeft: `${(depth + 4) * 16}px` }}
-                  >
+                    style={{ paddingLeft: `${(depth + 4) * 16}px` }}>
                     {grandchild.label}
                   </Link>
                 ))}
@@ -261,12 +194,9 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
         )
       }
       return (
-        <Link
-          key={child.href}
-          href={child.href}
+        <Link key={child.href} href={child.href}
           className={`block py-2.5 text-sm hover:bg-gray-100 ${pathname === child.href ? "font-semibold text-blue-600" : "text-gray-600"}`}
-          style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}
-        >
+          style={{ paddingLeft: `${(depth + 2.5) * 16}px` }}>
           {child.label}
         </Link>
       )
@@ -282,50 +212,48 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
             const open = isOpen(item.label)
             const isActive = ("href" in item && item.href === pathname) ||
               item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
+            const hasHref = "href" in item && item.href
+
+            // グレーアウト表示（viewfalse）
+            if (!viewable) {
+              return (
+                <div key={item.label}>
+                  <div className="flex items-center">
+                    <span className="flex-1 flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
+                      {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
+                      {item.label}
+                    </span>
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <div key={item.label}>
                 <div className="flex items-center">
-                  {"href" in item && item.href ? (
-                    viewable ? (
-                      <Link
-                        href={item.href}
-                        className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}
-                      >
-                        {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <span className="flex-1 flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
-                        {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
-                        {item.label}
-                      </span>
-                    )
+                  {hasHref ? (
+                    <Link href={item.href!}
+                      className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}>
+                      {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
+                      {item.label}
+                    </Link>
                   ) : (
                     <span className={`flex-1 flex items-center gap-2 px-6 py-3 text-sm ${isActive ? "font-semibold text-blue-600" : "text-gray-700"}`}>
                       {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
                       {item.label}
                     </span>
                   )}
-                  {viewable && (
-                    <button onClick={() => toggleMenu(item.label)} className="px-3 py-3 hover:bg-gray-50">
-                      {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
-                    </button>
-                  )}
+                  <button onClick={() => toggleMenu(item.label)} className="px-3 py-3 hover:bg-gray-50">
+                    {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                  </button>
                 </div>
-                {viewable && open && (
-                  <div className="bg-gray-50">
-                    {renderChildren(item.children)}
-                  </div>
-                )}
+                {open && <div className="bg-gray-50">{renderChildren(item.children)}</div>}
               </div>
             )
           }
           return (
-            <Link
-              key={item.href}
-              href={item.href!}
-              className={`flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${pathname === item.href ? "bg-gray-100 font-semibold text-blue-600" : "text-gray-700"}`}
-            >
+            <Link key={item.href} href={item.href!}
+              className={`flex items-center gap-2 px-6 py-3 text-sm hover:bg-gray-50 ${pathname === item.href ? "bg-gray-100 font-semibold text-blue-600" : "text-gray-700"}`}>
               {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${pathname === item.href ? "text-blue-600" : "text-gray-500"}`} />}
               {item.label}
             </Link>
