@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split("\n").map((l) => l.replace(/\r$/, ""))
+  const lines = text.trim().split("\n").map(l => l.replace(/\r$/, ""))
   if (lines.length < 2) return []
-  const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, "").trim())
-  return lines.slice(1).map((line) => {
+  const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim())
+  return lines.slice(1).map(line => {
     const values = line.match(/("([^"]|"")*"|[^,]*)/g) ?? []
     const record: Record<string, string> = {}
     headers.forEach((h, i) => {
@@ -67,6 +67,8 @@ export async function POST(request: Request) {
               ssssEdit:     row["ssssEdit"]     === "1",
               mastersView:  row["mastersView"]  === "1",
               mastersEdit:  row["mastersEdit"]  === "1",
+              cadView:      row["cadView"]      !== "0",
+              cadEdit:      row["cadEdit"]      === "1",
             },
           },
         },

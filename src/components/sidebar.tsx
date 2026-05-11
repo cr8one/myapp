@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, Compass } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -40,14 +40,14 @@ function EApplicationIcon({ className }: { className?: string }) {
 type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
-  dppView: boolean; ssssView: boolean; mastersView: boolean
+  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean
 } | null
 
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
-  ssss: "ssssView", masters: "mastersView",
+  ssss: "ssssView", masters: "mastersView", cad: "cadView",
 }
 
 const baseMenuItems = [
@@ -87,6 +87,9 @@ const baseMenuItems = [
     { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
   ]},
+  { label: "CAD/台紙", href: "/dashboard/cad", icon: "cad", children: [
+    { label: "台紙一覧", href: "/dashboard/cad" },
+  ]},
   { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp" },
   ]},
@@ -122,6 +125,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "report")    return <FileText className={className} />
   if (icon === "bpms")      return <Handshake className={className} />
   if (icon === "dlms")      return <DlmsIcon className={className} />
+  if (icon === "cad")       return <Compass className={className} />
   if (icon === "dpp")       return <CalendarDays className={className} />
   if (icon === "ssss")      return <SsssIcon className={className} />
   if (icon === "masters")   return <Settings className={className} />
@@ -141,16 +145,17 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   }
 
   const isMenuOpen = (label: string) => {
-    if (label === "仕様書")   return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
-    if (label === "見積書")   return pathname.startsWith("/dashboard/estimates")
-    if (label === "電子申請") return pathname.startsWith("/dashboard/eapp")
+    if (label === "仕様書")     return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
+    if (label === "見積書")     return pathname.startsWith("/dashboard/estimates")
+    if (label === "電子申請")   return pathname.startsWith("/dashboard/eapp")
     if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
-    if (label === "BPMS")     return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
-    if (label === "DLMS")     return pathname.startsWith("/dashboard/dlms")
-    if (label === "DPP予定表") return pathname.startsWith("/dashboard/dpp")
-    if (label === "SSSS")     return pathname.startsWith("/dashboard/ssss")
+    if (label === "BPMS")       return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
+    if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
+    if (label === "CAD/台紙")   return pathname.startsWith("/dashboard/cad")
+    if (label === "DPP予定表")  return pathname.startsWith("/dashboard/dpp")
+    if (label === "SSSS")       return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     if (label === "システム管理") return pathname.startsWith("/dashboard/system")
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")
@@ -213,21 +218,16 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
             const isActive = ("href" in item && item.href === pathname) ||
               item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
             const hasHref = "href" in item && item.href
-
-            // グレーアウト表示（viewfalse）
             if (!viewable) {
               return (
                 <div key={item.label}>
-                  <div className="flex items-center">
-                    <span className="flex-1 flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
-                      {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
-                      {item.label}
-                    </span>
-                  </div>
+                  <span className="flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
+                    {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
+                    {item.label}
+                  </span>
                 </div>
               )
             }
-
             return (
               <div key={item.label}>
                 <div className="flex items-center">

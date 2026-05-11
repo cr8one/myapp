@@ -60,6 +60,8 @@ model UserPermission {
   ssssEdit      Boolean  @default(false) @map("ssss_edit")
   mastersView   Boolean  @default(false) @map("masters_view")
   mastersEdit   Boolean  @default(false) @map("masters_edit")
+  cadView       Boolean  @default(true)  @map("cad_view")
+  cadEdit       Boolean  @default(false) @map("cad_edit")
   ssssIsIssuer            Boolean @default(false) @map("ssss_is_issuer")
   ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")
   ssssIsReceiver          Boolean @default(false) @map("ssss_is_receiver")
@@ -242,7 +244,6 @@ model DevProjectFile {
   createdBy String?    @map("created_by")
   @@map("dev_project_files")
 }
-// ==================== SSSS: サンプルシール支給システム ====================
 model SealSerialConfig {
   id        Int      @id @default(autoincrement())
   nextValue Int      @default(3201)

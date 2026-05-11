@@ -12,6 +12,7 @@ export type PermissionKey =
   | "dppView"      | "dppEdit"
   | "ssssView"     | "ssssEdit"
   | "mastersView"  | "mastersEdit"
+  | "cadView"      | "cadEdit"
 export async function getSessionUser() {
   const session = await auth()
   if (!session?.user?.email) return null

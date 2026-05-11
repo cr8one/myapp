@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
   Plus, Pencil, Trash2, Megaphone, Wrench, Tag,
-  Train, BookOpen, FileText, CalendarDays
+  Train, BookOpen, FileText, CalendarDays, Compass
 } from "lucide-react"
 
 type Announcement = {
@@ -19,7 +19,7 @@ type Announcement = {
 type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
-  dppView: boolean; ssssView: boolean; mastersView: boolean
+  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean
 } | null
 type Props = {
   userName: string; isAdmin: boolean
@@ -70,22 +70,23 @@ const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
-  ssss: "ssssView", masters: "mastersView",
+  ssss: "ssssView", masters: "mastersView", cad: "cadView",
 }
 
 const SERVICE_CARDS = [
-  { label: "仕様書",     href: "/dashboard/products", icon: "spec",     desc: "仕様一覧・パーツ一覧",       color: "text-indigo-600 bg-indigo-50" },
-  { label: "見積書",     href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                   color: "text-emerald-600 bg-emerald-50" },
-  { label: "電子申請",   href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙", color: "text-sky-600 bg-sky-50" },
-  { label: "交通費精算", href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",           color: "text-teal-600 bg-teal-50" },
-  { label: "作業標準書", href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",         color: "text-cyan-600 bg-cyan-50" },
-  { label: "業務報告書", href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",           color: "text-purple-600 bg-purple-50" },
-  { label: "BPMS",       href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",       color: "text-violet-600 bg-violet-50" },
-  { label: "DLMS",       href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",             color: "text-orange-600 bg-orange-50" },
-  { label: "DPP予定表",  href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",         color: "text-pink-600 bg-pink-50" },
-  { label: "SSSS",       href: "/dashboard/ssss",      icon: "ssss",     desc: "支給管理・送り状",             color: "text-yellow-600 bg-yellow-50" },
-  { label: "マスタ管理", href: "/dashboard/masters",   icon: "masters",  desc: "ユーザー・PRINSERマスタ",      color: "text-gray-600 bg-gray-100" },
-  { label: "システム管理", href: "/dashboard/system",  icon: "system",   desc: "開発記録・ログ管理",           color: "text-rose-600 bg-rose-50" },
+  { label: "仕様書",     href: "/dashboard/products", icon: "spec",     desc: "仕様一覧・パーツ一覧",         color: "text-indigo-600 bg-indigo-50" },
+  { label: "見積書",     href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                     color: "text-emerald-600 bg-emerald-50" },
+  { label: "電子申請",   href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙",  color: "text-sky-600 bg-sky-50" },
+  { label: "交通費精算", href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",             color: "text-teal-600 bg-teal-50" },
+  { label: "作業標準書", href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",           color: "text-cyan-600 bg-cyan-50" },
+  { label: "業務報告書", href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",             color: "text-purple-600 bg-purple-50" },
+  { label: "BPMS",       href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",         color: "text-violet-600 bg-violet-50" },
+  { label: "DLMS",       href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",               color: "text-orange-600 bg-orange-50" },
+  { label: "CAD/台紙",   href: "/dashboard/cad",       icon: "cad",      desc: "CAD・台紙データ管理",            color: "text-lime-600 bg-lime-50" },
+  { label: "DPP予定表",  href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",           color: "text-pink-600 bg-pink-50" },
+  { label: "SSSS",       href: "/dashboard/ssss",      icon: "ssss",     desc: "支給管理・送り状",               color: "text-yellow-600 bg-yellow-50" },
+  { label: "マスタ管理", href: "/dashboard/masters",   icon: "masters",  desc: "ユーザー・PRINSERマスタ",        color: "text-gray-600 bg-gray-100" },
+  { label: "システム管理", href: "/dashboard/system",  icon: "system",   desc: "開発記録・ログ管理",             color: "text-rose-600 bg-rose-50" },
 ]
 
 function ServiceIcon({ icon, className }: { icon: string; className?: string }) {
@@ -97,6 +98,7 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   if (icon === "report")   return <FileText className={className} />
   if (icon === "bpms")     return <Handshake className={className} />
   if (icon === "dlms")     return <DlmsIcon className={className} />
+  if (icon === "cad")      return <Compass className={className} />
   if (icon === "dpp")      return <CalendarDays className={className} />
   if (icon === "ssss")     return <SsssIcon className={className} />
   if (icon === "masters")  return <Settings className={className} />
@@ -117,7 +119,7 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
 
   const canView = (icon: string): boolean => {
     if (isAdmin) return true
-    if (icon === "system") return false // systemはADMINのみ
+    if (icon === "system") return false
     const key = VIEW_FLAG_MAP[icon]
     if (!key) return true
     if (!permission) return true
@@ -165,7 +167,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
         </div>
       </div>
 
-      {/* お知らせ */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2">
@@ -197,12 +198,8 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(a)} className="p-1 text-gray-400 hover:text-blue-600 rounded">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteTarget(a)} className="p-1 text-gray-400 hover:text-red-600 rounded">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <button onClick={() => openEdit(a)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setDeleteTarget(a)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   )}
                 </div>
@@ -212,14 +209,12 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
         )}
       </div>
 
-      {/* サービス */}
       <div className="mb-8">
         <h2 className="text-base font-semibold text-gray-700 mb-3">サービス</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SERVICE_CARDS.map(m => {
-            const viewable = canView(m.icon)
-            // systemカードはADMINのみ表示
             if (m.icon === "system" && !isAdmin) return null
+            const viewable = canView(m.icon)
             if (!viewable) {
               return (
                 <div key={m.href} className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-40 cursor-not-allowed select-none">
@@ -244,7 +239,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
         </div>
       </div>
 
-      {/* 作成・編集ダイアログ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editTarget ? "お知らせを編集" : "お知らせを作成"}</DialogTitle></DialogHeader>
@@ -279,7 +273,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
         </DialogContent>
       </Dialog>
 
-      {/* 削除確認ダイアログ */}
       <Dialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>

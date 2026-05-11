@@ -54,6 +54,8 @@ export async function POST(request: Request) {
           ssssEdit:     permission?.ssssEdit     ?? false,
           mastersView:  permission?.mastersView  ?? false,
           mastersEdit:  permission?.mastersEdit  ?? false,
+          cadView:      permission?.cadView      ?? true,
+          cadEdit:      permission?.cadEdit      ?? false,
         },
       },
     },
