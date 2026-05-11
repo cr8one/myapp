@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, Compass } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -80,15 +80,18 @@ const baseMenuItems = [
     { label: "展示会管理", href: "/dashboard/dev/exhibitions" },
     { label: "種別管理", href: "/dashboard/dev/company-type-masters" },
   ]},
+  { label: "CAD/台紙", href: "/dashboard/cad", icon: "cad", children: [
+    { label: "CAD依頼書",     href: "/dashboard/cad/cad-requests" },
+    { label: "DXF変換依頼書", href: "/dashboard/cad/dxf-requests" },
+    { label: "台紙作成依頼書", href: "/dashboard/cad/daishi-requests" },
+    { label: "台紙DB",        href: "/dashboard/cad/daishi-db" },
+  ]},
   { label: "DLMS", href: "/dashboard/dlms", icon: "dlms", children: [
     { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
     { label: "依頼書管理", href: "/dashboard/dlms/requests" },
     { label: "図面管理", href: "/dashboard/dlms/drawings" },
     { label: "図面作成", href: "/dashboard/dlms/drawings/new" },
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
-  ]},
-  { label: "CAD/台紙", href: "/dashboard/cad", icon: "cad", children: [
-    { label: "台紙一覧", href: "/dashboard/cad" },
   ]},
   { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp" },
@@ -124,8 +127,8 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "sop")       return <BookOpen className={className} />
   if (icon === "report")    return <FileText className={className} />
   if (icon === "bpms")      return <Handshake className={className} />
+  if (icon === "cad")       return <PenTool className={className} />
   if (icon === "dlms")      return <DlmsIcon className={className} />
-  if (icon === "cad")       return <Compass className={className} />
   if (icon === "dpp")       return <CalendarDays className={className} />
   if (icon === "ssss")      return <SsssIcon className={className} />
   if (icon === "masters")   return <Settings className={className} />
@@ -152,8 +155,8 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
     if (label === "BPMS")       return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
-    if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
     if (label === "CAD/台紙")   return pathname.startsWith("/dashboard/cad")
+    if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
     if (label === "DPP予定表")  return pathname.startsWith("/dashboard/dpp")
     if (label === "SSSS")       return pathname.startsWith("/dashboard/ssss")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
