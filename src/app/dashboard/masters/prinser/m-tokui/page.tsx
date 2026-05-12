@@ -20,7 +20,7 @@ const CSV_COLUMNS = [
   "seikyu_kbn","non_entertainment_flg","smc_online_flg"
 ]
 
-const CHUNK_SIZE = 50
+const CHUNK_SIZE = 10
 
 type MTokui = {
   tokuisaki_cd: string
