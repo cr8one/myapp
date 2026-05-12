@@ -4,6 +4,8 @@ import { auth } from "@/auth"
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
+export const maxDuration = 60
+
 const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
 
@@ -40,7 +42,7 @@ function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
     const row: Record<string, string> = {}
     CSV_COLUMNS.forEach((col, i) => { row[col] = values[i] ?? "" })
     return row
-  }).filter((r: Record<string, string>) => r.tokuisaki_cd && r.siten_cd && r.tokuisaki_cd.trim() !== "")
+  }).filter((r: Record<string, string>) => r.tokuisaki_cd && r.tokuisaki_cd.trim() !== "" && r.siten_cd && r.siten_cd.trim() !== "")
 }
 
 export async function GET(req: NextRequest) {
@@ -51,15 +53,13 @@ export async function GET(req: NextRequest) {
   const delFlg = searchParams.get("delFlg")
   const records = await prisma.prinserMTokui.findMany({
     where: {
-      ...(keyword ? {
-        OR: [
-          { tokuicd: { contains: keyword } },
-          { tokuinm: { contains: keyword } },
-          { tokuikana: { contains: keyword } },
-          { tmail: { contains: keyword } },
-          { aitesaki_tel_no: { contains: keyword } },
-        ]
-      } : {}),
+      ...(keyword ? { OR: [
+        { tokuicd: { contains: keyword } },
+        { tokuinm: { contains: keyword } },
+        { tokuikana: { contains: keyword } },
+        { tmail: { contains: keyword } },
+        { aitesaki_tel_no: { contains: keyword } },
+      ]} : {}),
       ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
     },
     orderBy: [{ tokuisaki_cd: "asc" }, { siten_cd: "asc" }],

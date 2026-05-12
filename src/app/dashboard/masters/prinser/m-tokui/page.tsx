@@ -20,34 +20,12 @@ const CSV_COLUMNS = [
   "seikyu_kbn","non_entertainment_flg","smc_online_flg"
 ]
 
-const CHUNK_SIZE = 10
-
 type MTokui = {
   tokuisaki_cd: string
   siten_cd: string
   del_flg: number | null
   rawData: string | null
   importedAt: string
-}
-
-function parseShiftJisCsv(buffer: ArrayBuffer): Record<string, string>[] {
-  const decoder = new TextDecoder("shift-jis")
-  const text = decoder.decode(buffer)
-  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean)
-  return lines.map(line => {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
-    for (const char of line) {
-      if (char === '"') { inQuotes = !inQuotes }
-      else if (char === "," && !inQuotes) { values.push(current); current = "" }
-      else { current += char }
-    }
-    values.push(current)
-    const row: Record<string, string> = {}
-    CSV_COLUMNS.forEach((col, i) => { row[col] = values[i] ?? "" })
-    return row
-  }).filter(r => r.tokuisaki_cd && r.tokuisaki_cd.trim() !== "" && r.siten_cd && r.siten_cd.trim() !== "")
 }
 
 export default function PrinserMTokuiPage() {
@@ -79,34 +57,26 @@ export default function PrinserMTokuiPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setImporting(true)
-    setImportMessage("CSVを読み込み中...")
+    setImportMessage("アップロード準備中...")
     try {
-      const buffer = await file.arrayBuffer()
-      const allRecords = parseShiftJisCsv(buffer)
-      if (allRecords.length === 0) throw new Error("有効なレコードがありません")
-
-      const total = allRecords.length
-      let imported = 0
-      const chunks: Record<string, string>[][] = []
-      for (let i = 0; i < total; i += CHUNK_SIZE) {
-        chunks.push(allRecords.slice(i, i + CHUNK_SIZE))
+      const putRes = await fetch("/api/prinser/m-tokui", { method: "PUT" })
+      if (!putRes.ok) throw new Error("presigned URL取得失敗")
+      const { url, key } = await putRes.json()
+      setImportMessage("S3にアップロード中...")
+      const uploadRes = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
+      if (!uploadRes.ok) throw new Error("S3アップロード失敗")
+      setImportMessage("データを取り込み中...（1500件程度で約60秒かかります）")
+      const importRes = await fetch("/api/prinser/m-tokui", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      })
+      if (!importRes.ok) {
+        const data = await importRes.json()
+        throw new Error(data.error ?? "インポート失敗")
       }
-
-      for (let i = 0; i < chunks.length; i++) {
-        setImportMessage(`インポート中... ${imported}/${total}件 (${i + 1}/${chunks.length}チャンク)`)
-        const res = await fetch("/api/prinser/m-tokui/bulk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ records: chunks[i] }),
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error ?? "インポート失敗")
-        }
-        const result = await res.json()
-        imported += result.count
-      }
-      setImportMessage(`インポート完了：${imported}件`)
+      const result = await importRes.json()
+      setImportMessage(`インポート完了：${result.count}件`)
       fetchRecords()
     } catch (err: any) {
       setImportMessage(`エラー：${err.message}`)
