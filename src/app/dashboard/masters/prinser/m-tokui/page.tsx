@@ -20,6 +20,8 @@ const CSV_COLUMNS = [
   "seikyu_kbn","non_entertainment_flg","smc_online_flg"
 ]
 
+const CHUNK_SIZE = 10
+
 type MTokui = {
   tokuisaki_cd: string
   siten_cd: string
@@ -59,24 +61,39 @@ export default function PrinserMTokuiPage() {
     setImporting(true)
     setImportMessage("アップロード準備中...")
     try {
+      // S3にアップロード
       const putRes = await fetch("/api/prinser/m-tokui", { method: "PUT" })
       if (!putRes.ok) throw new Error("presigned URL取得失敗")
       const { url, key } = await putRes.json()
       setImportMessage("S3にアップロード中...")
       const uploadRes = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
       if (!uploadRes.ok) throw new Error("S3アップロード失敗")
-      setImportMessage("データを取り込み中...（1500件程度で約60秒かかります）")
-      const importRes = await fetch("/api/prinser/m-tokui", {
+
+      // APIでCSVをパース（Shift-JISデコードはサーバー側）
+      setImportMessage("CSVを解析中...")
+      const parseRes = await fetch("/api/prinser/m-tokui/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
       })
-      if (!importRes.ok) {
-        const data = await importRes.json()
-        throw new Error(data.error ?? "インポート失敗")
+      if (!parseRes.ok) throw new Error("CSV解析失敗")
+      const { records: allRecords } = await parseRes.json()
+      const total = allRecords.length
+
+      // チャンク分割して送信
+      let imported = 0
+      for (let i = 0; i < total; i += CHUNK_SIZE) {
+        const chunk = allRecords.slice(i, i + CHUNK_SIZE)
+        setImportMessage(`インポート中... ${imported}/${total}件`)
+        const res = await fetch("/api/prinser/m-tokui/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ records: chunk, deleteAll: i === 0 }),
+        })
+        if (!res.ok) throw new Error(`チャンク${i / CHUNK_SIZE + 1}でエラー`)
+        imported += chunk.length
       }
-      const result = await importRes.json()
-      setImportMessage(`インポート完了：${result.count}件`)
+      setImportMessage(`インポート完了：${imported}件`)
       fetchRecords()
     } catch (err: any) {
       setImportMessage(`エラー：${err.message}`)
