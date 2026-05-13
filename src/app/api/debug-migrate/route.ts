@@ -2,6 +2,16 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 export async function GET() {
   await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "m_vendors" (
+      "id" SERIAL NOT NULL,
+      "name" TEXT NOT NULL,
+      "flg_del" BOOLEAN NOT NULL DEFAULT false,
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "m_vendors_pkey" PRIMARY KEY ("id")
+    )
+  `)
+  await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "m_device_models" (
       "model_id" SERIAL NOT NULL,
       "vendor_id" INTEGER,

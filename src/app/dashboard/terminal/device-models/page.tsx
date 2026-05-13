@@ -20,6 +20,7 @@ type DeviceModel = {
   imagePath: string | null
   note: string | null
 }
+type Vendor = { id: number; name: string; flgDel: boolean }
 
 const emptyForm = {
   vendorId: "", deviceTypeId: "", modelName: "", modelNumber: "",
@@ -29,6 +30,7 @@ const emptyForm = {
 
 export default function DeviceModelsPage() {
   const [records, setRecords] = useState<DeviceModel[]>([])
+  const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -51,7 +53,17 @@ export default function DeviceModelsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchRecords() }, [])
+  const fetchVendors = async () => {
+    const res = await fetch("/api/terminal/vendors")
+    setVendors((await res.json()).filter((v: Vendor) => !v.flgDel))
+  }
+
+  useEffect(() => { fetchRecords(); fetchVendors() }, [])
+
+  const getVendorName = (vendorId: number | null) => {
+    if (!vendorId) return null
+    return vendors.find(v => v.id === vendorId)?.name ?? String(vendorId)
+  }
 
   const openCreate = () => {
     setEditTarget(null)
@@ -137,9 +149,7 @@ export default function DeviceModelsPage() {
     fetchRecords()
   }
 
-  const handleExport = () => {
-    window.location.href = "/api/terminal/device-models/export"
-  }
+  const handleExport = () => { window.location.href = "/api/terminal/device-models/export" }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -225,6 +235,7 @@ export default function DeviceModelsPage() {
                 <tr>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">画像</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">機種名</th>
+                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">メーカー</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">型番</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準OS</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">CPU</th>
@@ -250,6 +261,7 @@ export default function DeviceModelsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 font-medium">{r.modelName}</td>
+                    <td className="px-3 py-2 text-gray-500">{getVendorName(r.vendorId) ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.modelNumber ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.osName ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.cpuInfo ?? <span className="text-gray-300">—</span>}</td>
@@ -280,6 +292,16 @@ export default function DeviceModelsPage() {
             <div className="space-y-1">
               <Label>機種名 <span className="text-red-500">*</span></Label>
               <Input value={form.modelName} onChange={e => setForm(f => ({ ...f, modelName: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1">
+              <Label>メーカー</Label>
+              <select
+                value={form.vendorId}
+                onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
+                className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">未選択（手入力する場合は型番に記載）</option>
+                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
             </div>
             <div className="space-y-1">
               <Label>型番</Label>

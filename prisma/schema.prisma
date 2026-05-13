@@ -618,3 +618,12 @@ model DeviceModel {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   @@map("m_device_models")
 }
+
+model Vendor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  flgDel    Boolean  @default(false) @map("flg_del")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("m_vendors")
+}
