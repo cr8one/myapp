@@ -1,32 +1,44 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Upload, Search, Trash2 } from "lucide-react"
+import { Upload, Trash2, RefreshCw, Search } from "lucide-react"
 
-const CSV_COLUMNS = [
-  "nonyu_cd","tokuicd","tokuinm","tantou_nm","nonyu_nm1","nonyu_nm2",
-  "nonyu_kana","nonyu_kigou","sy_shoyou_nissu","yubin_no","address1","address2",
-  "tel_no","fax_no","tekiyou","dtindt","dtintm","dtinuid","dtupdt","dtuptm",
-  "dtupuid","del_flg","mitsumonavi_nohinsaki_name"
-]
-
-type MTokuiNonyu = {
+type Record_ = {
   nonyu_cd: string
+  tokuicd: string | null
+  tokuinm: string | null
+  tantou_nm: string | null
+  nonyu_nm1: string | null
+  nonyu_nm2: string | null
+  nonyu_kana: string | null
+  nonyu_kigou: string | null
+  sy_shoyou_nissu: number
+  yubin_no: string | null
+  address1: string | null
+  address2: string | null
+  tel_no: string | null
+  fax_no: string | null
+  tekiyou: string | null
+  dtindt: string
+  dtintm: string
+  dtinuid: string
+  dtupdt: string
+  dtuptm: string
+  dtupuid: string
   del_flg: number
-  rawData: string | null
-  importedAt: string
+  mitsumonavi_nohinsaki_name: string
 }
 
-export default function PrinserMTokuiNonyuPage() {
-  const [records, setRecords] = useState<MTokuiNonyu[]>([])
-  const [loading, setLoading] = useState(true)
+export default function MTokuiNonyuPage() {
+  const [records, setRecords] = useState<Record_[]>([])
+  const [loading, setLoading] = useState(false)
   const [keyword, setKeyword] = useState("")
   const [delFlg, setDelFlg] = useState("")
-  const [importing, setImporting] = useState(false)
-  const [importMessage, setImportMessage] = useState("")
   const [totalCount, setTotalCount] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState("")
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -46,148 +58,157 @@ export default function PrinserMTokuiNonyuPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setImporting(true)
-    setImportMessage("S3にアップロード中...")
+    setImportProgress("S3にアップロード中...")
     try {
       const putRes = await fetch("/api/prinser/m-tokui-nonyu", { method: "PUT" })
-      if (!putRes.ok) throw new Error("presigned URL取得失敗")
       const { url, key } = await putRes.json()
-      const uploadRes = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
-      if (!uploadRes.ok) throw new Error("S3アップロード失敗")
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
+      setImportProgress("インポート中...")
       let offset = 0
       let total = 0
-      let imported = 0
       while (true) {
-        setImportMessage(`インポート中... ${imported}${total ? "/" + total : ""}件`)
         const res = await fetch("/api/prinser/m-tokui-nonyu/bulk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key, offset }),
         })
-        if (!res.ok) throw new Error(`インポート失敗 (offset: ${offset})`)
         const result = await res.json()
-        imported += result.count
-        total = result.total ?? total
-        if (result.done) break
+        total = result.total
         offset += result.count
+        setImportProgress(`インポート中... ${offset} / ${total}`)
+        if (result.done) break
       }
-      setImportMessage(`インポート完了：${imported}件`)
+      setImportProgress(`完了: ${total}件`)
       fetchRecords()
     } catch (err: any) {
-      setImportMessage(`エラー：${err.message}`)
+      setImportProgress("エラー: " + err.message)
+    } finally {
+      setImporting(false)
+      if (fileRef.current) fileRef.current.value = ""
     }
-    setImporting(false)
-    e.target.value = ""
   }
 
-  const handleDeleteAll = async () => {
-    if (!confirm("全レコードを削除しますか？")) return
+  const handleDelete = async () => {
+    if (!confirm("全データを削除しますか？")) return
     await fetch("/api/prinser/m-tokui-nonyu", { method: "DELETE" })
-    setRecords([])
-    setTotalCount(0)
-    setImportMessage("全レコードを削除しました")
+    fetchRecords()
   }
 
-  const getVal = (record: MTokuiNonyu, col: string): string => {
-    if (col === "nonyu_cd") return record.nonyu_cd
-    if (col === "del_flg") return record.del_flg?.toString() ?? ""
-    if (!record.rawData) return ""
-    try {
-      const raw = JSON.parse(record.rawData)
-      return raw[col] ?? ""
-    } catch { return "" }
-  }
+  const toStr = (v: string | null | undefined) => v ?? ""
 
   return (
-    <div className="min-w-0 overflow-hidden">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">m_tokui_nonyu</h1>
-            <p className="text-sm text-gray-500 mt-1">PRINSER納品先マスタ（得意先別）（{totalCount}件）</p>
-          </div>
-          <div className="flex gap-2 flex-wrap justify-end">
-            <Button variant="outline" size="sm" onClick={handleDeleteAll}
-              className="flex items-center gap-1 text-red-600 hover:text-red-700">
-              <Trash2 className="w-4 h-4" />全削除
-            </Button>
-            <Button size="sm" onClick={() => fileInputRef.current?.click()}
-              disabled={importing} className="flex items-center gap-1">
-              <Upload className="w-4 h-4" />CSVインポート
-            </Button>
-            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          </div>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">m_tokui_nonyu</h1>
+          <p className="text-sm text-gray-500">納品先マスタ（得意先別）</p>
         </div>
-        {importMessage && (
-          <p className={`mb-4 text-sm px-4 py-2 rounded ${importMessage.startsWith("エラー") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"}`}>
-            {importMessage}
-          </p>
-        )}
-        <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
-          <div className="flex gap-3 items-end flex-wrap">
-            <div className="flex-1 min-w-40">
-              <Input value={keyword} onChange={e => setKeyword(e.target.value)}
-                placeholder="納入先CD・名称・カナ・得意先CDで検索"
-                onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
-                autoComplete="off" />
-            </div>
-            <div>
-              <select value={delFlg} onChange={e => setDelFlg(e.target.value)}
-                className="h-10 border rounded px-3 text-sm bg-white">
-                <option value="">削除フラグ：すべて</option>
-                <option value="0">有効（0）</option>
-                <option value="1">削除（1）</option>
-              </select>
-            </div>
-            <Button onClick={fetchRecords} className="flex items-center gap-1">
-              <Search className="w-4 h-4" />検索
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Trash2 className="w-4 h-4 mr-1" />全削除
+          </Button>
+          <Button size="sm" onClick={() => fileRef.current?.click()} disabled={importing}>
+            <Upload className="w-4 h-4 mr-1" />CSVインポート
+          </Button>
+          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
         </div>
-        {loading ? (
-          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
-        ) : records.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">データがありません。CSVをインポートしてください。</p>
-        ) : (
-          <div className="border rounded-lg shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="text-xs bg-white" style={{ minWidth: "max-content" }}>
-                <thead className="bg-gray-50 border-b sticky top-0 z-10">
-                  <tr>
-                    {CSV_COLUMNS.map(col => (
-                      <th key={col} className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap border-r last:border-r-0">
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {records.map(r => (
-                    <tr key={r.nonyu_cd}
-                      className={`hover:bg-blue-50 ${r.del_flg === 1 ? "opacity-50 bg-red-50" : ""}`}>
-                      {CSV_COLUMNS.map(col => {
-                        const val = getVal(r, col)
-                        if (col === "del_flg") {
-                          return (
-                            <td key={col} className="px-3 py-2 whitespace-nowrap text-center border-r last:border-r-0">
-                              {val === "1"
-                                ? <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-xs">削除</span>
-                                : <span className="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs">有効</span>}
-                            </td>
-                          )
-                        }
-                        return (
-                          <td key={col} className="px-3 py-2 text-gray-700 whitespace-nowrap border-r last:border-r-0 max-w-[200px] truncate">
-                            {val || <span className="text-gray-300">—</span>}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      </div>
+
+      {importProgress && (
+        <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+          {importProgress}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-4">
+        <Input
+          placeholder="納入先CD・名称・カナ・得意先で検索"
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
+          className="max-w-xs"
+        />
+        <select
+          value={delFlg}
+          onChange={e => setDelFlg(e.target.value)}
+          className="border rounded px-2 py-1 text-sm h-9"
+        >
+          <option value="">削除フラグ：全て</option>
+          <option value="0">0：有効</option>
+          <option value="1">1：削除</option>
+        </select>
+        <Button onClick={fetchRecords} size="sm" className="flex items-center gap-1">
+          <Search className="w-4 h-4" />検索
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => { setKeyword(""); setDelFlg(""); setTimeout(fetchRecords, 0) }}>
+          <RefreshCw className="w-4 h-4" />
+        </Button>
+        <span className="text-sm text-gray-500 ml-2">{totalCount}件</span>
+      </div>
+
+      <div className="overflow-x-auto rounded border">
+        <table className="text-xs whitespace-nowrap">
+          <thead className="bg-gray-100 sticky top-0">
+            <tr>
+              <th className="px-2 py-1 border-r">納入先CD</th>
+              <th className="px-2 py-1 border-r">得意先CD</th>
+              <th className="px-2 py-1 border-r">得意先名</th>
+              <th className="px-2 py-1 border-r">担当者名</th>
+              <th className="px-2 py-1 border-r">納入先名1</th>
+              <th className="px-2 py-1 border-r">納入先名2</th>
+              <th className="px-2 py-1 border-r">納入先名カナ</th>
+              <th className="px-2 py-1 border-r">略記号</th>
+              <th className="px-2 py-1 border-r">出荷所要日数</th>
+              <th className="px-2 py-1 border-r">郵便番号</th>
+              <th className="px-2 py-1 border-r">住所1</th>
+              <th className="px-2 py-1 border-r">住所2</th>
+              <th className="px-2 py-1 border-r">電話番号</th>
+              <th className="px-2 py-1 border-r">FAX番号</th>
+              <th className="px-2 py-1 border-r">摘要</th>
+              <th className="px-2 py-1 border-r">登録日付</th>
+              <th className="px-2 py-1 border-r">登録時間</th>
+              <th className="px-2 py-1 border-r">登録者</th>
+              <th className="px-2 py-1 border-r">更新日付</th>
+              <th className="px-2 py-1 border-r">更新時間</th>
+              <th className="px-2 py-1 border-r">更新者</th>
+              <th className="px-2 py-1 border-r">削除FLG</th>
+              <th className="px-2 py-1">納品先名(みつもりナビ)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={23} className="text-center py-8 text-gray-400">読み込み中...</td></tr>
+            ) : records.length === 0 ? (
+              <tr><td colSpan={23} className="text-center py-8 text-gray-400">データなし</td></tr>
+            ) : records.map((r, i) => (
+              <tr key={r.nonyu_cd} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-2 py-1 border-r font-mono">{r.nonyu_cd}</td>
+                <td className="px-2 py-1 border-r font-mono">{toStr(r.tokuicd)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.tokuinm)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.tantou_nm)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.nonyu_nm1)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.nonyu_nm2)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.nonyu_kana)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.nonyu_kigou)}</td>
+                <td className="px-2 py-1 border-r text-right">{r.sy_shoyou_nissu}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.yubin_no)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.address1)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.address2)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.tel_no)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.fax_no)}</td>
+                <td className="px-2 py-1 border-r">{toStr(r.tekiyou)}</td>
+                <td className="px-2 py-1 border-r">{r.dtindt}</td>
+                <td className="px-2 py-1 border-r">{r.dtintm}</td>
+                <td className="px-2 py-1 border-r">{r.dtinuid}</td>
+                <td className="px-2 py-1 border-r">{r.dtupdt}</td>
+                <td className="px-2 py-1 border-r">{r.dtuptm}</td>
+                <td className="px-2 py-1 border-r">{r.dtupuid}</td>
+                <td className="px-2 py-1 border-r text-center">{r.del_flg}</td>
+                <td className="px-2 py-1">{r.mitsumonavi_nohinsaki_name}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

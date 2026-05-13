@@ -600,3 +600,21 @@ model PrinserMTokuiNonyu {
   updatedAt                    DateTime @updatedAt
   @@map("prinser_m_tokui_nonyu")
 }
+
+model DeviceModel {
+  modelId       Int       @id @default(autoincrement()) @map("model_id")
+  vendorId      Int?      @map("vendor_id")
+  deviceTypeId  Int?      @map("device_type_id")
+  modelName     String    @map("model_name")
+  modelNumber   String?   @map("model_number")
+  osName        String?   @map("os_name")
+  cpuInfo       String?   @map("cpu_info")
+  memoryDefault String?   @map("memory_default")
+  storageDefault String?  @map("storage_default")
+  eolDate       DateTime? @map("eol_date")
+  imagePath     String?   @map("image_path")
+  note          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  @@map("m_device_models")
+}
