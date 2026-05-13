@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Database, Users } from "lucide-react"
-
 const cards = [
   {
     label: "m_user",
@@ -14,14 +13,32 @@ const cards = [
     border: "border-sky-100",
     hover: "hover:border-sky-300",
   },
+  {
+    label: "m_tokui",
+    desc: "得意先マスタ",
+    href: "/dashboard/masters/prinser/m-tokui",
+    icon: Database,
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    border: "border-blue-100",
+    hover: "hover:border-blue-300",
+  },
+  {
+    label: "m_tokui_nonyu",
+    desc: "納品先マスタ（得意先別）",
+    href: "/dashboard/masters/prinser/m-tokui-nonyu",
+    icon: Database,
+    bg: "bg-indigo-50",
+    text: "text-indigo-600",
+    border: "border-indigo-100",
+    hover: "hover:border-indigo-300",
+  },
 ]
-
 export default function PrinserDashboardPage() {
   const [phase, setPhase] = useState<0 | 1 | 2>(0)
   const [visibleChars, setVisibleChars] = useState(0)
   const [rotateAnim, setRotateAnim] = useState(false)
   const fullText = "Master Data from Core System"
-
   useEffect(() => {
     const t1 = setTimeout(() => setRotateAnim(true), 200)
     const t2 = setTimeout(() => setRotateAnim(false), 900)
@@ -29,7 +46,6 @@ export default function PrinserDashboardPage() {
     const t4 = setTimeout(() => setPhase(2), 900)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [])
-
   useEffect(() => {
     if (phase !== 2) return
     if (visibleChars < fullText.length) {
@@ -37,9 +53,7 @@ export default function PrinserDashboardPage() {
       return () => clearTimeout(t)
     }
   }, [phase, visibleChars])
-
   const logoSize = phase >= 2 ? 52 : 72
-
   return (
     <div className="p-8">
       <style>{`
@@ -50,7 +64,6 @@ export default function PrinserDashboardPage() {
         }
         .prinser-anim { animation: prinser-spin 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
       `}</style>
-
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
           <div
@@ -76,7 +89,6 @@ export default function PrinserDashboardPage() {
               <span className="absolute inset-0 rounded-2xl ring-4 ring-sky-300 ring-opacity-50 animate-ping" />
             )}
           </div>
-
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl font-black tracking-tight text-gray-900">PRINSERマスタ</span>
@@ -101,7 +113,6 @@ export default function PrinserDashboardPage() {
           </div>
         </div>
       </div>
-
       <div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500"
         style={{
