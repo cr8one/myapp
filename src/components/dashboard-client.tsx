@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
   Plus, Pencil, Trash2, Megaphone, Wrench, Tag,
-  Train, BookOpen, FileText, CalendarDays, PenTool
+  Train, BookOpen, FileText, CalendarDays, PenTool, Monitor
 } from "lucide-react"
 
 type Announcement = {
@@ -19,7 +19,7 @@ type Announcement = {
 type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
-  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean
+  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
 } | null
 type Props = {
   userName: string; isAdmin: boolean
@@ -70,23 +70,24 @@ const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
-  ssss: "ssssView", masters: "mastersView", cad: "cadView",
+  ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
 }
 
 const SERVICE_CARDS = [
-  { label: "仕様書",      href: "/dashboard/products", icon: "spec",     desc: "仕様一覧・パーツ一覧",         color: "text-indigo-600 bg-indigo-50" },
-  { label: "見積書",      href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                     color: "text-emerald-600 bg-emerald-50" },
-  { label: "電子申請",    href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙",  color: "text-sky-600 bg-sky-50" },
-  { label: "交通費精算",  href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",             color: "text-teal-600 bg-teal-50" },
-  { label: "作業標準書",  href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",           color: "text-cyan-600 bg-cyan-50" },
-  { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",             color: "text-purple-600 bg-purple-50" },
-  { label: "BPMS",        href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",         color: "text-violet-600 bg-violet-50" },
-  { label: "CAD/台紙",    href: "/dashboard/cad",       icon: "cad",      desc: "CAD・DXF・台紙データ管理",       color: "text-lime-600 bg-lime-50" },
-  { label: "DLMS",        href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",               color: "text-orange-600 bg-orange-50" },
-  { label: "DPP予定表",   href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",           color: "text-pink-600 bg-pink-50" },
-  { label: "SSSS",        href: "/dashboard/ssss",      icon: "ssss",     desc: "支給管理・送り状",               color: "text-yellow-600 bg-yellow-50" },
-  { label: "マスタ管理",  href: "/dashboard/masters",   icon: "masters",  desc: "ユーザー・PRINSERマスタ",        color: "text-gray-600 bg-gray-100" },
-  { label: "システム管理", href: "/dashboard/system",   icon: "system",   desc: "開発記録・ログ管理",             color: "text-rose-600 bg-rose-50" },
+  { label: "仕様書",      href: "/dashboard/products",  icon: "spec",     desc: "仕様一覧・パーツ一覧",          color: "text-indigo-600 bg-indigo-50" },
+  { label: "見積書",      href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                      color: "text-emerald-600 bg-emerald-50" },
+  { label: "電子申請",    href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙",   color: "text-sky-600 bg-sky-50" },
+  { label: "交通費精算",  href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",              color: "text-teal-600 bg-teal-50" },
+  { label: "作業標準書",  href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",            color: "text-cyan-600 bg-cyan-50" },
+  { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",              color: "text-purple-600 bg-purple-50" },
+  { label: "BPMS",        href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",          color: "text-violet-600 bg-violet-50" },
+  { label: "CAD/台紙",    href: "/dashboard/cad",       icon: "cad",      desc: "CAD・DXF・台紙データ管理",        color: "text-lime-600 bg-lime-50" },
+  { label: "DLMS",        href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",                color: "text-orange-600 bg-orange-50" },
+  { label: "DPP予定表",   href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",            color: "text-pink-600 bg-pink-50" },
+  { label: "SSSS",        href: "/dashboard/ssss",      icon: "ssss",     desc: "支給管理・送り状",                color: "text-yellow-600 bg-yellow-50" },
+  { label: "端末管理",    href: "/dashboard/terminal",  icon: "terminal", desc: "端末・IP・ソフトウェア管理",      color: "text-slate-600 bg-slate-50" },
+  { label: "マスタ管理",  href: "/dashboard/masters",   icon: "masters",  desc: "ユーザー・PRINSERマスタ",         color: "text-gray-600 bg-gray-100" },
+  { label: "システム管理", href: "/dashboard/system",   icon: "system",   desc: "開発記録・ログ管理",              color: "text-rose-600 bg-rose-50" },
 ]
 
 function ServiceIcon({ icon, className }: { icon: string; className?: string }) {
@@ -101,6 +102,7 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   if (icon === "dlms")     return <DlmsIcon className={className} />
   if (icon === "dpp")      return <CalendarDays className={className} />
   if (icon === "ssss")     return <SsssIcon className={className} />
+  if (icon === "terminal") return <Monitor className={className} />
   if (icon === "masters")  return <Settings className={className} />
   if (icon === "system")   return <ShieldCheck className={className} />
   return null

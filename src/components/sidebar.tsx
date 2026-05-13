@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -40,14 +40,14 @@ function EApplicationIcon({ className }: { className?: string }) {
 type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
-  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean
+  dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
 } | null
 
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
-  ssss: "ssssView", masters: "mastersView", cad: "cadView",
+  ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
 }
 
 const baseMenuItems = [
@@ -101,6 +101,14 @@ const baseMenuItems = [
     { label: "運用ルール", href: "/dashboard/ssss/rules" },
     { label: "SSSSマスタ管理", href: "/dashboard/ssss/masters" },
   ]},
+  { label: "端末管理", href: "/dashboard/terminal", icon: "terminal", children: [
+    { label: "端末一覧", href: "/dashboard/terminal/devices" },
+    { label: "IPアドレス管理", href: "/dashboard/terminal/ip-addresses" },
+    { label: "インストールソフト", href: "/dashboard/terminal/software-installs" },
+    { label: "機種マスタ", href: "/dashboard/terminal/device-models" },
+    { label: "ソフトウェアマスタ", href: "/dashboard/terminal/software-masters" },
+    { label: "メーカーマスタ", href: "/dashboard/terminal/makers" },
+  ]},
   { label: "マスタ管理", href: "/dashboard/masters", icon: "masters", children: [
     { label: "ユーザーマスタ", href: "/dashboard/users" },
     { label: "PRINSERマスタ", href: "/dashboard/masters/prinser", children: [
@@ -132,6 +140,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dlms")      return <DlmsIcon className={className} />
   if (icon === "dpp")       return <CalendarDays className={className} />
   if (icon === "ssss")      return <SsssIcon className={className} />
+  if (icon === "terminal")  return <Monitor className={className} />
   if (icon === "masters")   return <Settings className={className} />
   if (icon === "system")    return <ShieldCheck className={className} />
   return null
@@ -160,6 +169,7 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
     if (label === "DPP予定表")  return pathname.startsWith("/dashboard/dpp")
     if (label === "SSSS")       return pathname.startsWith("/dashboard/ssss")
+    if (label === "端末管理")   return pathname.startsWith("/dashboard/terminal")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     if (label === "システム管理") return pathname.startsWith("/dashboard/system")
     if (label === "PRINSERマスタ") return pathname.startsWith("/dashboard/masters/prinser")

@@ -57,6 +57,7 @@ model UserPermission {
   dppView       Boolean  @default(true)  @map("dpp_view")
   dppEdit       Boolean  @default(false) @map("dpp_edit")
   ssssView      Boolean  @default(true)  @map("ssss_view")
+  terminalView  Boolean  @default(false) @map("terminal_view")
   ssssEdit      Boolean  @default(false) @map("ssss_edit")
   mastersView   Boolean  @default(false) @map("masters_view")
   mastersEdit   Boolean  @default(false) @map("masters_edit")
