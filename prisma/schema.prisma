@@ -569,3 +569,33 @@ model PrinserMTokui {
   @@id([tokuisaki_cd, siten_cd])
   @@map("prinser_m_tokui")
 }
+
+model PrinserMTokuiNonyu {
+  nonyu_cd                     String   @id
+  tokuicd                      String?
+  tokuinm                      String?
+  tantou_nm                    String?
+  nonyu_nm1                    String?
+  nonyu_nm2                    String?
+  nonyu_kana                   String?
+  nonyu_kigou                  String?
+  sy_shoyou_nissu              Int      @default(0)
+  yubin_no                     String?
+  address1                     String?
+  address2                     String?
+  tel_no                       String?
+  fax_no                       String?
+  tekiyou                      String?
+  dtindt                       String
+  dtintm                       String
+  dtinuid                      String
+  dtupdt                       String
+  dtuptm                       String
+  dtupuid                      String
+  del_flg                      Int      @default(0)
+  mitsumonavi_nohinsaki_name   String   @default("")
+  rawData                      String?
+  importedAt                   DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+  @@map("prinser_m_tokui_nonyu")
+}

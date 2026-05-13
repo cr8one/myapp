@@ -106,6 +106,7 @@ const baseMenuItems = [
     { label: "PRINSERマスタ", href: "/dashboard/masters/prinser", children: [
       { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
       { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
+      { label: "m_tokui_nonyu", href: "/dashboard/masters/prinser/m-tokui-nonyu" },
     ]},
   ]},
 ]

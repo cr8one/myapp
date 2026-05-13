@@ -1,0 +1,31 @@
+-- CreateTable
+CREATE TABLE "prinser_m_tokui_nonyu" (
+    "nonyu_cd" TEXT NOT NULL,
+    "tokuicd" TEXT,
+    "tokuinm" TEXT,
+    "tantou_nm" TEXT,
+    "nonyu_nm1" TEXT,
+    "nonyu_nm2" TEXT,
+    "nonyu_kana" TEXT,
+    "nonyu_kigou" TEXT,
+    "sy_shoyou_nissu" INTEGER NOT NULL DEFAULT 0,
+    "yubin_no" TEXT,
+    "address1" TEXT,
+    "address2" TEXT,
+    "tel_no" TEXT,
+    "fax_no" TEXT,
+    "tekiyou" TEXT,
+    "dtindt" TEXT NOT NULL,
+    "dtintm" TEXT NOT NULL,
+    "dtinuid" TEXT NOT NULL,
+    "dtupdt" TEXT NOT NULL,
+    "dtuptm" TEXT NOT NULL,
+    "dtupuid" TEXT NOT NULL,
+    "del_flg" INTEGER NOT NULL DEFAULT 0,
+    "mitsumonavi_nohinsaki_name" TEXT NOT NULL DEFAULT '',
+    "rawData" TEXT,
+    "importedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "prinser_m_tokui_nonyu_pkey" PRIMARY KEY ("nonyu_cd")
+);
