@@ -31,6 +31,7 @@ const emptyForm = {
 export default function DeviceModelsPage() {
   const [records, setRecords] = useState<DeviceModel[]>([])
   const [vendors, setVendors] = useState<Vendor[]>([])
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -44,13 +45,26 @@ export default function DeviceModelsPage() {
   const [importMessage, setImportMessage] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
 
+  const fetchSignedUrl = async (key: string): Promise<string> => {
+    if (signedUrls[key]) return signedUrls[key]
+    const res = await fetch(`/api/terminal/device-models?type=signed-url&key=${encodeURIComponent(key)}`)
+    const { url } = await res.json()
+    setSignedUrls(prev => ({ ...prev, [key]: url }))
+    return url
+  }
+
   const fetchRecords = async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
     const res = await fetch(`/api/terminal/device-models?${params.toString()}`)
-    setRecords(await res.json())
+    const data: DeviceModel[] = await res.json()
+    setRecords(data)
     setLoading(false)
+    // 画像のある行の署名付きURLを取得
+    for (const r of data) {
+      if (r.imagePath) fetchSignedUrl(r.imagePath)
+    }
   }
 
   const fetchVendors = async () => {
@@ -73,7 +87,7 @@ export default function DeviceModelsPage() {
     setDialogOpen(true)
   }
 
-  const openEdit = (r: DeviceModel) => {
+  const openEdit = async (r: DeviceModel) => {
     setEditTarget(r)
     setForm({
       vendorId: r.vendorId?.toString() ?? "",
@@ -89,7 +103,12 @@ export default function DeviceModelsPage() {
       note: r.note ?? "",
     })
     setImageFile(null)
-    setImagePreview(r.imagePath ? `https://japan-sleeve-system-files-936533876784.s3.ap-northeast-1.amazonaws.com/${r.imagePath}` : null)
+    if (r.imagePath) {
+      const url = await fetchSignedUrl(r.imagePath)
+      setImagePreview(url)
+    } else {
+      setImagePreview(null)
+    }
     setDialogOpen(true)
   }
 
@@ -132,6 +151,7 @@ export default function DeviceModelsPage() {
         })
       }
       setDialogOpen(false)
+      setSignedUrls({})
       fetchRecords()
     } finally {
       setSaving(false)
@@ -250,14 +270,16 @@ export default function DeviceModelsPage() {
                 {records.map(r => (
                   <tr key={r.modelId} className="hover:bg-blue-50">
                     <td className="px-3 py-2">
-                      {r.imagePath ? (
+                      {r.imagePath && signedUrls[r.imagePath] ? (
                         <img
-                          src={`https://japan-sleeve-system-files-936533876784.s3.ap-northeast-1.amazonaws.com/${r.imagePath}`}
+                          src={signedUrls[r.imagePath]}
                           alt={r.modelName}
                           className="w-12 h-12 object-contain rounded border bg-gray-50"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">なし</div>
+                        <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
+                          {r.imagePath ? "..." : "なし"}
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2 font-medium">{r.modelName}</td>
@@ -299,7 +321,7 @@ export default function DeviceModelsPage() {
                 value={form.vendorId}
                 onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
                 className="w-full h-10 border rounded px-3 text-sm bg-white">
-                <option value="">未選択（手入力する場合は型番に記載）</option>
+                <option value="">未選択</option>
                 {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>

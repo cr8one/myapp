@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
@@ -11,6 +11,14 @@ export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
+  const type = searchParams.get("type")
+  if (type === "signed-url") {
+    const key = searchParams.get("key")
+    if (!key) return NextResponse.json({ error: "No key" }, { status: 400 })
+    const command = new GetObjectCommand({ Bucket: BUCKET, Key: key })
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 })
+    return NextResponse.json({ url })
+  }
   const keyword = searchParams.get("keyword")
   const records = await prisma.deviceModel.findMany({
     where: keyword ? { OR: [
