@@ -31,6 +31,7 @@ const emptyForm = {
 export default function DeviceModelsPage() {
   const [records, setRecords] = useState<DeviceModel[]>([])
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
+  const [vendors, setVendors] = useState<{id: number; name: string}[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -65,7 +66,10 @@ export default function DeviceModelsPage() {
     }
   }
 
-  useEffect(() => { fetchRecords() }, [])
+  useEffect(() => {
+    fetchRecords()
+    fetch("/api/terminal/vendors").then(r => r.json()).then(data => setVendors(data.filter((v: any) => !v.flgDel)))
+  }, [])
 
   const openCreate = () => {
     setEditTarget(null)
@@ -302,7 +306,10 @@ export default function DeviceModelsPage() {
             </div>
             <div className="space-y-1">
               <Label>メーカー</Label>
-              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="例：Apple、Dell、Lenovo" autoComplete="off" />
+              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
+              <datalist id="vendor-list">
+                {vendors.map(v => <option key={v.id} value={v.name} />)}
+              </datalist>
             </div>
             <div className="space-y-1">
               <Label>型番</Label>
