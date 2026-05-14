@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       { modelName: { contains: keyword } },
       { modelNumber: { contains: keyword } },
       { osName: { contains: keyword } },
+      { vendorName: { contains: keyword } },
     ]} : undefined,
     orderBy: { modelId: "asc" },
   })
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const record = await prisma.deviceModel.create({
     data: {
-      vendorId: body.vendorId ? parseInt(body.vendorId) : null,
+      vendorName: body.vendorName || null,
       deviceTypeId: body.deviceTypeId ? parseInt(body.deviceTypeId) : null,
       modelName: body.modelName,
       modelNumber: body.modelNumber || null,
@@ -69,7 +70,7 @@ export async function PUT(req: NextRequest) {
   const record = await prisma.deviceModel.update({
     where: { modelId: parseInt(body.modelId) },
     data: {
-      vendorId: body.vendorId ? parseInt(body.vendorId) : null,
+      vendorName: body.vendorName || null,
       deviceTypeId: body.deviceTypeId ? parseInt(body.deviceTypeId) : null,
       modelName: body.modelName,
       modelNumber: body.modelNumber || null,

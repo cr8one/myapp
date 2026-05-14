@@ -603,7 +603,7 @@ model PrinserMTokuiNonyu {
 
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
-  vendorId      Int?      @map("vendor_id")
+  vendorName    String?   @map("vendor_name")
   deviceTypeId  Int?      @map("device_type_id")
   modelName     String    @map("model_name")
   modelNumber   String?   @map("model_number")

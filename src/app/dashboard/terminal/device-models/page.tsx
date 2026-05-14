@@ -3,12 +3,13 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, Search, Download, Upload, Pencil, Trash2 } from "lucide-react"
 
 type DeviceModel = {
   modelId: number
-  vendorId: number | null
+  vendorName: string | null
   deviceTypeId: number | null
   modelName: string
   modelNumber: string | null
@@ -20,17 +21,15 @@ type DeviceModel = {
   imagePath: string | null
   note: string | null
 }
-type Vendor = { id: number; name: string; flgDel: boolean }
 
 const emptyForm = {
-  vendorId: "", deviceTypeId: "", modelName: "", modelNumber: "",
+  vendorName: "", deviceTypeId: "", modelName: "", modelNumber: "",
   osName: "", cpuInfo: "", memoryDefault: "", storageDefault: "",
   eolDate: "", imagePath: "", note: "",
 }
 
 export default function DeviceModelsPage() {
   const [records, setRecords] = useState<DeviceModel[]>([])
-  const [vendors, setVendors] = useState<Vendor[]>([])
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
@@ -61,23 +60,12 @@ export default function DeviceModelsPage() {
     const data: DeviceModel[] = await res.json()
     setRecords(data)
     setLoading(false)
-    // 画像のある行の署名付きURLを取得
     for (const r of data) {
       if (r.imagePath) fetchSignedUrl(r.imagePath)
     }
   }
 
-  const fetchVendors = async () => {
-    const res = await fetch("/api/terminal/vendors")
-    setVendors((await res.json()).filter((v: Vendor) => !v.flgDel))
-  }
-
-  useEffect(() => { fetchRecords(); fetchVendors() }, [])
-
-  const getVendorName = (vendorId: number | null) => {
-    if (!vendorId) return null
-    return vendors.find(v => v.id === vendorId)?.name ?? String(vendorId)
-  }
+  useEffect(() => { fetchRecords() }, [])
 
   const openCreate = () => {
     setEditTarget(null)
@@ -90,7 +78,7 @@ export default function DeviceModelsPage() {
   const openEdit = async (r: DeviceModel) => {
     setEditTarget(r)
     setForm({
-      vendorId: r.vendorId?.toString() ?? "",
+      vendorName: r.vendorName ?? "",
       deviceTypeId: r.deviceTypeId?.toString() ?? "",
       modelName: r.modelName,
       modelNumber: r.modelNumber ?? "",
@@ -183,12 +171,12 @@ export default function DeviceModelsPage() {
       let count = 0
       for (const line of dataLines) {
         const cols = line.split(",").map(v => v.replace(/^"|"$/g, "").replace(/""/g, '"'))
-        const [, vendorId, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note] = cols
+        const [, vendorName, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note] = cols
         if (!modelName) continue
         await fetch("/api/terminal/device-models", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vendorId, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note }),
+          body: JSON.stringify({ vendorName, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note }),
         })
         count++
       }
@@ -233,7 +221,7 @@ export default function DeviceModelsPage() {
         <div className="flex gap-3 items-end">
           <div className="flex-1 min-w-40">
             <Input value={keyword} onChange={e => setKeyword(e.target.value)}
-              placeholder="機種名・型番・OSで検索"
+              placeholder="機種名・型番・OS・メーカーで検索"
               onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
               autoComplete="off" />
           </div>
@@ -271,11 +259,8 @@ export default function DeviceModelsPage() {
                   <tr key={r.modelId} className="hover:bg-blue-50">
                     <td className="px-3 py-2">
                       {r.imagePath && signedUrls[r.imagePath] ? (
-                        <img
-                          src={signedUrls[r.imagePath]}
-                          alt={r.modelName}
-                          className="w-12 h-12 object-contain rounded border bg-gray-50"
-                        />
+                        <img src={signedUrls[r.imagePath]} alt={r.modelName}
+                          className="w-12 h-12 object-contain rounded border bg-gray-50" />
                       ) : (
                         <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
                           {r.imagePath ? "..." : "なし"}
@@ -283,14 +268,14 @@ export default function DeviceModelsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 font-medium">{r.modelName}</td>
-                    <td className="px-3 py-2 text-gray-500">{getVendorName(r.vendorId) ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-3 py-2 text-gray-500">{r.vendorName ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.modelNumber ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.osName ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.cpuInfo ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.memoryDefault ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.storageDefault ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-gray-500">{r.eolDate ? new Date(r.eolDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">{r.note ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[200px] whitespace-pre-wrap">{r.note ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(r)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
@@ -317,13 +302,7 @@ export default function DeviceModelsPage() {
             </div>
             <div className="space-y-1">
               <Label>メーカー</Label>
-              <select
-                value={form.vendorId}
-                onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
-                className="w-full h-10 border rounded px-3 text-sm bg-white">
-                <option value="">未選択</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="例：Apple、Dell、Lenovo" autoComplete="off" />
             </div>
             <div className="space-y-1">
               <Label>型番</Label>
@@ -360,7 +339,7 @@ export default function DeviceModelsPage() {
             </div>
             <div className="space-y-1">
               <Label>備考</Label>
-              <Input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" />
+              <Textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={3} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>

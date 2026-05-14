@@ -6,10 +6,10 @@ export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const records = await prisma.deviceModel.findMany({ orderBy: { modelId: "asc" } })
-  const header = "model_id,vendor_id,device_type_id,model_name,model_number,os_name,cpu_info,memory_default,storage_default,eol_date,image_path,note"
+  const header = "model_id,vendor_name,device_type_id,model_name,model_number,os_name,cpu_info,memory_default,storage_default,eol_date,image_path,note"
   const rows = records.map(r => [
     r.modelId,
-    r.vendorId ?? "",
+    r.vendorName ?? "",
     r.deviceTypeId ?? "",
     r.modelName,
     r.modelNumber ?? "",
