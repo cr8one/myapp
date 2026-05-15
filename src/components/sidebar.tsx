@@ -107,7 +107,7 @@ const baseMenuItems = [
     { label: "インストールソフト", href: "/dashboard/terminal/software-installs" },
     { label: "機種マスタ", href: "/dashboard/terminal/device-models" },
     { label: "ソフトウェアマスタ", href: "/dashboard/terminal/software-masters" },
-    { label: "メーカーマスタ", href: "/dashboard/terminal/makers" },
+    { label: "端末管理マスタ", href: "/dashboard/terminal/terminal-masters" },
   ]},
   { label: "マスタ管理", href: "/dashboard/masters", icon: "masters", children: [
     { label: "ユーザーマスタ", href: "/dashboard/users" },
