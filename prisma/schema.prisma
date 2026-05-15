@@ -674,3 +674,97 @@ model DeviceIp {
   device   Device  @relation(fields: [deviceId], references: [deviceId])
   @@map("t_device_ips")
 }
+
+model TerminalMaster {
+  id        Int      @id @default(autoincrement())
+  category  String
+  value     String
+  sortOrder Int      @default(0) @map("sort_order")
+  flgDel    Boolean  @default(false) @map("flg_del")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("m_terminal_masters")
+}
+
+model Device {
+  deviceId       Int       @id @default(autoincrement()) @map("device_id")
+  assetNo        String?   @map("asset_no")
+  deviceName     String    @map("device_name")
+  hostname       String?
+  modelId        Int?      @map("model_id")
+  serialNo       String?   @map("serial_no")
+  osVersion      String?   @map("os_version")
+  memorySize     String?   @map("memory_size")
+  storageSize    String?   @map("storage_size")
+  location       String?
+  userId         String?   @map("user_id")
+  purchaseDate   DateTime? @map("purchase_date")
+  startDate      DateTime? @map("start_date")
+  status         String?
+  managementType String?   @map("management_type")
+  remark         String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  ipAddresses    DeviceIp[]
+  @@map("t_devices")
+}
+
+model DeviceIp {
+  id       Int     @id @default(autoincrement())
+  deviceId Int     @map("device_id")
+  ip       String
+  subnet   String?
+  gateway  String?
+  interface String?
+  note     String?
+  flgDel   Boolean @default(false) @map("flg_del")
+  device   Device  @relation(fields: [deviceId], references: [deviceId])
+  @@map("t_device_ips")
+}
+
+model TerminalMaster {
+  id        Int      @id @default(autoincrement())
+  category  String
+  value     String
+  sortOrder Int      @default(0) @map("sort_order")
+  flgDel    Boolean  @default(false) @map("flg_del")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("m_terminal_masters")
+}
+
+model Device {
+  deviceId       Int       @id @default(autoincrement()) @map("device_id")
+  assetNo        String?   @map("asset_no")
+  deviceName     String    @map("device_name")
+  hostname       String?
+  modelId        Int?      @map("model_id")
+  serialNo       String?   @map("serial_no")
+  osVersion      String?   @map("os_version")
+  memorySize     String?   @map("memory_size")
+  storageSize    String?   @map("storage_size")
+  location       String?
+  userId         String?   @map("user_id")
+  purchaseDate   DateTime? @map("purchase_date")
+  startDate      DateTime? @map("start_date")
+  status         String?
+  managementType String?   @map("management_type")
+  remark         String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  ipAddresses    DeviceIp[]
+  @@map("t_devices")
+}
+
+model DeviceIp {
+  id       Int     @id @default(autoincrement())
+  deviceId Int     @map("device_id")
+  ip       String
+  subnet   String?
+  gateway  String?
+  interface String?
+  note     String?
+  flgDel   Boolean @default(false) @map("flg_del")
+  device   Device  @relation(fields: [deviceId], references: [deviceId])
+  @@map("t_device_ips")
+}
