@@ -16,7 +16,7 @@ type Device = {
   status: string | null; managementType: string | null; remark: string | null
   ipAddresses: DeviceIp[]
 }
-type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; osName: string | null; cpuInfo: string | null; memoryDefault: string | null; storageDefault: string | null; imagePath: string | null }
+type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; osName: string | null; imagePath: string | null }
 
 const STATUS_COLORS: Record<string, string> = {
   "使用中": "bg-green-100 text-green-700",
@@ -42,7 +42,7 @@ export default function DeviceDetailPage() {
   const [deleteIpTarget, setDeleteIpTarget] = useState<DeviceIp | null>(null)
 
   const fetchDevice = async () => {
-    const res = await fetch(`/api/terminal/devices?keyword=`)
+    const res = await fetch(`/api/terminal/devices`)
     const all: Device[] = await res.json()
     const found = all.find(d => d.deviceId === parseInt(deviceId))
     if (!found) { setLoading(false); return }
@@ -115,7 +115,7 @@ export default function DeviceDetailPage() {
   if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
   if (!device) return <div className="p-8 text-center text-gray-500">端末が見つかりません。</div>
 
-  const val = (v: string | null) => v ?? <span className="text-gray-300">—</span>
+  const val = (v: string | null | undefined) => v ?? <span className="text-gray-300">—</span>
 
   return (
     <div className="p-6 max-w-4xl">
@@ -142,12 +142,11 @@ export default function DeviceDetailPage() {
             </div>
             {model && <p className="text-gray-500 mb-3">{model.vendorName ? `${model.vendorName} ` : ""}{model.modelName}</p>}
             <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
-              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">型番</span><span>{val(model?.osName ?? null)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">シリアル番号</span><span>{val(device.serialNo)}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">ホスト名</span><span>{val(device.hostname)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">実OS</span><span>{val(device.osVersion)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">実メモリ</span><span>{val(device.memorySize)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">実容量</span><span>{val(device.storageSize)}</span></div>
-              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">ホスト名</span><span>{val(device.hostname)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">設置場所</span><span>{val(device.location)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用者</span><span>{val(device.userId)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
