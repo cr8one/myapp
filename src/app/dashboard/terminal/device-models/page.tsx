@@ -43,7 +43,7 @@ export default function DeviceModelsPage() {
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
-  const [vendors, setVendors] = useState<{id: number; name: string}[]>([])
+  const [vendors, setVendors] = useState<{id: number; value: string}[]>([])
 
   const fetchSignedUrls = async (data: DeviceModel[]) => {
     const keys = data.map(r => r.imagePath).filter(Boolean) as string[]
@@ -71,7 +71,7 @@ export default function DeviceModelsPage() {
 
   useEffect(() => {
     fetchRecords()
-    fetch("/api/terminal/vendors").then(r => r.json()).then(data => setVendors(data.filter((v: any) => !v.flgDel)))
+    fetch("/api/terminal/terminal-masters?category=メーカー").then(r => r.json()).then(data => setVendors(data))
   }, [])
 
   const openCreate = () => {
@@ -322,7 +322,7 @@ export default function DeviceModelsPage() {
               <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))}
                 placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
               <datalist id="vendor-list">
-                {vendors.map(v => <option key={v.id} value={v.name} />)}
+                {vendors.map(v => <option key={v.id} value={v.value} />)}
               </datalist>
             </div>
             <div className="space-y-1">
