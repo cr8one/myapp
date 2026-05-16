@@ -31,7 +31,6 @@ const emptyForm = {
 export default function DeviceModelsPage() {
   const [records, setRecords] = useState<DeviceModel[]>([])
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
-  const [vendors, setVendors] = useState<{id: number; name: string}[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -44,13 +43,19 @@ export default function DeviceModelsPage() {
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
+  const [vendors, setVendors] = useState<{id: number; name: string}[]>([])
 
-  const fetchSignedUrl = async (key: string): Promise<string> => {
-    if (signedUrls[key]) return signedUrls[key]
-    const res = await fetch(`/api/terminal/device-models?type=signed-url&key=${encodeURIComponent(key)}`)
-    const { url } = await res.json()
-    setSignedUrls(prev => ({ ...prev, [key]: url }))
-    return url
+  const fetchSignedUrls = async (data: DeviceModel[]) => {
+    const keys = data.map(r => r.imagePath).filter(Boolean) as string[]
+    const unique = [...new Set(keys)]
+    const results = await Promise.all(
+      unique.map(async key => {
+        const res = await fetch(`/api/terminal/device-models?type=signed-url&key=${encodeURIComponent(key)}`)
+        const { url } = await res.json()
+        return [key, url] as [string, string]
+      })
+    )
+    setSignedUrls(Object.fromEntries(results))
   }
 
   const fetchRecords = async () => {
@@ -61,9 +66,7 @@ export default function DeviceModelsPage() {
     const data: DeviceModel[] = await res.json()
     setRecords(data)
     setLoading(false)
-    for (const r of data) {
-      if (r.imagePath) fetchSignedUrl(r.imagePath)
-    }
+    fetchSignedUrls(data)
   }
 
   useEffect(() => {
@@ -95,8 +98,11 @@ export default function DeviceModelsPage() {
       note: r.note ?? "",
     })
     setImageFile(null)
-    if (r.imagePath) {
-      const url = await fetchSignedUrl(r.imagePath)
+    if (r.imagePath && signedUrls[r.imagePath]) {
+      setImagePreview(signedUrls[r.imagePath])
+    } else if (r.imagePath) {
+      const res = await fetch(`/api/terminal/device-models?type=signed-url&key=${encodeURIComponent(r.imagePath)}`)
+      const { url } = await res.json()
       setImagePreview(url)
     } else {
       setImagePreview(null)
@@ -194,6 +200,11 @@ export default function DeviceModelsPage() {
     }
   }
 
+  const trunc = (v: string | null, max = 20) => {
+    if (!v) return <span className="text-gray-300">—</span>
+    return v.length > max ? v.slice(0, max) + "…" : v
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -245,7 +256,7 @@ export default function DeviceModelsPage() {
             <table className="w-full text-sm bg-white">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">画像</th>
+                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium w-16">画像</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">機種名</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">メーカー</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">型番</th>
@@ -254,32 +265,34 @@ export default function DeviceModelsPage() {
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準メモリ</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準容量</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">保守期限</th>
-                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">備考</th>
-                  <th className="px-3 py-2.5"></th>
+                  <th className="px-3 py-2.5 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {records.map(r => (
-                  <tr key={r.modelId} className="hover:bg-blue-50">
-                    <td className="px-3 py-2">
+                  <tr key={r.modelId} className="hover:bg-blue-50 h-14">
+                    <td className="px-3 py-2 w-16">
                       {r.imagePath && signedUrls[r.imagePath] ? (
-                        <img src={signedUrls[r.imagePath]} alt={r.modelName}
-                          className="w-12 h-12 object-contain rounded border bg-gray-50" />
+                        <img
+                          src={signedUrls[r.imagePath]}
+                          alt={r.modelName}
+                          loading="lazy"
+                          className="w-10 h-10 object-contain rounded border bg-gray-50"
+                        />
                       ) : (
-                        <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
-                          {r.imagePath ? "..." : "なし"}
+                        <div className="w-10 h-10 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
+                          {r.imagePath ? "..." : "—"}
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-medium">{r.modelName}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.vendorName ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.modelNumber ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.osName ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.cpuInfo ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.memoryDefault ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.storageDefault ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.eolDate ? new Date(r.eolDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2 text-gray-500 max-w-[200px] whitespace-pre-wrap">{r.note ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-3 py-2 font-medium max-w-[160px]"><div className="truncate">{r.modelName}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[120px]"><div className="truncate">{trunc(r.vendorName)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[120px]"><div className="truncate">{trunc(r.modelNumber)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[140px]"><div className="truncate">{trunc(r.osName, 25)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[160px]"><div className="truncate">{trunc(r.cpuInfo, 25)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[80px]"><div className="truncate">{trunc(r.memoryDefault, 10)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[100px]"><div className="truncate">{trunc(r.storageDefault, 15)}</div></td>
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{r.eolDate ? new Date(r.eolDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(r)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
@@ -306,7 +319,8 @@ export default function DeviceModelsPage() {
             </div>
             <div className="space-y-1">
               <Label>メーカー</Label>
-              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))} placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
+              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))}
+                placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
               <datalist id="vendor-list">
                 {vendors.map(v => <option key={v.id} value={v.name} />)}
               </datalist>
