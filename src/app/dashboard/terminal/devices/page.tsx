@@ -17,7 +17,7 @@ type Device = {
   status: string | null; managementType: string | null; remark: string | null
   ipAddresses: DeviceIp[]
 }
-type DeviceModel = { modelId: number; modelName: string; vendorName: string | null }
+type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; osName: string | null; cpuInfo: string | null; memoryDefault: string | null; storageDefault: string | null }
 type Master = { id: number; category: string; value: string }
 
 const emptyForm = {
@@ -227,7 +227,16 @@ export default function DevicesPage() {
             </div>
             <div className="space-y-1">
               <Label>機種</Label>
-              <select value={form.modelId} onChange={e => setForm(f => ({ ...f, modelId: e.target.value }))}
+              <select value={form.modelId} onChange={e => {
+                  const selected = models.find(m => m.modelId === parseInt(e.target.value))
+                  setForm(f => ({
+                    ...f,
+                    modelId: e.target.value,
+                    osVersion: selected?.osName || f.osVersion,
+                    memorySize: selected?.memoryDefault || f.memorySize,
+                    storageSize: selected?.storageDefault || f.storageSize,
+                  }))
+                }}
                 className="w-full h-10 border rounded px-3 text-sm bg-white">
                 <option value="">未選択</option>
                 {models.map(m => <option key={m.modelId} value={m.modelId}>{m.vendorName ? `${m.vendorName} ` : ""}{m.modelName}</option>)}
