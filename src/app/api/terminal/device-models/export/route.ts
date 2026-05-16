@@ -10,7 +10,7 @@ export async function GET() {
   const rows = records.map(r => [
     r.modelId,
     r.vendorName ?? "",
-    r.deviceTypeId ?? "",
+    r.deviceType ?? "",
     r.modelName,
     r.modelNumber ?? "",
     r.osName ?? "",
