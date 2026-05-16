@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
   const record = await prisma.deviceModel.create({
     data: {
       vendorName: body.vendorName || null,
-      deviceTypeId: body.deviceTypeId ? parseInt(body.deviceTypeId) : null,
+      deviceType: body.deviceType || null,
+
       modelName: body.modelName,
       modelNumber: body.modelNumber || null,
       osName: body.osName || null,
@@ -71,7 +72,8 @@ export async function PUT(req: NextRequest) {
     where: { modelId: parseInt(body.modelId) },
     data: {
       vendorName: body.vendorName || null,
-      deviceTypeId: body.deviceTypeId ? parseInt(body.deviceTypeId) : null,
+      deviceType: body.deviceType || null,
+
       modelName: body.modelName,
       modelNumber: body.modelNumber || null,
       osName: body.osName || null,

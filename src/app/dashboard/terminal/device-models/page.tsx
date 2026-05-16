@@ -10,7 +10,7 @@ import { Plus, Search, Download, Upload, Pencil, Trash2 } from "lucide-react"
 type DeviceModel = {
   modelId: number
   vendorName: string | null
-  deviceTypeId: number | null
+  deviceType: string | null
   modelName: string
   modelNumber: string | null
   osName: string | null
@@ -23,7 +23,7 @@ type DeviceModel = {
 }
 
 const emptyForm = {
-  vendorName: "", deviceTypeId: "", modelName: "", modelNumber: "",
+  vendorName: "", deviceType: "", modelName: "", modelNumber: "",
   osName: "", cpuInfo: "", memoryDefault: "", storageDefault: "",
   eolDate: "", imagePath: "", note: "",
 }
@@ -44,6 +44,7 @@ export default function DeviceModelsPage() {
   const [importMessage, setImportMessage] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
   const [vendors, setVendors] = useState<{id: number; value: string}[]>([])
+  const [deviceTypes, setDeviceTypes] = useState<{id: number; value: string}[]>([])
 
   const fetchSignedUrls = async (data: DeviceModel[]) => {
     const keys = data.map(r => r.imagePath).filter(Boolean) as string[]
@@ -72,6 +73,7 @@ export default function DeviceModelsPage() {
   useEffect(() => {
     fetchRecords()
     fetch("/api/terminal/terminal-masters?category=メーカー").then(r => r.json()).then(data => setVendors(data))
+    fetch("/api/terminal/terminal-masters?category=機種種別").then(r => r.json()).then(data => setDeviceTypes(data))
   }, [])
 
   const openCreate = () => {
@@ -86,7 +88,7 @@ export default function DeviceModelsPage() {
     setEditTarget(r)
     setForm({
       vendorName: r.vendorName ?? "",
-      deviceTypeId: r.deviceTypeId?.toString() ?? "",
+      deviceType: r.deviceType ?? "",
       modelName: r.modelName,
       modelNumber: r.modelNumber ?? "",
       osName: r.osName ?? "",
@@ -181,12 +183,12 @@ export default function DeviceModelsPage() {
       let count = 0
       for (const line of dataLines) {
         const cols = line.split(",").map(v => v.replace(/^"|"$/g, "").replace(/""/g, '"'))
-        const [, vendorName, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note] = cols
+        const [, vendorName, deviceType, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note] = cols
         if (!modelName) continue
         await fetch("/api/terminal/device-models", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vendorName, deviceTypeId, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note }),
+          body: JSON.stringify({ vendorName, deviceType, modelName, modelNumber, osName, cpuInfo, memoryDefault, storageDefault, eolDate, imagePath, note }),
         })
         count++
       }
@@ -258,13 +260,13 @@ export default function DeviceModelsPage() {
                 <tr>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium w-16">画像</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">機種名</th>
+                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">種別</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">メーカー</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">型番</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準OS</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">CPU</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準メモリ</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">標準容量</th>
-                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">保守期限</th>
                   <th className="px-3 py-2.5 w-16"></th>
                 </tr>
               </thead>
@@ -273,12 +275,8 @@ export default function DeviceModelsPage() {
                   <tr key={r.modelId} className="hover:bg-blue-50 h-14">
                     <td className="px-3 py-2 w-16">
                       {r.imagePath && signedUrls[r.imagePath] ? (
-                        <img
-                          src={signedUrls[r.imagePath]}
-                          alt={r.modelName}
-                          loading="lazy"
-                          className="w-10 h-10 object-contain rounded border bg-gray-50"
-                        />
+                        <img src={signedUrls[r.imagePath]} alt={r.modelName} loading="lazy"
+                          className="w-10 h-10 object-contain rounded border bg-gray-50" />
                       ) : (
                         <div className="w-10 h-10 rounded border bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
                           {r.imagePath ? "..." : "—"}
@@ -286,13 +284,13 @@ export default function DeviceModelsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 font-medium max-w-[160px]"><div className="truncate">{r.modelName}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[100px]"><div className="truncate">{trunc(r.deviceType, 15)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[120px]"><div className="truncate">{trunc(r.vendorName)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[120px]"><div className="truncate">{trunc(r.modelNumber)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[140px]"><div className="truncate">{trunc(r.osName, 25)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[160px]"><div className="truncate">{trunc(r.cpuInfo, 25)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[80px]"><div className="truncate">{trunc(r.memoryDefault, 10)}</div></td>
                     <td className="px-3 py-2 text-gray-500 max-w-[100px]"><div className="truncate">{trunc(r.storageDefault, 15)}</div></td>
-                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{r.eolDate ? new Date(r.eolDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(r)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
@@ -317,13 +315,23 @@ export default function DeviceModelsPage() {
               <Label>機種名 <span className="text-red-500">*</span></Label>
               <Input value={form.modelName} onChange={e => setForm(f => ({ ...f, modelName: e.target.value }))} autoComplete="off" />
             </div>
-            <div className="space-y-1">
-              <Label>メーカー</Label>
-              <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))}
-                placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
-              <datalist id="vendor-list">
-                {vendors.map(v => <option key={v.id} value={v.value} />)}
-              </datalist>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>種別</Label>
+                <Input value={form.deviceType} onChange={e => setForm(f => ({ ...f, deviceType: e.target.value }))}
+                  list="device-type-list" autoComplete="off" placeholder="例：ノートPC、サーバー" />
+                <datalist id="device-type-list">
+                  {deviceTypes.map(v => <option key={v.id} value={v.value} />)}
+                </datalist>
+              </div>
+              <div className="space-y-1">
+                <Label>メーカー</Label>
+                <Input value={form.vendorName} onChange={e => setForm(f => ({ ...f, vendorName: e.target.value }))}
+                  placeholder="例：Apple、Dell、Lenovo" autoComplete="off" list="vendor-list" />
+                <datalist id="vendor-list">
+                  {vendors.map(v => <option key={v.id} value={v.value} />)}
+                </datalist>
+              </div>
             </div>
             <div className="space-y-1">
               <Label>型番</Label>
