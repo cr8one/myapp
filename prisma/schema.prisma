@@ -675,3 +675,18 @@ model DeviceIp {
   device    Device  @relation(fields: [deviceId], references: [deviceId])
   @@map("t_device_ips")
 }
+
+model MSoftware {
+  id           Int      @id @default(autoincrement())
+  name         String
+  version      String?
+  vendor       String?
+  licenseType  String?  @map("license_type")
+  licenseCount Int?     @map("license_count")
+  note         String?
+  flgDel       Boolean  @default(false) @map("flg_del")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("m_software")
+}
