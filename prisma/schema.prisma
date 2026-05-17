@@ -708,3 +708,14 @@ model DeviceSoftware {
 
   @@map("t_device_software")
 }
+
+model SsssIshiiEmail {
+  id        Int      @id @default(autoincrement())
+  email     String
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ssss_ishii_emails")
+}

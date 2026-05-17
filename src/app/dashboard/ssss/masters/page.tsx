@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { Plus, Pencil, Trash2, X, Check, AlertCircle } from "lucide-react"
 import { useSession } from "next-auth/react"
-
 type Company = { id: number; name: string; sortOrder: number; isActive: boolean }
 type Part = { id: number; name: string; sortOrder: number; isActive: boolean }
 type Staff = {
@@ -11,9 +10,8 @@ type Staff = {
   issuerOrder: number; supplierOrder: number; receiverOrder: number; outsourceReceiverOrder: number
 }
 type SerialConfig = { id: number; nextValue: number; increment: number; prefix: string | null }
-
-type Tab = "companies" | "parts" | "staffs" | "serialConfig"
-
+type IshiiEmail = { id: number; email: string; sortOrder: number; isActive: boolean }
+type Tab = "companies" | "parts" | "staffs" | "serialConfig" | "ishiiEmails"
 function RoleBadge({ label, active }: { label: string; active: boolean }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -21,7 +19,6 @@ function RoleBadge({ label, active }: { label: string; active: boolean }) {
     }`}>{label}</span>
   )
 }
-
 function SortOrderInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <input type="number" value={value} onChange={e => onChange(parseInt(e.target.value) || 0)}
@@ -29,52 +26,50 @@ function SortOrderInput({ value, onChange }: { value: number; onChange: (v: numb
       placeholder="0" />
   )
 }
-
 export default function MastersPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
-
   const [tab, setTab] = useState<Tab>("companies")
   const [companies, setCompanies] = useState<Company[]>([])
   const [parts, setParts] = useState<Part[]>([])
   const [staffs, setStaffs] = useState<Staff[]>([])
   const [serialConfig, setSerialConfig] = useState<SerialConfig | null>(null)
+  const [ishiiEmails, setIshiiEmails] = useState<IshiiEmail[]>([])
   const [fetching, setFetching] = useState(true)
-
   // 会社
   const [editingCompany, setEditingCompany] = useState<Company | null>(null)
   const [addingCompany, setAddingCompany] = useState(false)
   const [newCompany, setNewCompany] = useState({ name: "", sortOrder: 0 })
-
   // パーツ
   const [editingPart, setEditingPart] = useState<Part | null>(null)
   const [addingPart, setAddingPart] = useState(false)
   const [newPart, setNewPart] = useState({ name: "", sortOrder: 0 })
-
   // 担当者
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
-
   // 採番設定
   const [editingSerial, setEditingSerial] = useState(false)
   const [serialForm, setSerialForm] = useState({ nextValue: 0, increment: 1, prefix: "" })
-
+  // イシイ印刷メール
+  const [editingIshiiEmail, setEditingIshiiEmail] = useState<IshiiEmail | null>(null)
+  const [addingIshiiEmail, setAddingIshiiEmail] = useState(false)
+  const [newIshiiEmail, setNewIshiiEmail] = useState({ email: "", sortOrder: 0 })
   const fetchAll = useCallback(async () => {
     setFetching(true)
-    const [c, p, s, sc] = await Promise.all([
+    const [c, p, s, sc, ie] = await Promise.all([
       fetch("/api/ssss/companies?all=1").then(r => r.json()),
       fetch("/api/ssss/parts?all=1").then(r => r.json()),
       fetch("/api/ssss/staffs?all=1").then(r => r.json()),
       fetch("/api/ssss/serial-config").then(r => r.json()),
+      fetch("/api/ssss/ishii-emails").then(r => r.json()),
     ])
     setCompanies(Array.isArray(c) ? c : [])
     setParts(Array.isArray(p) ? p : [])
     setStaffs(Array.isArray(s) ? s : [])
     setSerialConfig(sc)
+    setIshiiEmails(Array.isArray(ie) ? ie : [])
     setFetching(false)
   }, [])
-
   useEffect(() => { fetchAll() }, [fetchAll])
-
   // 会社操作
   const saveCompany = async () => {
     if (!newCompany.name.trim()) return
@@ -101,7 +96,6 @@ export default function MastersPage() {
       body: JSON.stringify({ name: c.name, sortOrder: c.sortOrder, isActive: !c.isActive }),
     }); fetchAll()
   }
-
   // パーツ操作
   const savePart = async () => {
     if (!newPart.name.trim()) return
@@ -128,7 +122,6 @@ export default function MastersPage() {
       body: JSON.stringify({ name: p.name, sortOrder: p.sortOrder, isActive: !p.isActive }),
     }); fetchAll()
   }
-
   // 担当者フラグ更新
   const updateStaffFlags = async (s: Staff) => {
     await fetch(`/api/users/${s.id}/permission`, {
@@ -142,7 +135,6 @@ export default function MastersPage() {
     })
     setEditingStaff(null); fetchAll()
   }
-
   // 採番設定更新
   const startEditSerial = () => {
     if (!serialConfig) return
@@ -164,21 +156,45 @@ export default function MastersPage() {
     })
     setEditingSerial(false); fetchAll()
   }
-
+  // イシイ印刷メール操作
+  const saveIshiiEmail = async () => {
+    if (!newIshiiEmail.email.trim()) return
+    await fetch("/api/ssss/ishii-emails", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: newIshiiEmail.email.trim(), sortOrder: newIshiiEmail.sortOrder }),
+    })
+    setNewIshiiEmail({ email: "", sortOrder: 0 }); setAddingIshiiEmail(false); fetchAll()
+  }
+  const updateIshiiEmail = async (ie: IshiiEmail) => {
+    await fetch(`/api/ssss/ishii-emails/${ie.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: ie.email, sortOrder: ie.sortOrder, isActive: ie.isActive }),
+    })
+    setEditingIshiiEmail(null); fetchAll()
+  }
+  const deleteIshiiEmail = async (id: number) => {
+    if (!confirm("削除しますか？")) return
+    await fetch(`/api/ssss/ishii-emails/${id}`, { method: "DELETE" }); fetchAll()
+  }
+  const toggleIshiiEmailActive = async (ie: IshiiEmail) => {
+    await fetch(`/api/ssss/ishii-emails/${ie.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: ie.email, sortOrder: ie.sortOrder, isActive: !ie.isActive }),
+    }); fetchAll()
+  }
   const tabs: [Tab, string, number | null][] = [
     ["companies", "支給先会社", companies.length],
     ["parts", "貼り付けパーツ", parts.length],
     ["staffs", "担当者", staffs.length],
     ["serialConfig", "採番設定", null],
+    ["ishiiEmails", "イシイ印刷メール", ishiiEmails.length],
   ]
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4">
         <h1 className="text-xl font-bold text-gray-900">SSSSマスタ管理</h1>
-        <p className="text-xs text-gray-400 mt-0.5">支給先会社・パーツ・担当者・採番設定の管理</p>
+        <p className="text-xs text-gray-400 mt-0.5">支給先会社・パーツ・担当者・採番設定・イシイ印刷メールの管理</p>
       </div>
-
       <div className="bg-white border-b px-6">
         <div className="flex gap-6">
           {tabs.map(([key, label, count]) => (
@@ -192,7 +208,6 @@ export default function MastersPage() {
           ))}
         </div>
       </div>
-
       <div className="flex-1 px-6 py-6 max-w-3xl">
         {fetching ? (
           <div className="space-y-2">
@@ -262,7 +277,6 @@ export default function MastersPage() {
                 )}
               </div>
             )}
-
             {/* 貼り付けパーツ */}
             {tab === "parts" && (
               <div className="space-y-3">
@@ -325,7 +339,6 @@ export default function MastersPage() {
                 )}
               </div>
             )}
-
             {/* 担当者 */}
             {tab === "staffs" && (
               <div className="space-y-3">
@@ -389,7 +402,6 @@ export default function MastersPage() {
                 )}
               </div>
             )}
-
             {/* 採番設定 */}
             {tab === "serialConfig" && (
               <div className="space-y-3">
@@ -403,7 +415,6 @@ export default function MastersPage() {
                       </button>
                     )}
                   </div>
-
                   {serialConfig && !editingSerial && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-4 text-sm">
@@ -425,7 +436,6 @@ export default function MastersPage() {
                       )}
                     </div>
                   )}
-
                   {serialConfig && editingSerial && isAdmin && (
                     <div className="space-y-4">
                       <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-700">
@@ -468,6 +478,73 @@ export default function MastersPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {/* イシイ印刷メール */}
+            {tab === "ishiiEmails" && (
+              <div className="space-y-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
+                  パターンB（イシイ印刷への送り状送付）で使用するメールアドレスを管理します。有効なアドレスがToに自動セットされます。
+                </div>
+                <div className="flex justify-end">
+                  <button onClick={() => setAddingIshiiEmail(true)}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Plus className="w-4 h-4" />メールアドレスを追加
+                  </button>
+                </div>
+                {addingIshiiEmail && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <input type="email" value={newIshiiEmail.email}
+                      onChange={e => setNewIshiiEmail(p => ({ ...p, email: e.target.value }))}
+                      onKeyDown={e => e.key === "Enter" && saveIshiiEmail()}
+                      placeholder="example@ishii-print.co.jp" autoFocus
+                      className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">順序</span>
+                      <SortOrderInput value={newIshiiEmail.sortOrder} onChange={v => setNewIshiiEmail(p => ({ ...p, sortOrder: v }))} />
+                    </div>
+                    <button onClick={saveIshiiEmail} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
+                    <button onClick={() => { setAddingIshiiEmail(false); setNewIshiiEmail({ email: "", sortOrder: 0 }) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                  </div>
+                )}
+                {ishiiEmails.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                    <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="text-sm">メールアドレスが登録されていません</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
+                    {ishiiEmails.map(ie => (
+                      <div key={ie.id} className={`flex items-center gap-3 px-4 py-3 ${!ie.isActive ? "opacity-50" : ""}`}>
+                        {editingIshiiEmail?.id === ie.id ? (
+                          <>
+                            <input type="email" value={editingIshiiEmail.email}
+                              onChange={e => setEditingIshiiEmail({ ...editingIshiiEmail, email: e.target.value })}
+                              onKeyDown={e => e.key === "Enter" && updateIshiiEmail(editingIshiiEmail)} autoFocus
+                              className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">順序</span>
+                              <SortOrderInput value={editingIshiiEmail.sortOrder} onChange={v => setEditingIshiiEmail({ ...editingIshiiEmail, sortOrder: v })} />
+                            </div>
+                            <button onClick={() => updateIshiiEmail(editingIshiiEmail)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
+                            <button onClick={() => setEditingIshiiEmail(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-6 text-xs text-gray-400 text-right">{ie.sortOrder}</span>
+                            <span className="flex-1 text-sm text-gray-800 font-mono">{ie.email}</span>
+                            <button onClick={() => toggleIshiiEmailActive(ie)}
+                              className={`text-xs px-2 py-0.5 rounded font-medium border transition-colors ${
+                                ie.isActive ? "border-green-200 text-green-600 hover:bg-green-50" : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                              }`}>{ie.isActive ? "有効" : "無効"}</button>
+                            <button onClick={() => setEditingIshiiEmail(ie)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => deleteIshiiEmail(ie.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>

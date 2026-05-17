@@ -20,12 +20,6 @@ type SealSupply = {
   salesDepartment: string | null
 }
 
-// イシイ印刷の固定メールアドレス
-const ISHII_EMAILS = [
-  "ishii-sample1@ishii-print.co.jp",
-  "ishii-sample2@ishii-print.co.jp",
-  "ishii-sample3@ishii-print.co.jp",
-]
 const ISHII_COMPANY = "イシイ印刷"
 
 type Props = {
@@ -38,9 +32,6 @@ export default function MailModal({ supply, onClose, onSent }: Props) {
   const companyName = supply.company?.name ?? supply.companyName ?? ""
   const isPatternB = companyName === ISHII_COMPANY
 
-  const issuerEmail = "" // Userテーブルにemailあり
-  const supplierEmail = ""
-
   const [to, setTo] = useState<string>("")
   const [cc, setCc] = useState<string>("")
   const [subject, setSubject] = useState<string>("")
@@ -50,14 +41,23 @@ export default function MailModal({ supply, onClose, onSent }: Props) {
 
   useEffect(() => {
     const supplierName = supply.supplier?.name ?? supply.supplierName ?? ""
+    const supplierEmail = supply.supplier?.email ?? ""
     const issuerName = supply.issuer?.name ?? supply.issuerName ?? ""
     const salesPerson = supply.salesPerson?.name ?? supply.salesPersonName ?? ""
     const dept = supply.salesDepartment ?? ""
 
     if (isPatternB) {
-      // パターンB：イシイ印刷への送り状送付
-      setTo(ISHII_EMAILS.join(", "))
-      setCc(issuerEmail)
+      // パターンB：イシイ印刷への送り状送付（メールアドレスはAPIから取得）
+      fetch("/api/ssss/ishii-emails")
+        .then(r => r.json())
+        .then((emails: { email: string; isActive: boolean; sortOrder: number }[]) => {
+          const activeEmails = emails
+            .filter(e => e.isActive)
+            .map(e => e.email)
+          setTo(activeEmails.join(", "))
+        })
+        .catch(() => setTo(""))
+      setCc("")
       setSubject(`【ジャパン・スリーブ】サンプルシール送り状 No.${supply.serialCode}`)
       setBody(`${companyName} ご担当者様
 
@@ -83,7 +83,7 @@ ${dept} ${salesPerson}`)
     } else {
       // パターンA：支給者への確認依頼
       setTo(supplierEmail)
-      setCc(issuerEmail)
+      setCc("")
       setSubject(`【確認依頼】サンプルシール支給 No.${supply.serialCode}`)
       setBody(`${supplierName} 様
 
@@ -105,7 +105,7 @@ ${issuerName} です。
 
 ${issuerName}`)
     }
-  }, [supply, isPatternB, companyName, issuerEmail, supplierEmail])
+  }, [supply, isPatternB, companyName])
 
   const handleSend = async () => {
     if (!to.trim()) { setError("送信先メールアドレスを入力してください"); return }
