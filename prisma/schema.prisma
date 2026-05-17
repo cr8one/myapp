@@ -660,6 +660,7 @@ model Device {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   ipAddresses    DeviceIp[]
+  softwares      DeviceSoftware[]
   @@map("t_devices")
 }
 
@@ -688,5 +689,22 @@ model MSoftware {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  devices        DeviceSoftware[]
+
   @@map("m_software")
+}
+
+model DeviceSoftware {
+  id         Int      @id @default(autoincrement())
+  deviceId   Int      @map("device_id")
+  softwareId Int      @map("software_id")
+  version    String?
+  note       String?
+  flgDel     Boolean  @default(false) @map("flg_del")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  device     Device   @relation(fields: [deviceId], references: [deviceId])
+  software   MSoftware @relation(fields: [softwareId], references: [id])
+
+  @@map("t_device_software")
 }
