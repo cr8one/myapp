@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 
+export async function GET(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { searchParams } = new URL(req.url)
+  const keyword = searchParams.get("keyword") ?? ""
+
+  const records = await prisma.deviceIp.findMany({
+    where: {
+      flgDel: false,
+      ...(keyword ? {
+        OR: [
+          { ip: { contains: keyword } },
+          { interface: { contains: keyword } },
+          { note: { contains: keyword } },
+          { device: { deviceName: { contains: keyword } } },
+          { device: { assetNo: { contains: keyword } } },
+          { device: { hostname: { contains: keyword } } },
+        ],
+      } : {}),
+    },
+    include: {
+      device: {
+        select: {
+          deviceId: true,
+          deviceName: true,
+          assetNo: true,
+          hostname: true,
+        },
+      },
+    },
+    orderBy: [
+      { device: { deviceName: "asc" } },
+      { ip: "asc" },
+    ],
+  })
+  return NextResponse.json(records)
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
