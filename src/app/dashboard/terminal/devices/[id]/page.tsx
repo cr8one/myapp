@@ -8,6 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react"
 
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
+type DeviceSoftware = {
+  id: number
+  softwareId: number
+  version: string | null
+  note: string | null
+  software: { id: number; name: string; version: string | null; vendor: string | null; licenseType: string | null }
+}
+type MSoftware = { id: number; name: string; version: string | null; vendor: string | null }
 type Device = {
   deviceId: number; assetNo: string | null; deviceName: string; hostname: string | null
   modelId: number | null; serialNo: string | null; osVersion: string | null
@@ -26,6 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const emptyIpForm = { ip: "", subnet: "", gateway: "", interface: "", note: "" }
+const emptySoftwareForm = { softwareId: "", version: "", note: "" }
 
 export default function DeviceDetailPage() {
   const params = useParams()
@@ -35,11 +44,22 @@ export default function DeviceDetailPage() {
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [modelImageUrl, setModelImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // IP
   const [ipDialogOpen, setIpDialogOpen] = useState(false)
   const [editIpTarget, setEditIpTarget] = useState<DeviceIp | null>(null)
   const [ipForm, setIpForm] = useState(emptyIpForm)
   const [savingIp, setSavingIp] = useState(false)
   const [deleteIpTarget, setDeleteIpTarget] = useState<DeviceIp | null>(null)
+
+  // Software
+  const [softwares, setSoftwares] = useState<DeviceSoftware[]>([])
+  const [softwareMasters, setSoftwareMasters] = useState<MSoftware[]>([])
+  const [swDialogOpen, setSwDialogOpen] = useState(false)
+  const [editSwTarget, setEditSwTarget] = useState<DeviceSoftware | null>(null)
+  const [swForm, setSwForm] = useState(emptySoftwareForm)
+  const [savingSw, setSavingSw] = useState(false)
+  const [deleteSwTarget, setDeleteSwTarget] = useState<DeviceSoftware | null>(null)
 
   const fetchDevice = async () => {
     const res = await fetch("/api/terminal/devices")
@@ -63,53 +83,70 @@ export default function DeviceDetailPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchDevice() }, [deviceId])
-
-  const openAddIp = () => {
-    setEditIpTarget(null)
-    setIpForm(emptyIpForm)
-    setIpDialogOpen(true)
+  const fetchSoftwares = async () => {
+    const res = await fetch(`/api/terminal/device-software?deviceId=${deviceId}`)
+    const data = await res.json()
+    setSoftwares(data)
   }
 
+  useEffect(() => {
+    fetchDevice()
+    fetchSoftwares()
+    fetch("/api/terminal/software").then(r => r.json()).then(setSoftwareMasters)
+  }, [deviceId])
+
+  // IP handlers
+  const openAddIp = () => { setEditIpTarget(null); setIpForm(emptyIpForm); setIpDialogOpen(true) }
   const openEditIp = (ip: DeviceIp) => {
     setEditIpTarget(ip)
     setIpForm({ ip: ip.ip, subnet: ip.subnet ?? "", gateway: ip.gateway ?? "", interface: ip.interface ?? "", note: ip.note ?? "" })
     setIpDialogOpen(true)
   }
-
   const handleSaveIp = async () => {
     if (!ipForm.ip) return
     setSavingIp(true)
     try {
       if (editIpTarget) {
-        await fetch("/api/terminal/device-ips", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editIpTarget.id, ...ipForm }),
-        })
+        await fetch("/api/terminal/device-ips", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editIpTarget.id, ...ipForm }) })
       } else {
-        await fetch("/api/terminal/device-ips", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deviceId, ...ipForm }),
-        })
+        await fetch("/api/terminal/device-ips", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deviceId, ...ipForm }) })
       }
       setIpDialogOpen(false)
       fetchDevice()
-    } finally {
-      setSavingIp(false)
-    }
+    } finally { setSavingIp(false) }
   }
-
   const handleDeleteIp = async () => {
     if (!deleteIpTarget) return
-    await fetch("/api/terminal/device-ips", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: deleteIpTarget.id }),
-    })
+    await fetch("/api/terminal/device-ips", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: deleteIpTarget.id }) })
     setDeleteIpTarget(null)
     fetchDevice()
+  }
+
+  // Software handlers
+  const openAddSw = () => { setEditSwTarget(null); setSwForm(emptySoftwareForm); setSwDialogOpen(true) }
+  const openEditSw = (sw: DeviceSoftware) => {
+    setEditSwTarget(sw)
+    setSwForm({ softwareId: sw.softwareId.toString(), version: sw.version ?? "", note: sw.note ?? "" })
+    setSwDialogOpen(true)
+  }
+  const handleSaveSw = async () => {
+    if (!swForm.softwareId) return
+    setSavingSw(true)
+    try {
+      if (editSwTarget) {
+        await fetch("/api/terminal/device-software", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editSwTarget.id, ...swForm }) })
+      } else {
+        await fetch("/api/terminal/device-software", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deviceId, ...swForm }) })
+      }
+      setSwDialogOpen(false)
+      fetchSoftwares()
+    } finally { setSavingSw(false) }
+  }
+  const handleDeleteSw = async () => {
+    if (!deleteSwTarget) return
+    await fetch("/api/terminal/device-software", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: deleteSwTarget.id }) })
+    setDeleteSwTarget(null)
+    fetchSoftwares()
   }
 
   if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
@@ -123,6 +160,7 @@ export default function DeviceDetailPage() {
         <ArrowLeft className="w-4 h-4" />一覧に戻る
       </button>
 
+      {/* 端末情報 */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-start gap-6">
           <div className="w-24 h-24 rounded-lg border bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -163,7 +201,8 @@ export default function DeviceDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white border rounded-xl shadow-sm p-6">
+      {/* IPアドレス */}
+      <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">IPアドレス</h2>
           <Button size="sm" onClick={openAddIp} className="flex items-center gap-1">
@@ -205,6 +244,56 @@ export default function DeviceDetailPage() {
         )}
       </div>
 
+      {/* インストールソフト */}
+      <div className="bg-white border rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold">インストールソフト</h2>
+          <Button size="sm" onClick={openAddSw} className="flex items-center gap-1">
+            <Plus className="w-4 h-4" />追加
+          </Button>
+        </div>
+        {softwares.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">インストールされたソフトウェアが登録されていません。</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">ソフトウェア名</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">ベンダー</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">バージョン</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">ライセンス種別</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">備考</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {softwares.map(sw => (
+                <tr key={sw.id} className="hover:bg-blue-50">
+                  <td className="px-3 py-2 font-medium">{sw.software.name}</td>
+                  <td className="px-3 py-2 text-gray-500">{sw.software.vendor ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2 font-mono text-gray-500">
+                    {sw.version
+                      ? sw.version
+                      : sw.software.version
+                        ? <span className="text-gray-400">{sw.software.version}</span>
+                        : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-500">{sw.software.licenseType ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2 text-gray-500">{sw.note ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1">
+                      <button onClick={() => openEditSw(sw)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteSwTarget(sw)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* IP ダイアログ */}
       <Dialog open={ipDialogOpen} onOpenChange={setIpDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editIpTarget ? "IPアドレスを編集" : "IPアドレスを追加"}</DialogTitle></DialogHeader>
@@ -239,6 +328,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* IP 削除確認 */}
       <Dialog open={!!deleteIpTarget} onOpenChange={v => !v && setDeleteIpTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
@@ -246,6 +336,56 @@ export default function DeviceDetailPage() {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDeleteIpTarget(null)}>キャンセル</Button>
             <Button variant="destructive" onClick={handleDeleteIp}>削除</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ソフトウェア ダイアログ */}
+      <Dialog open={swDialogOpen} onOpenChange={setSwDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editSwTarget ? "インストールソフトを編集" : "インストールソフトを追加"}</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1">
+              <Label>ソフトウェア <span className="text-red-500">*</span></Label>
+              <select
+                value={swForm.softwareId}
+                onChange={e => setSwForm(f => ({ ...f, softwareId: e.target.value }))}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">選択してください</option>
+                {softwareMasters.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}{s.vendor ? ` (${s.vendor})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>バージョン <span className="text-xs text-gray-400">（空欄の場合はマスタのバージョンを参照）</span></Label>
+              <Input value={swForm.version} onChange={e => setSwForm(f => ({ ...f, version: e.target.value }))} placeholder="例：1.2.3" autoComplete="off" />
+            </div>
+            <div className="space-y-1">
+              <Label>備考</Label>
+              <Input value={swForm.note} onChange={e => setSwForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setSwDialogOpen(false)}>キャンセル</Button>
+              <Button onClick={handleSaveSw} disabled={savingSw || !swForm.softwareId}>
+                {savingSw ? "保存中..." : "保存"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ソフトウェア 削除確認 */}
+      <Dialog open={!!deleteSwTarget} onOpenChange={v => !v && setDeleteSwTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">「{deleteSwTarget?.software.name}」を削除しますか？</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteSwTarget(null)}>キャンセル</Button>
+            <Button variant="destructive" onClick={handleDeleteSw}>削除</Button>
           </div>
         </DialogContent>
       </Dialog>
