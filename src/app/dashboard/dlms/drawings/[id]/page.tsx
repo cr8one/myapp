@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload, X } from "lucide-react"
+import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload, ScanText, X } from "lucide-react"
 
 type Drawing = {
   id: number
@@ -24,6 +24,8 @@ type Drawing = {
   dieline: { id: string; uid_ntemp: string; kyugataban: string | null } | null
 }
 
+type OcrLine = { text: string; confidence: number }
+
 export default function DrawingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -35,15 +37,11 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
   const [newUrl, setNewUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingKind, setUploadingKind] = useState<"legacy" | "new" | null>(null)
+  const [ocrLines, setOcrLines] = useState<OcrLine[] | null>(null)
+  const [ocrLoading, setOcrLoading] = useState<"legacy" | "new" | null>(null)
+  const [showOcr, setShowOcr] = useState(false)
 
-  const fetchDrawing = async () => {
-    setFetching(true)
-    const res = await fetch(`/api/dlms/drawings/${id}`)
-    const data = await res.json()
-    setDrawing(data)
-    setForm(data)
-    setFetching(false)
-    // 署名付きURL取得
+  const fetchSignedUrls = async (data: Drawing) => {
     if (data.legacy_file_path) {
       fetch("/api/dlms/drawings/signed-url", {
         method: "POST",
@@ -58,6 +56,16 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
         body: JSON.stringify({ key: data.new_file_path }),
       }).then(r => r.json()).then(d => setNewUrl(d.url))
     }
+  }
+
+  const fetchDrawing = async () => {
+    setFetching(true)
+    const res = await fetch(`/api/dlms/drawings/${id}`)
+    const data = await res.json()
+    setDrawing(data)
+    setForm(data)
+    setFetching(false)
+    fetchSignedUrls(data)
   }
 
   useEffect(() => { fetchDrawing() }, [id])
@@ -103,6 +111,27 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
     fetchDrawing()
   }
 
+  const handleOcr = async (kind: "legacy" | "new") => {
+    const key = kind === "legacy" ? drawing?.legacy_file_path : drawing?.new_file_path
+    if (!key) return
+    setOcrLoading(kind)
+    setOcrLines(null)
+    setShowOcr(true)
+    try {
+      const res = await fetch("/api/dlms/drawings/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      })
+      const data = await res.json()
+      setOcrLines(data.lines ?? [])
+    } catch {
+      setOcrLines([])
+    } finally {
+      setOcrLoading(null)
+    }
+  }
+
   const f = (key: keyof typeof form) => ({
     value: (form[key] as string) ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -119,16 +148,26 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
   }) => {
     const label = kind === "legacy" ? "旧図面" : "新図面"
     const isImage = fileType && ["png", "jpg", "jpeg", "gif", "webp"].includes(fileType)
+    const isTif = fileType && ["tif", "tiff"].includes(fileType)
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-gray-600">{label}</span>
-          <label className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
-            <Upload className="w-3 h-3" />
-            {path ? "差し替え" : "アップロード"}
-            <input type="file" className="hidden" accept="image/*,.tif,.tiff,.pdf"
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, kind) }} />
-          </label>
+          <div className="flex items-center gap-2">
+            {path && (
+              <button onClick={() => handleOcr(kind)}
+                disabled={ocrLoading !== null}
+                className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 disabled:opacity-50">
+                <ScanText className="w-3 h-3" />OCR
+              </button>
+            )}
+            <label className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
+              <Upload className="w-3 h-3" />
+              {path ? "差し替え" : "アップロード"}
+              <input type="file" className="hidden" accept="image/*,.tif,.tiff,.pdf"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, kind) }} />
+            </label>
+          </div>
         </div>
         {uploadingKind === kind ? (
           <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">アップロード中...</div>
@@ -137,12 +176,14 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
             {isImage ? (
               <img src={signedUrl} alt={label} className="w-full rounded-lg border border-gray-200 object-contain max-h-64 bg-gray-50" loading="lazy" />
             ) : (
-              <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-xs text-gray-500 uppercase font-mono">{fileType}</span>
+              <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 gap-3">
+                <span className="text-xs text-gray-500 uppercase font-mono font-bold">{fileType}</span>
+                {isTif && <span className="text-xs text-gray-400">プレビュー非対応</span>}
               </div>
             )}
             <a href={signedUrl} target="_blank" rel="noopener noreferrer"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg p-1.5 shadow border border-gray-200">
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-lg p-1.5 shadow border border-gray-200"
+              title="ダウンロード">
               <ExternalLink className="w-3.5 h-3.5 text-gray-600" />
             </a>
           </div>
@@ -192,6 +233,36 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
             <FileSection kind="new" path={drawing.new_file_path} fileType={drawing.new_file_type} signedUrl={newUrl} />
           </div>
         </div>
+
+        {/* OCR結果 */}
+        {showOcr && (
+          <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
+                <ScanText className="w-4 h-4" />OCR結果
+              </h2>
+              <button onClick={() => setShowOcr(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+            {ocrLoading !== null ? (
+              <div className="text-xs text-gray-400 py-4 text-center">解析中...</div>
+            ) : ocrLines && ocrLines.length > 0 ? (
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {ocrLines.map((line, i) => (
+                  <div key={i} className="flex items-center gap-3 text-xs">
+                    <span className="text-gray-800 flex-1 font-mono">{line.text}</span>
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-medium ${
+                      line.confidence >= 90 ? "bg-green-100 text-green-700" :
+                      line.confidence >= 70 ? "bg-yellow-100 text-yellow-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>{line.confidence}%</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400 py-4 text-center">テキストが検出されませんでした</div>
+            )}
+          </div>
+        )}
 
         {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
