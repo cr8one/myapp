@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload, ScanText, X } from "lucide-react"
+import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload } from "lucide-react"
 
 type Drawing = {
   id: number
@@ -24,8 +24,6 @@ type Drawing = {
   dieline: { id: string; uid_ntemp: string; kyugataban: string | null } | null
 }
 
-type OcrLine = { text: string; confidence: number }
-
 export default function DrawingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -37,11 +35,14 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
   const [newUrl, setNewUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingKind, setUploadingKind] = useState<"legacy" | "new" | null>(null)
-  const [ocrLines, setOcrLines] = useState<OcrLine[] | null>(null)
-  const [ocrLoading, setOcrLoading] = useState<"legacy" | "new" | null>(null)
-  const [showOcr, setShowOcr] = useState(false)
 
-  const fetchSignedUrls = async (data: Drawing) => {
+  const fetchDrawing = async () => {
+    setFetching(true)
+    const res = await fetch(`/api/dlms/drawings/${id}`)
+    const data = await res.json()
+    setDrawing(data)
+    setForm(data)
+    setFetching(false)
     if (data.legacy_file_path) {
       fetch("/api/dlms/drawings/signed-url", {
         method: "POST",
@@ -56,16 +57,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
         body: JSON.stringify({ key: data.new_file_path }),
       }).then(r => r.json()).then(d => setNewUrl(d.url))
     }
-  }
-
-  const fetchDrawing = async () => {
-    setFetching(true)
-    const res = await fetch(`/api/dlms/drawings/${id}`)
-    const data = await res.json()
-    setDrawing(data)
-    setForm(data)
-    setFetching(false)
-    fetchSignedUrls(data)
   }
 
   useEffect(() => { fetchDrawing() }, [id])
@@ -111,27 +102,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
     fetchDrawing()
   }
 
-  const handleOcr = async (kind: "legacy" | "new") => {
-    const key = kind === "legacy" ? drawing?.legacy_file_path : drawing?.new_file_path
-    if (!key) return
-    setOcrLoading(kind)
-    setOcrLines(null)
-    setShowOcr(true)
-    try {
-      const res = await fetch("/api/dlms/drawings/ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
-      })
-      const data = await res.json()
-      setOcrLines(data.lines ?? [])
-    } catch {
-      setOcrLines([])
-    } finally {
-      setOcrLoading(null)
-    }
-  }
-
   const f = (key: keyof typeof form) => ({
     value: (form[key] as string) ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -153,21 +123,12 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-gray-600">{label}</span>
-          <div className="flex items-center gap-2">
-            {path && (
-              <button onClick={() => handleOcr(kind)}
-                disabled={ocrLoading !== null}
-                className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 disabled:opacity-50">
-                <ScanText className="w-3 h-3" />OCR
-              </button>
-            )}
-            <label className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
-              <Upload className="w-3 h-3" />
-              {path ? "差し替え" : "アップロード"}
-              <input type="file" className="hidden" accept="image/*,.tif,.tiff,.pdf"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, kind) }} />
-            </label>
-          </div>
+          <label className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 cursor-pointer">
+            <Upload className="w-3 h-3" />
+            {path ? "差し替え" : "アップロード"}
+            <input type="file" className="hidden" accept="image/*,.tif,.tiff,.pdf"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f, kind) }} />
+          </label>
         </div>
         {uploadingKind === kind ? (
           <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">アップロード中...</div>
@@ -225,7 +186,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="px-6 py-6 max-w-3xl w-full space-y-6">
-        {/* ファイル表示 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">図面ファイル</h2>
           <div className="grid grid-cols-2 gap-6">
@@ -234,37 +194,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* OCR結果 */}
-        {showOcr && (
-          <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
-                <ScanText className="w-4 h-4" />OCR結果
-              </h2>
-              <button onClick={() => setShowOcr(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-            </div>
-            {ocrLoading !== null ? (
-              <div className="text-xs text-gray-400 py-4 text-center">解析中...</div>
-            ) : ocrLines && ocrLines.length > 0 ? (
-              <div className="space-y-1 max-h-64 overflow-y-auto">
-                {ocrLines.map((line, i) => (
-                  <div key={i} className="flex items-center gap-3 text-xs">
-                    <span className="text-gray-800 flex-1 font-mono">{line.text}</span>
-                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-medium ${
-                      line.confidence >= 90 ? "bg-green-100 text-green-700" :
-                      line.confidence >= 70 ? "bg-yellow-100 text-yellow-700" :
-                      "bg-red-100 text-red-700"
-                    }`}>{line.confidence}%</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-400 py-4 text-center">テキストが検出されませんでした</div>
-            )}
-          </div>
-        )}
-
-        {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">基本情報</h2>
           {editing ? (
@@ -315,7 +244,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        {/* 承認情報 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">承認情報</h2>
           {editing ? (
