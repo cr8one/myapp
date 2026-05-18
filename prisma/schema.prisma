@@ -411,6 +411,7 @@ model DlmsDielineParent {
   conditions    DlmsDielineCondition[]
   children      DlmsDielineChild[]
   requests      DlmsDielineRequest[]
+  drawings      Drawing[]
   @@map("dlms_dieline_parents")
 }
 model DlmsDielineCondition {
@@ -718,4 +719,31 @@ model SsssIshiiEmail {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("ssss_ishii_emails")
+}
+
+model Drawing {
+  id                  Int       @id @default(autoincrement())
+  drawing_no          String?
+  title               String?
+  product_no          String?
+  paper_size          String?
+  paper_type          String?
+  blade_size          String?
+  note                String?
+  storage_location    String?
+  created_date        String?
+  approved_by         String?
+  confirmed_by        String?
+  assigned_by         String?
+  legacy_file_path    String?
+  legacy_file_type    String?
+  new_file_path       String?
+  new_file_type       String?
+  dieline_id          String?
+  dieline             DlmsDielineParent? @relation(fields: [dieline_id], references: [id])
+  flg_del             Boolean   @default(false)
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@map("t_drawings")
 }
