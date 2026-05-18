@@ -9,7 +9,8 @@ const s3 = new S3Client({
   responseChecksumValidation: "WHEN_REQUIRED",
 })
 
-const textract = new TextractClient({ region: "ap-northeast-1" })
+// Textractは東京未対応のためシンガポールを使用
+const textract = new TextractClient({ region: "ap-southeast-1" })
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -18,7 +19,6 @@ export async function POST(req: NextRequest) {
   const { key } = await req.json()
   if (!key) return NextResponse.json({ error: "key required" }, { status: 400 })
 
-  // S3からファイルをバイナリで取得
   const s3Res = await s3.send(new GetObjectCommand({
     Bucket: "japan-sleeve-system-files-936533876784",
     Key: key,
@@ -26,12 +26,10 @@ export async function POST(req: NextRequest) {
   const bytes = await s3Res.Body?.transformToByteArray()
   if (!bytes) return NextResponse.json({ error: "ファイル取得失敗" }, { status: 500 })
 
-  // Textractでテキスト検出
   const result = await textract.send(new DetectDocumentTextCommand({
     Document: { Bytes: bytes },
   }))
 
-  // ブロックからテキストを抽出
   const lines = (result.Blocks ?? [])
     .filter(b => b.BlockType === "LINE")
     .map(b => ({ text: b.Text ?? "", confidence: Math.round(b.Confidence ?? 0) }))
