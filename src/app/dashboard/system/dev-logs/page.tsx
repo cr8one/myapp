@@ -7,9 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, Pencil, Trash2 } from "lucide-react"
-
 const CATEGORIES = ["リリース", "機能追加", "バグ修正", "メンテナンス", "その他"]
-
 const CATEGORY_COLORS: Record<string, string> = {
   "リリース": "bg-blue-100 text-blue-700",
   "機能追加": "bg-green-100 text-green-700",
@@ -17,7 +15,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   "メンテナンス": "bg-yellow-100 text-yellow-700",
   "その他": "bg-gray-100 text-gray-700",
 }
-
 type DevLog = {
   id: string
   date: string
@@ -27,20 +24,16 @@ type DevLog = {
   createdBy: { name: string | null; email: string }
   createdAt: string
 }
-
 type FormData = {
   date: string
   title: string
   content: string
   category: string
 }
-
 const emptyForm: FormData = { date: "", title: "", content: "", category: "" }
-
 export default function DevLogsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
-
   const [logs, setLogs] = useState<DevLog[]>([])
   const [filterCategory, setFilterCategory] = useState<string>("all")
   const [loading, setLoading] = useState(true)
@@ -49,7 +42,6 @@ export default function DevLogsPage() {
   const [form, setForm] = useState<FormData>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<DevLog | null>(null)
-
   const fetchLogs = async (category?: string) => {
     setLoading(true)
     const url = category && category !== "all"
@@ -60,15 +52,12 @@ export default function DevLogsPage() {
     setLogs(data)
     setLoading(false)
   }
-
   useEffect(() => { fetchLogs() }, [])
-
   const openCreate = () => {
     setEditTarget(null)
     setForm({ ...emptyForm, date: new Date().toISOString().split("T")[0] })
     setDialogOpen(true)
   }
-
   const openEdit = (log: DevLog) => {
     setEditTarget(log)
     setForm({
@@ -79,7 +68,6 @@ export default function DevLogsPage() {
     })
     setDialogOpen(true)
   }
-
   const handleSave = async () => {
     if (!form.date || !form.title || !form.content || !form.category) return
     setSaving(true)
@@ -100,14 +88,12 @@ export default function DevLogsPage() {
     setDialogOpen(false)
     fetchLogs(filterCategory)
   }
-
   const handleDelete = async () => {
     if (!deleteTarget) return
     await fetch(`/api/dev-logs/${deleteTarget.id}`, { method: "DELETE" })
     setDeleteTarget(null)
     fetchLogs(filterCategory)
   }
-
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -122,7 +108,6 @@ export default function DevLogsPage() {
           </Button>
         )}
       </div>
-
       <div className="mb-4 flex items-center gap-3">
         <Label className="text-sm text-gray-600">カテゴリ絞り込み：</Label>
         <select
@@ -134,7 +119,6 @@ export default function DevLogsPage() {
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
-
       {loading ? (
         <div className="text-center py-12 text-gray-400">読み込み中...</div>
       ) : logs.length === 0 ? (
@@ -170,46 +154,46 @@ export default function DevLogsPage() {
           ))}
         </div>
       )}
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg flex flex-col max-h-[90vh]">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{editTarget ? "開発記録を編集" : "開発記録を作成"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <Label>実施日</Label>
-              <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+          <div className="overflow-y-auto flex-1 pr-1">
+            <div className="space-y-4 mt-2">
+              <div className="space-y-1">
+                <Label>実施日</Label>
+                <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>カテゴリ</Label>
+                <select
+                  value={form.category}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  className="w-full border rounded px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>タイトル</Label>
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoComplete="off" placeholder="例：v1.2.0リリース" />
+              </div>
+              <div className="space-y-1">
+                <Label>内容</Label>
+                <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="変更内容の詳細を入力" rows={10} />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>カテゴリ</Label>
-              <select
-                value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border rounded px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">選択してください</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>タイトル</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoComplete="off" placeholder="例：v1.2.0リリース" />
-            </div>
-            <div className="space-y-1">
-              <Label>内容</Label>
-              <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="変更内容の詳細を入力" rows={5} />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>
-              <Button onClick={handleSave} disabled={saving || !form.date || !form.title || !form.content || !form.category}>
-                {saving ? "保存中..." : "保存"}
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 flex-shrink-0 border-t mt-2">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>
+            <Button onClick={handleSave} disabled={saving || !form.date || !form.title || !form.content || !form.category}>
+              {saving ? "保存中..." : "保存"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
