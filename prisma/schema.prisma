@@ -406,6 +406,9 @@ model DlmsDielineParent {
   sizey         Float?
   sizex         Float?
   widthy        Float?
+  inner_height  Float?
+  inner_width   Float?
+  inner_depth   Float?
   dtindt        DateTime @default(now())
   dtupdt        DateTime @updatedAt
   conditions    DlmsDielineCondition[]

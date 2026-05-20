@@ -26,6 +26,9 @@ export default function NewDielinePage() {
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
+  const [innerHeight, setInnerHeight] = useState("")
+  const [innerWidth, setInnerWidth] = useState("")
+  const [innerDepth, setInnerDepth] = useState("")
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
   const [conditionMasters, setConditionMasters] = useState<ConditionMaster[]>([])
 
@@ -53,6 +56,9 @@ export default function NewDielinePage() {
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
+        inner_height: innerHeight ? parseFloat(innerHeight) : null,
+        inner_width: innerWidth ? parseFloat(innerWidth) : null,
+        inner_depth: innerDepth ? parseFloat(innerDepth) : null,
         conditions: selectedConditions,
       }),
     })
@@ -111,7 +117,7 @@ export default function NewDielinePage() {
               </div>
             </div>
             <div>
-              <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（mm）</Label>
+              <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2"><Label className="text-xs">天地</Label>
                   <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
@@ -119,6 +125,17 @@ export default function NewDielinePage() {
                   <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
                 <div className="space-y-2"><Label className="text-xs">背幅</Label>
                   <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500 mb-2 block">内寸（mm）</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2"><Label className="text-xs">背</Label>
+                  <Input type="number" value={innerHeight} onChange={e => setInnerHeight(e.target.value)} autoComplete="off" /></div>
+                <div className="space-y-2"><Label className="text-xs">高さ</Label>
+                  <Input type="number" value={innerWidth} onChange={e => setInnerWidth(e.target.value)} autoComplete="off" /></div>
+                <div className="space-y-2"><Label className="text-xs">奥行き</Label>
+                  <Input type="number" value={innerDepth} onChange={e => setInnerDepth(e.target.value)} autoComplete="off" /></div>
               </div>
             </div>
           </CardContent>
