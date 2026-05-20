@@ -28,6 +28,7 @@ type Parent = {
   genre: string | null; spec: string | null; hinmoku: string | null
   developy: number | null; developx: number | null
   sizey: number | null; sizex: number | null; widthy: number | null
+  inner_height: number | null; inner_width: number | null; inner_depth: number | null
   conditions: Condition[]; children: Child[]
 }
 
@@ -54,6 +55,9 @@ export default function DielineDetailPage() {
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
+  const [innerHeight, setInnerHeight] = useState("")
+  const [innerWidth, setInnerWidth] = useState("")
+  const [innerDepth, setInnerDepth] = useState("")
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
 
   const [childModalOpen, setChildModalOpen] = useState(false)
@@ -89,6 +93,9 @@ export default function DielineDetailPage() {
     setSizey(parent.sizey?.toString() ?? "")
     setSizex(parent.sizex?.toString() ?? "")
     setWidthy(parent.widthy?.toString() ?? "")
+    setInnerHeight(parent.inner_height?.toString() ?? "")
+    setInnerWidth(parent.inner_width?.toString() ?? "")
+    setInnerDepth(parent.inner_depth?.toString() ?? "")
     setSelectedConditions(parent.conditions.map(c => c.value))
     setEditing(true)
   }
@@ -106,6 +113,9 @@ export default function DielineDetailPage() {
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
+        inner_height: innerHeight ? parseFloat(innerHeight) : null,
+        inner_width: innerWidth ? parseFloat(innerWidth) : null,
+        inner_depth: innerDepth ? parseFloat(innerDepth) : null,
         conditions: selectedConditions,
       }),
     })
@@ -162,18 +172,27 @@ export default function DielineDetailPage() {
     fetchParent()
   }
 
-  if (loading) return <div className="p-8 text-gray-400">読み込み中...</div>
-  if (!parent) return <div className="p-8 text-gray-400">データが見つかりません</div>
+  const handleDeleteParent = async () => {
+    if (!confirm("この型台帳を削除しますか？")) return
+    await fetch(`/api/dlms/dielines/${id}`, { method: "DELETE" })
+    router.push("/dashboard/dlms/dielines")
+  }
+
+  if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
+  if (!parent) return <div className="p-8 text-center text-gray-500">データが見つかりません</div>
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
-        <h1 className="text-2xl font-bold">型番号：{parent.uid_ntemp}</h1>
+        <Button variant="outline" onClick={() => router.push("/dashboard/dlms/dielines")}>← 戻る</Button>
+        <h1 className="text-2xl font-bold">{parent.uid_ntemp}</h1>
         {!editing && (
-          <Button variant="outline" onClick={startEdit} className="flex items-center gap-1 ml-auto">
-            <Pencil className="w-4 h-4" />編集
-          </Button>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" onClick={startEdit} className="flex items-center gap-1">
+              <Pencil className="w-4 h-4" />編集
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteParent}>削除</Button>
+          </div>
         )}
       </div>
 
@@ -182,22 +201,27 @@ export default function DielineDetailPage() {
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent>
             {!editing ? (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500">ジャンル</span><p className="font-medium mt-0.5">{parent.genre ?? "—"}</p></div>
-                <div><span className="text-gray-500">仕様</span><p className="font-medium mt-0.5">{parent.spec ?? "—"}</p></div>
-                <div><span className="text-gray-500">品目</span><p className="font-medium mt-0.5">{parent.hinmoku ?? "—"}</p></div>
-                <div><span className="text-gray-500">旧型番号</span><p className="font-medium mt-0.5">{parent.kyugataban ?? "—"}</p></div>
-                <div><span className="text-gray-500">展開サイズ（たて×よこ）</span><p className="font-medium mt-0.5">{parent.developy ?? "—"} × {parent.developx ?? "—"} mm</p></div>
-                <div><span className="text-gray-500">仕上サイズ（天地×左右）</span><p className="font-medium mt-0.5">{parent.sizey ?? "—"} × {parent.sizex ?? "—"} mm</p></div>
-                <div><span className="text-gray-500">背幅</span><p className="font-medium mt-0.5">{parent.widthy ?? "—"} mm</p></div>
-                <div>
-                  <span className="text-gray-500">条件</span>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {parent.conditions.length > 0
-                      ? parent.conditions.map(c => <span key={c.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c.value}</span>)
-                      : <span className="text-gray-400">—</span>}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                <div><span className="text-gray-400">旧型番号</span><p className="mt-0.5">{parent.kyugataban ?? "—"}</p></div>
+                <div><span className="text-gray-400">ジャンル</span><p className="mt-0.5">{parent.genre ?? "—"}</p></div>
+                <div><span className="text-gray-400">仕様</span><p className="mt-0.5">{parent.spec ?? "—"}</p></div>
+                <div><span className="text-gray-400">品目</span><p className="mt-0.5">{parent.hinmoku ?? "—"}</p></div>
+                <div><span className="text-gray-400">展開サイズ（mm）</span>
+                  <p className="mt-0.5">{parent.developy ?? "—"} × {parent.developx ?? "—"}</p></div>
+                <div><span className="text-gray-400">仕上サイズ 外寸（mm）</span>
+                  <p className="mt-0.5">天地 {parent.sizey ?? "—"} / 左右 {parent.sizex ?? "—"} / 背幅 {parent.widthy ?? "—"}</p></div>
+                <div><span className="text-gray-400">内寸（mm）</span>
+                  <p className="mt-0.5">背 {parent.inner_height ?? "—"} / 高さ {parent.inner_width ?? "—"} / 奥行き {parent.inner_depth ?? "—"}</p></div>
+                {parent.conditions.length > 0 && (
+                  <div className="col-span-2">
+                    <span className="text-gray-400">条件</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {parent.conditions.map(c => (
+                        <span key={c.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c.value}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -235,20 +259,31 @@ export default function DielineDetailPage() {
                   <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1"><Label className="text-xs">たて</Label>
-                      <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} /></div>
+                      <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} autoComplete="off" /></div>
                     <div className="space-y-1"><Label className="text-xs">よこ</Label>
-                      <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} /></div>
+                      <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} autoComplete="off" /></div>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（mm）</Label>
+                  <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1"><Label className="text-xs">天地</Label>
-                      <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} /></div>
+                      <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
                     <div className="space-y-1"><Label className="text-xs">左右</Label>
-                      <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} /></div>
+                      <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
                     <div className="space-y-1"><Label className="text-xs">背幅</Label>
-                      <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} /></div>
+                      <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500 mb-2 block">内寸（mm）</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1"><Label className="text-xs">背</Label>
+                      <Input type="number" value={innerHeight} onChange={e => setInnerHeight(e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-1"><Label className="text-xs">高さ</Label>
+                      <Input type="number" value={innerWidth} onChange={e => setInnerWidth(e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-1"><Label className="text-xs">奥行き</Label>
+                      <Input type="number" value={innerDepth} onChange={e => setInnerDepth(e.target.value)} autoComplete="off" /></div>
                   </div>
                 </div>
                 <div>
@@ -382,11 +417,11 @@ export default function DielineDetailPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div><Label className="text-xs">天地（mm）</Label>
-                  <Input type="number" value={childForm.sizey} onChange={e => setChildForm(f => ({ ...f, sizey: e.target.value }))} className="mt-1 h-8 text-sm" /></div>
+                  <Input type="number" value={childForm.sizey} onChange={e => setChildForm(f => ({ ...f, sizey: e.target.value }))} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
                 <div><Label className="text-xs">左右（mm）</Label>
-                  <Input type="number" value={childForm.sizex} onChange={e => setChildForm(f => ({ ...f, sizex: e.target.value }))} className="mt-1 h-8 text-sm" /></div>
+                  <Input type="number" value={childForm.sizex} onChange={e => setChildForm(f => ({ ...f, sizex: e.target.value }))} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
                 <div><Label className="text-xs">咥え（mm）</Label>
-                  <Input type="number" value={childForm.咥え} onChange={e => setChildForm(f => ({ ...f, 咥え: e.target.value }))} className="mt-1 h-8 text-sm" /></div>
+                  <Input type="number" value={childForm.咥え} onChange={e => setChildForm(f => ({ ...f, 咥え: e.target.value }))} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
               </div>
               <div>
                 <Label className="text-xs">所在</Label>
