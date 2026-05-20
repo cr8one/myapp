@@ -105,20 +105,20 @@ export default function NewDielinePage() {
               <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label className="text-xs">たて</Label>
-                  <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} /></div>
+                  <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} autoComplete="off" /></div>
                 <div className="space-y-2"><Label className="text-xs">よこ</Label>
-                  <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} /></div>
+                  <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} autoComplete="off" /></div>
               </div>
             </div>
             <div>
               <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（mm）</Label>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2"><Label className="text-xs">天地</Label>
-                  <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} /></div>
+                  <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
                 <div className="space-y-2"><Label className="text-xs">左右</Label>
-                  <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} /></div>
+                  <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
                 <div className="space-y-2"><Label className="text-xs">背幅</Label>
-                  <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} /></div>
+                  <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
               </div>
             </div>
           </CardContent>
