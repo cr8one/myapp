@@ -23,6 +23,7 @@ export default function NewDielinePage() {
   const [kyugataban, setKyugataban] = useState("")
   const [developy, setDevelopy] = useState("")
   const [developx, setDevelopx] = useState("")
+  const [developDepth, setDevelopDepth] = useState("")
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
@@ -53,6 +54,7 @@ export default function NewDielinePage() {
         kyugataban: kyugataban || null,
         developy: developy ? parseFloat(developy) : null,
         developx: developx ? parseFloat(developx) : null,
+        develop_depth: developDepth ? parseFloat(developDepth) : null,
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
@@ -109,21 +111,23 @@ export default function NewDielinePage() {
             </div>
             <div>
               <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label className="text-xs">たて</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2"><Label className="text-xs">天地</Label>
                   <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">よこ</Label>
+                <div className="space-y-2"><Label className="text-xs">左右</Label>
                   <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} autoComplete="off" /></div>
+                <div className="space-y-2"><Label className="text-xs">背</Label>
+                  <Input type="number" value={developDepth} onChange={e => setDevelopDepth(e.target.value)} autoComplete="off" /></div>
               </div>
             </div>
             <div>
               <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label className="text-xs">天地</Label>
+                <div className="space-y-2"><Label className="text-xs">背</Label>
                   <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">左右</Label>
+                <div className="space-y-2"><Label className="text-xs">高さ</Label>
                   <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">背幅</Label>
+                <div className="space-y-2"><Label className="text-xs">奥行き</Label>
                   <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
               </div>
             </div>

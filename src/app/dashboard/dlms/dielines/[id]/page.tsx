@@ -26,7 +26,7 @@ type Child = {
 type Parent = {
   id: string; uid_ntemp: string; kyugataban: string | null
   genre: string | null; spec: string | null; hinmoku: string | null
-  developy: number | null; developx: number | null
+  developy: number | null; developx: number | null; develop_depth: number | null
   sizey: number | null; sizex: number | null; widthy: number | null
   inner_height: number | null; inner_width: number | null; inner_depth: number | null
   conditions: Condition[]; children: Child[]
@@ -52,6 +52,7 @@ export default function DielineDetailPage() {
   const [kyugataban, setKyugataban] = useState("")
   const [developy, setDevelopy] = useState("")
   const [developx, setDevelopx] = useState("")
+  const [developDepth, setDevelopDepth] = useState("")
   const [sizey, setSizey] = useState("")
   const [sizex, setSizex] = useState("")
   const [widthy, setWidthy] = useState("")
@@ -90,6 +91,7 @@ export default function DielineDetailPage() {
     setKyugataban(parent.kyugataban ?? "")
     setDevelopy(parent.developy?.toString() ?? "")
     setDevelopx(parent.developx?.toString() ?? "")
+    setDevelopDepth(parent.develop_depth?.toString() ?? "")
     setSizey(parent.sizey?.toString() ?? "")
     setSizex(parent.sizex?.toString() ?? "")
     setWidthy(parent.widthy?.toString() ?? "")
@@ -110,6 +112,7 @@ export default function DielineDetailPage() {
         kyugataban: kyugataban || null,
         developy: developy ? parseFloat(developy) : null,
         developx: developx ? parseFloat(developx) : null,
+        develop_depth: developDepth ? parseFloat(developDepth) : null,
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
@@ -207,9 +210,9 @@ export default function DielineDetailPage() {
                 <div><span className="text-gray-400">仕様</span><p className="mt-0.5">{parent.spec ?? "—"}</p></div>
                 <div><span className="text-gray-400">品目</span><p className="mt-0.5">{parent.hinmoku ?? "—"}</p></div>
                 <div><span className="text-gray-400">展開サイズ（mm）</span>
-                  <p className="mt-0.5">{parent.developy ?? "—"} × {parent.developx ?? "—"}</p></div>
+                  <p className="mt-0.5">天地 {parent.developy ?? "—"} / 左右 {parent.developx ?? "—"} / 背 {parent.develop_depth ?? "—"}</p></div>
                 <div><span className="text-gray-400">仕上サイズ 外寸（mm）</span>
-                  <p className="mt-0.5">天地 {parent.sizey ?? "—"} / 左右 {parent.sizex ?? "—"} / 背幅 {parent.widthy ?? "—"}</p></div>
+                  <p className="mt-0.5">背 {parent.sizey ?? "—"} / 高さ {parent.sizex ?? "—"} / 奥行き {parent.widthy ?? "—"}</p></div>
                 <div><span className="text-gray-400">内寸（mm）</span>
                   <p className="mt-0.5">背 {parent.inner_height ?? "—"} / 高さ {parent.inner_width ?? "—"} / 奥行き {parent.inner_depth ?? "—"}</p></div>
                 {parent.conditions.length > 0 && (
@@ -257,21 +260,23 @@ export default function DielineDetailPage() {
                 </div>
                 <div>
                   <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1"><Label className="text-xs">たて</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1"><Label className="text-xs">天地</Label>
                       <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} autoComplete="off" /></div>
-                    <div className="space-y-1"><Label className="text-xs">よこ</Label>
+                    <div className="space-y-1"><Label className="text-xs">左右</Label>
                       <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-1"><Label className="text-xs">背</Label>
+                      <Input type="number" value={developDepth} onChange={e => setDevelopDepth(e.target.value)} autoComplete="off" /></div>
                   </div>
                 </div>
                 <div>
                   <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1"><Label className="text-xs">天地</Label>
+                    <div className="space-y-1"><Label className="text-xs">背</Label>
                       <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
-                    <div className="space-y-1"><Label className="text-xs">左右</Label>
+                    <div className="space-y-1"><Label className="text-xs">高さ</Label>
                       <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
-                    <div className="space-y-1"><Label className="text-xs">背幅</Label>
+                    <div className="space-y-1"><Label className="text-xs">奥行き</Label>
                       <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
                   </div>
                 </div>

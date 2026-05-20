@@ -403,6 +403,7 @@ model DlmsDielineParent {
   hinmoku       String?
   developy      Float?
   developx      Float?
+  develop_depth Float?
   sizey         Float?
   sizex         Float?
   widthy        Float?
