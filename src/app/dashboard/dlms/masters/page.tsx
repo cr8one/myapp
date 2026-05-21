@@ -1,15 +1,26 @@
 "use client"
 import { useEffect, useState, useCallback } from "react"
 import { Plus, Pencil, Trash2, X, Check, AlertCircle } from "lucide-react"
-type Format = { id: number; name: string; width: number; height: number; unit: string; note?: string }
-type Part = { id: number; name: string; width: number; height: number; shape: string; note?: string }
-type Note = { id: number; name: string; content: string; fontSize: number; color: string; fontWeight: string }
+
+type Format = { id: number; name: string; width: number; height: number; unit: string; note?: string; sortOrder: number }
+type Part = { id: number; name: string; width: number; height: number; shape: string; note?: string; sortOrder: number }
+type Note = { id: number; name: string; content: string; fontSize: number; color: string; fontWeight: string; sortOrder: number }
 type Condition = { id: number; name: string; sortOrder: number }
 type Tab = "formats" | "parts" | "notes" | "conditions"
+
 const COLORS = ["#1a1a1a", "#e24b4a", "#378add", "#639922", "#ba7517", "#888780"]
-const emptyFormat = { name: "", width: 0, height: 0, unit: "mm", note: "" }
-const emptyPart = { name: "", width: 0, height: 0, shape: "rect", note: "" }
-const emptyNote = { name: "", content: "", fontSize: 12, color: "#1a1a1a", fontWeight: "normal" }
+const emptyFormat = { name: "", width: 0, height: 0, unit: "mm", note: "", sortOrder: 0 }
+const emptyPart = { name: "", width: 0, height: 0, shape: "rect", note: "", sortOrder: 0 }
+const emptyNote = { name: "", content: "", fontSize: 12, color: "#1a1a1a", fontWeight: "normal", sortOrder: 0 }
+
+function SortOrderInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <input type="number" value={value} onChange={e => onChange(parseInt(e.target.value) || 0)}
+      className="w-16 px-2 py-1 text-xs text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      placeholder="0" />
+  )
+}
+
 export default function DlmsMastersPage() {
   const [tab, setTab] = useState<Tab>("formats")
   const [formats, setFormats] = useState<Format[]>([])
@@ -29,6 +40,8 @@ export default function DlmsMastersPage() {
   const [editingCondition, setEditingCondition] = useState<Condition | null>(null)
   const [addingCondition, setAddingCondition] = useState(false)
   const [newConditionName, setNewConditionName] = useState("")
+  const [newConditionSortOrder, setNewConditionSortOrder] = useState(0)
+
   const fetchAll = useCallback(async () => {
     setFetching(true)
     const [f, p, n, c] = await Promise.all([
@@ -43,7 +56,9 @@ export default function DlmsMastersPage() {
     setConditions(Array.isArray(c) ? c : [])
     setFetching(false)
   }, [])
+
   useEffect(() => { fetchAll() }, [fetchAll])
+
   const saveFormat = async () => {
     if (!newFormat.name.trim()) return
     await fetch("/api/dlms/formats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newFormat) })
@@ -85,17 +100,18 @@ export default function DlmsMastersPage() {
   }
   const saveCondition = async () => {
     if (!newConditionName.trim()) return
-    await fetch("/api/dlms/conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newConditionName }) })
-    setNewConditionName(""); setAddingCondition(false); fetchAll()
+    await fetch("/api/dlms/conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newConditionName, sortOrder: newConditionSortOrder }) })
+    setNewConditionName(""); setNewConditionSortOrder(0); setAddingCondition(false); fetchAll()
   }
   const updateCondition = async (c: Condition) => {
-    await fetch(`/api/dlms/conditions/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: c.name }) })
+    await fetch(`/api/dlms/conditions/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: c.name, sortOrder: c.sortOrder }) })
     setEditingCondition(null); fetchAll()
   }
   const deleteCondition = async (id: number) => {
     if (!confirm("削除しますか？")) return
     await fetch(`/api/dlms/conditions/${id}`, { method: "DELETE" }); fetchAll()
   }
+
   const shapeLabel = (s: string) => ({ rect: "矩形", circle: "円", polygon: "多角形" }[s] ?? s)
   const tabs: [Tab, string, number][] = [
     ["formats", "判型マスタ", formats.length],
@@ -103,6 +119,7 @@ export default function DlmsMastersPage() {
     ["notes", "注記マスタ", notes.length],
     ["conditions", "条件マスタ", conditions.length],
   ]
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4">
@@ -159,6 +176,10 @@ export default function DlmsMastersPage() {
                         className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                       <input type="text" value={newFormat.note ?? ""} onChange={e => setNewFormat(f => ({ ...f, note: e.target.value }))}
                         placeholder="備考" autoComplete="off" className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">順序</span>
+                        <SortOrderInput value={newFormat.sortOrder} onChange={v => setNewFormat(f => ({ ...f, sortOrder: v }))} />
+                      </div>
                       <button onClick={saveFormat} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
                       <button onClick={() => { setAddingFormat(false); setNewFormat(emptyFormat) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                     </div>
@@ -186,11 +207,13 @@ export default function DlmsMastersPage() {
                               className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
                             <input type="number" value={editingFormat.height} onChange={e => setEditingFormat({ ...editingFormat, height: Number(e.target.value) })}
                               className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
+                            <SortOrderInput value={editingFormat.sortOrder} onChange={v => setEditingFormat({ ...editingFormat, sortOrder: v })} />
                             <button onClick={() => updateFormat(editingFormat)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingFormat(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
                           </>
                         ) : (
                           <>
+                            <span className="w-6 text-xs text-gray-400 text-right">{f.sortOrder}</span>
                             <span className="flex-1 text-sm font-medium text-gray-800">{f.name}</span>
                             <span className="text-xs text-gray-500">{f.width} × {f.height} {f.unit}</span>
                             {f.note && <span className="text-xs text-gray-400">{f.note}</span>}
@@ -235,6 +258,10 @@ export default function DlmsMastersPage() {
                         className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                       <input type="text" value={newPart.note ?? ""} onChange={e => setNewPart(p => ({ ...p, note: e.target.value }))}
                         placeholder="備考" autoComplete="off" className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">順序</span>
+                        <SortOrderInput value={newPart.sortOrder} onChange={v => setNewPart(p => ({ ...p, sortOrder: v }))} />
+                      </div>
                       <button onClick={savePart} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
                       <button onClick={() => { setAddingPart(false); setNewPart(emptyPart) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                     </div>
@@ -263,11 +290,13 @@ export default function DlmsMastersPage() {
                               className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
                             <input type="number" value={editingPart.height} onChange={e => setEditingPart({ ...editingPart, height: Number(e.target.value) })}
                               className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
+                            <SortOrderInput value={editingPart.sortOrder} onChange={v => setEditingPart({ ...editingPart, sortOrder: v })} />
                             <button onClick={() => updatePart(editingPart)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingPart(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
                           </>
                         ) : (
                           <>
+                            <span className="w-6 text-xs text-gray-400 text-right">{p.sortOrder}</span>
                             <span className="flex-1 text-sm font-medium text-gray-800">{p.name}</span>
                             <span className="text-xs text-gray-500">{shapeLabel(p.shape)}</span>
                             <span className="text-xs text-gray-500">{p.width} × {p.height} mm</span>
@@ -319,6 +348,10 @@ export default function DlmsMastersPage() {
                         <input type="color" value={newNote.color} onChange={e => setNewNote(n => ({ ...n, color: e.target.value }))}
                           className="w-7 h-7 rounded cursor-pointer border" />
                       </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">順序</span>
+                        <SortOrderInput value={newNote.sortOrder} onChange={v => setNewNote(n => ({ ...n, sortOrder: v }))} />
+                      </div>
                       <div className="flex items-center gap-2 ml-auto">
                         <button onClick={saveNote} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
                         <button onClick={() => { setAddingNote(false); setNewNote(emptyNote) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -362,6 +395,7 @@ export default function DlmsMastersPage() {
                                 <input type="color" value={editingNote.color} onChange={e => setEditingNote({ ...editingNote, color: e.target.value })}
                                   className="w-7 h-7 rounded cursor-pointer border" />
                               </div>
+                              <SortOrderInput value={editingNote.sortOrder} onChange={v => setEditingNote({ ...editingNote, sortOrder: v })} />
                               <div className="flex gap-2 ml-auto">
                                 <button onClick={() => setEditingNote(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
                                 <button onClick={() => updateNote(editingNote)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
@@ -375,6 +409,7 @@ export default function DlmsMastersPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-3">
+                            <span className="w-6 text-xs text-gray-400 text-right">{n.sortOrder}</span>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-800">{n.name}</p>
                               <p style={{ fontSize: Math.min(n.fontSize, 13), color: n.color, fontWeight: n.fontWeight, whiteSpace: "pre-wrap" }} className="mt-0.5 leading-tight">
@@ -408,8 +443,12 @@ export default function DlmsMastersPage() {
                         placeholder="条件名（例：三方背、四方折返し）" autoFocus autoComplete="off"
                         onKeyDown={e => { if (e.key === "Enter") saveCondition() }}
                         className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">順序</span>
+                        <SortOrderInput value={newConditionSortOrder} onChange={setNewConditionSortOrder} />
+                      </div>
                       <button onClick={saveCondition} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
-                      <button onClick={() => { setAddingCondition(false); setNewConditionName("") }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                      <button onClick={() => { setAddingCondition(false); setNewConditionName(""); setNewConditionSortOrder(0) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                     </div>
                   </div>
                 )}
@@ -428,11 +467,13 @@ export default function DlmsMastersPage() {
                               autoFocus autoComplete="off"
                               onKeyDown={e => { if (e.key === "Enter") updateCondition(editingCondition) }}
                               className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <SortOrderInput value={editingCondition.sortOrder} onChange={v => setEditingCondition({ ...editingCondition, sortOrder: v })} />
                             <button onClick={() => updateCondition(editingCondition)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingCondition(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
                           </>
                         ) : (
                           <>
+                            <span className="w-6 text-xs text-gray-400 text-right">{c.sortOrder}</span>
                             <span className="flex-1 text-sm font-medium text-gray-800">{c.name}</span>
                             <button onClick={() => setEditingCondition(c)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
                             <button onClick={() => deleteCondition(c.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>

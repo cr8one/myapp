@@ -6,9 +6,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const body = await request.json()
-  const { name, width, height, shape, note } = body
-  const part = await prisma.dlmsPartMaster.update({ where: { id: Number(id) }, data: { name, width, height, shape, note } })
+  const { name, width, height, shape, note, sortOrder } = await request.json()
+  const part = await prisma.dlmsPartMaster.update({
+    where: { id: Number(id) },
+    data: { name, width, height, shape, note, sortOrder: sortOrder ?? 0 }
+  })
   return NextResponse.json(part)
 }
 

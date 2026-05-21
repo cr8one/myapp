@@ -320,6 +320,7 @@ model DlmsFormatMaster {
   height    Float
   unit      String   @default("mm")
   note      String?
+  sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("dlms_format_masters")
@@ -331,6 +332,7 @@ model DlmsPartMaster {
   height    Float
   shape     String   @default("rect")
   note      String?
+  sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("dlms_part_masters")
@@ -342,6 +344,7 @@ model DlmsNoteMaster {
   fontSize   Int      @default(12) @map("font_size")
   color      String   @default("#1a1a1a")
   fontWeight String   @default("normal") @map("font_weight")
+  sortOrder Int      @default(0) @map("sort_order")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   @@map("dlms_note_masters")
