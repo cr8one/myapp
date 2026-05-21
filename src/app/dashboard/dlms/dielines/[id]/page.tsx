@@ -32,9 +32,9 @@ type Parent = {
   conditions: Condition[]; children: Child[]
 }
 
-type ChildForm = { han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
+type ChildForm = { edaban: string; han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
 const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.toFixed(1) : String(v)
-const emptyChildForm: ChildForm = { han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
+const emptyChildForm: ChildForm = { edaban: "", han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
 
 export default function DielineDetailPage() {
   const router = useRouter()
@@ -137,6 +137,7 @@ export default function DielineDetailPage() {
   const openEditChild = (c: Child) => {
     setEditChild(c)
     setChildForm({
+      edaban: c.edaban,
       han: c.han ?? "", me: c.me ?? "", kiri: c.kiri ?? "", men: c.men ?? "",
       sizey: c.sizey?.toString() ?? "", sizex: c.sizex?.toString() ?? "",
       咥え: c.咥え?.toString() ?? "", location: c.location ?? "",
@@ -147,6 +148,7 @@ export default function DielineDetailPage() {
   const handleSaveChild = async () => {
     setSaving(true)
     const payload = {
+      edaban: childForm.edaban || null,
       han: childForm.han || null, me: childForm.me || null,
       kiri: childForm.kiri || null, men: childForm.men || null,
       sizey: childForm.sizey ? parseFloat(childForm.sizey) : null,
@@ -404,6 +406,11 @@ export default function DielineDetailPage() {
               <button onClick={() => setChildModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-4 space-y-4">
+              <div>
+                <Label className="text-xs">枝番（2桁）</Label>
+                <Input type="number" value={childForm.edaban} onChange={e => setChildForm(f => ({ ...f, edaban: e.target.value }))}
+                  autoComplete="off" className="mt-1 h-8 text-sm w-24" placeholder="自動" />
+              </div>
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { label: "判", key: "han", options: HAN_OPTIONS },

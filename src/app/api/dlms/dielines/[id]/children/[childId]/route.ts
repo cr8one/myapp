@@ -5,9 +5,11 @@ import { auth } from "@/auth"
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; childId: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { childId } = await params
   const body = await req.json()
+  if (body.edaban) {
+    body.edaban = String(parseInt(body.edaban)).padStart(2, "0")
+  }
   const child = await prisma.dlmsDielineChild.update({
     where: { id: childId },
     data: body,
@@ -18,7 +20,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string; childId: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { childId } = await params
   await prisma.dlmsDielineChild.update({
     where: { id: childId },
