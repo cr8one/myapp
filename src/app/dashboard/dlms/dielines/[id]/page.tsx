@@ -396,10 +396,11 @@ export default function DielineDetailPage() {
       </div>
 
       {childModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div className="px-6 py-4 border-b">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
               <h2 className="text-lg font-bold">{editChild ? "枝番を編集" : "枝番を追加"} — {parent.uid_ntemp}</h2>
+              <button onClick={() => setChildModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div className="grid grid-cols-4 gap-2">
