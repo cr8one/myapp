@@ -33,6 +33,7 @@ type Parent = {
 }
 
 type ChildForm = { han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
+const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.toFixed(1) : String(v)
 const emptyChildForm: ChildForm = { han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
 
 export default function DielineDetailPage() {
@@ -210,11 +211,11 @@ export default function DielineDetailPage() {
                 <div><span className="text-gray-400">仕様</span><p className="mt-0.5">{parent.spec ?? "—"}</p></div>
                 <div><span className="text-gray-400">品目</span><p className="mt-0.5">{parent.hinmoku ?? "—"}</p></div>
                 <div><span className="text-gray-400">展開サイズ（mm）</span>
-                  <p className="mt-0.5">天地 {parent.developy ?? "—"} / 左右 {parent.developx ?? "—"} / 背 {parent.develop_depth ?? "—"}</p></div>
+                  <p className="mt-0.5">天地 {fmt(parent.developy)} / 左右 {fmt(parent.developx)} / 背 {fmt(parent.develop_depth)}</p></div>
                 <div><span className="text-gray-400">仕上サイズ 外寸（mm）</span>
-                  <p className="mt-0.5">背 {parent.sizey ?? "—"} / 高さ {parent.sizex ?? "—"} / 奥行き {parent.widthy ?? "—"}</p></div>
+                  <p className="mt-0.5">背 {fmt(parent.sizey)} / 高さ {fmt(parent.sizex)} / 奥行き {fmt(parent.widthy)}</p></div>
                 <div><span className="text-gray-400">内寸（mm）</span>
-                  <p className="mt-0.5">背 {parent.inner_height ?? "—"} / 高さ {parent.inner_width ?? "—"} / 奥行き {parent.inner_depth ?? "—"}</p></div>
+                  <p className="mt-0.5">背 {fmt(parent.inner_height)} / 高さ {fmt(parent.inner_width)} / 奥行き {fmt(parent.inner_depth)}</p></div>
                 {parent.conditions.length > 0 && (
                   <div className="col-span-2">
                     <span className="text-gray-400">条件</span>
