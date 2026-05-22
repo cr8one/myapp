@@ -67,7 +67,6 @@ export default function DielineDetailPage() {
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [editChild, setEditChild] = useState<Child | null>(null)
   const [childForm, setChildForm] = useState<ChildForm>(emptyChildForm)
-
   const [requestModalChild, setRequestModalChild] = useState<Child | null>(null)
 
   const fetchParent = async () => {
@@ -509,7 +508,20 @@ export default function DielineDetailPage() {
                 </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t flex justify-end">
+            <div className="px-6 py-4 border-t flex items-center justify-between">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    parentId: parent.id,
+                    childId: requestModalChild.id,
+                  })
+                  router.push(`/dashboard/dlms/requests?${params.toString()}`)
+                  setRequestModalChild(null)
+                }}
+                className="flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />新規作成
+              </Button>
               <Button variant="outline" onClick={() => setRequestModalChild(null)}>閉じる</Button>
             </div>
           </div>

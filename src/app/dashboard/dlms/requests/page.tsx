@@ -1,10 +1,11 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Printer, Pencil, Trash2, Search } from "lucide-react"
+import { Plus, Printer, Pencil, Trash2 } from "lucide-react"
 
 const HAICHI_OPTIONS = ["未手配", "社内作成", "外注手配", "手配不要"]
 const LOCATION_OPTIONS = ["J 1", "島田PC", "島田ダイマト", "本社", "東京ユニオン", "イシイ埼玉", "パックウェル"]
@@ -20,16 +21,13 @@ type DielineRequest = {
   kansei_date: string | null; kansei_time: string | null; haichi_note: string | null
   parent: Parent; child: Child | null
 }
-
 type DilineParentOption = { id: string; uid_ntemp: string; children: { id: string; edaban: string }[] }
-
 type FormData = {
   parentId: string; childId: string; shohin_no: string; location: string
   seisan_tanto: string; use_date: string; use_time: string; request_note: string
   haichi_kakunin_by: string; haichi_kakunin: string
   kansei_date: string; kansei_time: string; haichi_note: string
 }
-
 const emptyForm: FormData = {
   parentId: "", childId: "", shohin_no: "", location: "",
   seisan_tanto: "", use_date: "", use_time: "PM", request_note: "",
@@ -37,7 +35,8 @@ const emptyForm: FormData = {
   kansei_date: "", kansei_time: "PM", haichi_note: "",
 }
 
-export default function DielineRequestsPage() {
+function RequestsPageInner() {
+  const searchParams = useSearchParams()
   const [requests, setRequests] = useState<DielineRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [filterHaichi, setFilterHaichi] = useState("all")
@@ -69,7 +68,26 @@ export default function DielineRequestsPage() {
     })))
   }
 
-  useEffect(() => { fetchRequests(); fetchParentOptions() }, [])
+  useEffect(() => {
+    fetchRequests()
+    fetchParentOptions()
+  }, [])
+
+  // クエリパラメータから自動入力
+  useEffect(() => {
+    const parentId = searchParams.get("parentId")
+    const childId = searchParams.get("childId")
+    if (parentId && parentOptions.length > 0) {
+      setForm({
+        ...emptyForm,
+        use_date: new Date().toISOString().split("T")[0],
+        parentId,
+        childId: childId ?? "",
+      })
+      setEditTarget(null)
+      setModalOpen(true)
+    }
+  }, [searchParams, parentOptions])
 
   const selectedParentOption = parentOptions.find(p => p.id === form.parentId)
 
@@ -150,7 +168,6 @@ export default function DielineRequestsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto print:hidden">
-      {/* 印刷エリア */}
       {printTarget && (
         <div ref={printRef} className="hidden print:block">
           <style>{`
@@ -212,7 +229,6 @@ export default function DielineRequestsPage() {
           </div>
         </div>
       )}
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">依頼書管理</h1>
@@ -222,21 +238,16 @@ export default function DielineRequestsPage() {
           <Plus className="w-4 h-4" />新規作成
         </Button>
       </div>
-
-      {/* フィルター */}
       <div className="mb-4 flex items-center gap-3">
         <Label className="text-sm text-gray-600">手配確認：</Label>
         <select
           value={filterHaichi}
           onChange={e => { setFilterHaichi(e.target.value); fetchRequests(e.target.value) }}
-          className="border rounded px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+          className="border rounded px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="all">すべて</option>
           {HAICHI_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       </div>
-
-      {/* 一覧 */}
       {loading ? (
         <div className="text-center py-12 text-gray-400">読み込み中...</div>
       ) : requests.length === 0 ? (
@@ -260,9 +271,7 @@ export default function DielineRequestsPage() {
               {requests.map(r => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-700">{r.request_no}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {r.parent.uid_ntemp}{r.child ? `-${r.child.edaban}` : ""}
-                  </td>
+                  <td className="px-4 py-3 text-gray-600">{r.parent.uid_ntemp}{r.child ? `-${r.child.edaban}` : ""}</td>
                   <td className="px-4 py-3 text-gray-600">{r.shohin_no ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{r.seisan_tanto ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -295,8 +304,6 @@ export default function DielineRequestsPage() {
           </table>
         </div>
       )}
-
-      {/* 作成・編集モーダル */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -304,7 +311,6 @@ export default function DielineRequestsPage() {
               <h2 className="text-lg font-bold text-gray-800">{editTarget ? "依頼書を編集" : "依頼書を新規作成"}</h2>
             </div>
             <div className="px-6 py-4 space-y-5">
-              {/* 手配依頼内容 */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-3">手配依頼内容</h3>
                 <div className="space-y-3">
@@ -368,7 +374,6 @@ export default function DielineRequestsPage() {
                   </div>
                 </div>
               </div>
-              {/* チェック欄 */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-3">チェック欄</h3>
                 <div className="space-y-3">
@@ -415,8 +420,6 @@ export default function DielineRequestsPage() {
           </div>
         </div>
       )}
-
-      {/* 削除確認 */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
@@ -430,5 +433,13 @@ export default function DielineRequestsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function DielineRequestsPage() {
+  return (
+    <Suspense>
+      <RequestsPageInner />
+    </Suspense>
   )
 }
