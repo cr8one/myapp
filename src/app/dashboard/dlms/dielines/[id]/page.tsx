@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Pencil, Plus, Trash2, X } from "lucide-react"
+import { Pencil, Plus, Trash2, X, FileText } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
@@ -18,10 +18,12 @@ const MEN_OPTIONS = Array.from({ length: 18 }, (_, i) => String(i + 1))
 
 type ConditionMaster = { id: number; name: string }
 type Condition = { id: string; value: string; sortOrder: number }
+type Request = { id: string; request_no: string; haichi_kakunin: string; dtindt: string }
 type Child = {
   id: string; edaban: string; han: string | null; me: string | null
   kiri: string | null; men: string | null; sizey: number | null
   sizex: number | null; 咥え: number | null; location: string | null
+  requests: Request[]
 }
 type Parent = {
   id: string; uid_ntemp: string; kyugataban: string | null
@@ -65,6 +67,8 @@ export default function DielineDetailPage() {
   const [childModalOpen, setChildModalOpen] = useState(false)
   const [editChild, setEditChild] = useState<Child | null>(null)
   const [childForm, setChildForm] = useState<ChildForm>(emptyChildForm)
+
+  const [requestModalChild, setRequestModalChild] = useState<Child | null>(null)
 
   const fetchParent = async () => {
     const res = await fetch(`/api/dlms/dielines/${id}`)
@@ -362,6 +366,7 @@ export default function DielineDetailPage() {
                       <th className="text-left px-3 py-2 text-gray-500 font-medium">天地</th>
                       <th className="text-left px-3 py-2 text-gray-500 font-medium">左右</th>
                       <th className="text-left px-3 py-2 text-gray-500 font-medium">咥え</th>
+                      <th className="text-left px-3 py-2 text-gray-500 font-medium">依頼書</th>
                       <th className="text-left px-3 py-2 text-gray-500 font-medium">所在</th>
                       <th className="px-3 py-2"></th>
                     </tr>
@@ -377,6 +382,17 @@ export default function DielineDetailPage() {
                         <td className="px-3 py-2 text-gray-600">{c.sizey ?? "—"}</td>
                         <td className="px-3 py-2 text-gray-600">{c.sizex ?? "—"}</td>
                         <td className="px-3 py-2 text-gray-600">{c.咥え ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => setRequestModalChild(c)}
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                              c.requests.length > 0
+                                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
+                            }`}>
+                            {c.requests.length > 0 ? `発行済 ${c.requests.length}件` : "未発行"}
+                          </button>
+                        </td>
                         <td className="px-3 py-2 text-gray-600">{c.location ?? "—"}</td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
@@ -398,6 +414,7 @@ export default function DielineDetailPage() {
         </Card>
       </div>
 
+      {/* 枝番編集モーダル */}
       {childModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
@@ -449,6 +466,51 @@ export default function DielineDetailPage() {
             <div className="px-6 py-4 border-t flex justify-end gap-2">
               <Button variant="outline" onClick={() => setChildModalOpen(false)}>キャンセル</Button>
               <Button onClick={handleSaveChild} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 依頼書モーダル */}
+      {requestModalChild && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">依頼書一覧</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{parent.uid_ntemp}-{requestModalChild.edaban}</p>
+              </div>
+              <button onClick={() => setRequestModalChild(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="px-6 py-4">
+              {requestModalChild.requests.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">依頼書が発行されていません</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {requestModalChild.requests.map(r => (
+                    <div key={r.id}
+                      onClick={() => { router.push(`/dashboard/dlms/requests/${r.id}`); setRequestModalChild(null) }}
+                      className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors border border-gray-100">
+                      <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">{r.request_no}</p>
+                        <p className="text-xs text-gray-400">{new Date(r.dtindt).toLocaleDateString("ja-JP")}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        r.haichi_kakunin === "手配済"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}>{r.haichi_kakunin}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end">
+              <Button variant="outline" onClick={() => setRequestModalChild(null)}>閉じる</Button>
             </div>
           </div>
         </div>

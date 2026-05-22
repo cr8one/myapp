@@ -11,7 +11,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     where: { id },
     include: {
       conditions: { orderBy: { sortOrder: "asc" } },
-      children: { where: { flg_del: 0 }, orderBy: { edaban: "asc" } },
+      children: {
+        where: { flg_del: 0 },
+        orderBy: { edaban: "asc" },
+        include: {
+          requests: {
+            where: { flg_del: 0 },
+            select: { id: true, request_no: true, haichi_kakunin: true, dtindt: true },
+          },
+        },
+      },
     },
   })
   if (!parent) return NextResponse.json({ error: "Not found" }, { status: 404 })
