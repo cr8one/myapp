@@ -665,6 +665,7 @@ model Device {
   status         String?
   managementType String?   @map("management_type")
   remark         String?
+  parentDeviceId Int?      @map("parent_device_id")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   ipAddresses    DeviceIp[]
@@ -708,6 +709,7 @@ model DeviceSoftware {
   softwareId Int      @map("software_id")
   version    String?
   note       String?
+  userId     String?   @map("user_id")
   flgDel     Boolean  @default(false) @map("flg_del")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
