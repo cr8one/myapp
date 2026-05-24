@@ -666,6 +666,8 @@ model Device {
   managementType String?   @map("management_type")
   remark         String?
   parentDeviceId Int?      @map("parent_device_id")
+  parent         Device?   @relation("DeviceChildren", fields: [parentDeviceId], references: [deviceId])
+  children       Device[]  @relation("DeviceChildren")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   ipAddresses    DeviceIp[]

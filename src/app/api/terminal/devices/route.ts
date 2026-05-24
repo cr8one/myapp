@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
       ]} : {}),
       ...(status ? { status } : {}),
     },
-    include: { ipAddresses: { where: { flgDel: false } } },
+    include: {
+      ipAddresses: { where: { flgDel: false } },
+      children: { select: { deviceId: true, deviceName: true, status: true } },
+    },
     orderBy: { deviceId: "asc" },
   })
   return NextResponse.json(records)
@@ -47,6 +50,7 @@ export async function POST(req: NextRequest) {
       status: body.status || null,
       managementType: body.managementType || null,
       remark: body.remark || null,
+      parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
     },
     include: { ipAddresses: true },
   })
@@ -75,6 +79,7 @@ export async function PUT(req: NextRequest) {
       status: body.status || null,
       managementType: body.managementType || null,
       remark: body.remark || null,
+      parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
     },
     include: { ipAddresses: { where: { flgDel: false } } },
   })

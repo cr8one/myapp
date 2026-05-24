@@ -6,16 +6,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Search, Pencil, Trash2, Monitor } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Monitor, Server } from "lucide-react"
 
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
+type ChildDevice = { deviceId: number; deviceName: string; status: string | null }
 type Device = {
   deviceId: number; assetNo: string | null; deviceName: string; hostname: string | null
   modelId: number | null; serialNo: string | null; osVersion: string | null
   memorySize: string | null; storageSize: string | null; location: string | null
   userId: string | null; purchaseDate: string | null; startDate: string | null
   status: string | null; managementType: string | null; remark: string | null
+  parentDeviceId: number | null
   ipAddresses: DeviceIp[]
+  children: ChildDevice[]
 }
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; osName: string | null; cpuInfo: string | null; memoryDefault: string | null; storageDefault: string | null }
 type Master = { id: number; category: string; value: string }
@@ -24,6 +27,7 @@ const emptyForm = {
   assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
   osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
   purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
+  parentDeviceId: "",
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -70,6 +74,11 @@ export default function DevicesPage() {
     return m ? `${m.vendorName ? m.vendorName + " " : ""}${m.modelName}` : null
   }
 
+  const getDeviceName = (deviceId: number) => {
+    const d = records.find(r => r.deviceId === deviceId)
+    return d ? d.deviceName : `ID:${deviceId}`
+  }
+
   const openCreate = () => {
     setEditTarget(null)
     setForm(emptyForm)
@@ -87,6 +96,7 @@ export default function DevicesPage() {
       purchaseDate: r.purchaseDate ? r.purchaseDate.split("T")[0] : "",
       startDate: r.startDate ? r.startDate.split("T")[0] : "",
       status: r.status ?? "", managementType: r.managementType ?? "", remark: r.remark ?? "",
+      parentDeviceId: r.parentDeviceId?.toString() ?? "",
     })
     setDialogOpen(true)
   }
@@ -125,6 +135,9 @@ export default function DevicesPage() {
     setDeleteTarget(null)
     fetchAll()
   }
+
+  // 編集対象以外の端末（自分自身は親に選べない）
+  const parentCandidates = records.filter(r => r.deviceId !== editTarget?.deviceId)
 
   return (
     <div className="p-6">
@@ -169,12 +182,20 @@ export default function DevicesPage() {
               onClick={() => router.push(`/dashboard/terminal/devices/${r.deviceId}`)}>
               <div className="p-4 flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                  <Monitor className="w-5 h-5 text-slate-500" />
+                  {r.children.length > 0
+                    ? <Server className="w-5 h-5 text-slate-500" />
+                    : <Monitor className="w-5 h-5 text-slate-500" />
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-gray-900">{r.deviceName}</span>
                     {r.assetNo && <span className="text-xs text-gray-400 font-mono">{r.assetNo}</span>}
+                    {r.parentDeviceId && (
+                      <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
+                        VM / {getDeviceName(r.parentDeviceId)}
+                      </span>
+                    )}
                     {r.status && (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {r.status}
@@ -192,6 +213,15 @@ export default function DevicesPage() {
                       {r.ipAddresses.map(ip => (
                         <span key={ip.id} className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-mono">
                           {ip.ip}{ip.interface ? ` (${ip.interface})` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {r.children.length > 0 && (
+                    <div className="flex gap-2 mt-1 flex-wrap">
+                      {r.children.map(c => (
+                        <span key={c.deviceId} className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
+                          VM: {c.deviceName}
                         </span>
                       ))}
                     </div>
@@ -293,6 +323,16 @@ export default function DevicesPage() {
               <datalist id="management-list">
                 {getMasterValues("管理区分").map(v => <option key={v} value={v} />)}
               </datalist>
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>親端末（仮想マシンの場合に選択）</Label>
+              <select value={form.parentDeviceId} onChange={e => setForm(f => ({ ...f, parentDeviceId: e.target.value }))}
+                className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">なし（物理端末）</option>
+                {parentCandidates.map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.deviceName}{d.assetNo ? ` (${d.assetNo})` : ""}</option>
+                ))}
+              </select>
             </div>
             <div className="col-span-2 space-y-1">
               <Label>備考</Label>
