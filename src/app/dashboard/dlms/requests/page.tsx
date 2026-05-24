@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Download, Upload } from "lucide-react"
 
 const HAICHI_OPTIONS = ["未手配", "社内作成", "外注手配", "手配不要"]
 const LOCATION_OPTIONS = ["J 1", "島田PC", "島田ダイマト", "本社", "東京ユニオン", "イシイ埼玉", "パックウェル"]
@@ -35,6 +35,32 @@ const emptyForm: FormData = {
   kansei_date: "", kansei_time: "PM", haichi_note: "",
 }
 
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ""
+  let inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++ }
+      else if (ch === '"') { inQuotes = false }
+      else { field += ch }
+    } else {
+      if (ch === '"') { inQuotes = true }
+      else if (ch === ',') { row.push(field); field = "" }
+      else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+        if (ch === '\r') i++
+        row.push(field); field = ""
+        if (row.some(v => v !== "")) rows.push(row)
+        row = []
+      } else { field += ch }
+    }
+  }
+  if (field || row.length > 0) { row.push(field); if (row.some(v => v !== "")) rows.push(row) }
+  return rows
+}
+
 function RequestsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -46,6 +72,9 @@ function RequestsPageInner() {
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<DielineRequest | null>(null)
   const [parentOptions, setParentOptions] = useState<DilineParentOption[]>([])
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ count: number; errors: string[] } | null>(null)
+  const importRef = useRef<HTMLInputElement>(null)
 
   const fetchRequests = async (haichi?: string) => {
     setLoading(true)
@@ -56,7 +85,6 @@ function RequestsPageInner() {
     setRequests(data)
     setLoading(false)
   }
-
   const fetchParentOptions = async () => {
     const res = await fetch("/api/dlms/dielines")
     const data = await res.json()
@@ -65,22 +93,12 @@ function RequestsPageInner() {
       children: p.children.map((c: any) => ({ id: c.id, edaban: c.edaban })),
     })))
   }
-
-  useEffect(() => {
-    fetchRequests()
-    fetchParentOptions()
-  }, [])
-
+  useEffect(() => { fetchRequests(); fetchParentOptions() }, [])
   useEffect(() => {
     const parentId = searchParams.get("parentId")
     const childId = searchParams.get("childId")
     if (parentId && parentOptions.length > 0) {
-      setForm({
-        ...emptyForm,
-        use_date: new Date().toISOString().split("T")[0],
-        parentId,
-        childId: childId ?? "",
-      })
+      setForm({ ...emptyForm, use_date: new Date().toISOString().split("T")[0], parentId, childId: childId ?? "" })
       setModalOpen(true)
     }
   }, [searchParams, parentOptions])
@@ -123,6 +141,41 @@ function RequestsPageInner() {
     fetchRequests(filterHaichi)
   }
 
+  const handleExport = () => {
+    const params = new URLSearchParams()
+    if (filterHaichi !== "all") params.set("haichi", filterHaichi)
+    window.location.href = `/api/dlms/requests/export?${params.toString()}`
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportResult(null)
+    const text = await file.text()
+    const cleaned = text.replace(/^\uFEFF/, "")
+    const allRows = parseCSV(cleaned)
+    const dataRows = allRows.slice(1).filter(r => r.length >= 2)
+    const CHUNK = 10
+    let totalCount = 0
+    const allErrors: string[] = []
+    for (let i = 0; i < dataRows.length; i += CHUNK) {
+      const chunk = dataRows.slice(i, i + CHUNK)
+      const res = await fetch("/api/dlms/requests/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records: chunk }),
+      })
+      const result = await res.json()
+      totalCount += result.count ?? 0
+      if (result.errors) allErrors.push(...result.errors)
+    }
+    setImportResult({ count: totalCount, errors: allErrors })
+    setImporting(false)
+    fetchRequests(filterHaichi)
+    if (importRef.current) importRef.current.value = ""
+  }
+
   const HAICHI_COLORS: Record<string, string> = {
     "未手配": "bg-yellow-100 text-yellow-700",
     "社内作成": "bg-blue-100 text-blue-700",
@@ -134,13 +187,36 @@ function RequestsPageInner() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">依頼書管理</h1>
+          <h1 className="text-2xl font-bold text-gray-800">抜き型手配依頼書管理</h1>
           <p className="text-sm text-gray-500 mt-1">抜き型手配依頼書の管理</p>
         </div>
-        <Button onClick={openCreate} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />新規作成
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExport} className="flex items-center gap-2 text-sm">
+            <Download className="w-4 h-4" />CSVエクスポート
+          </Button>
+          <label className={`flex items-center gap-2 text-sm px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${importing ? "opacity-50 pointer-events-none" : ""}`}>
+            <Upload className="w-4 h-4" />
+            {importing ? "インポート中..." : "CSVインポート"}
+            <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImportFile} />
+          </label>
+          <Button onClick={openCreate} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />新規作成
+          </Button>
+        </div>
       </div>
+
+      {importResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm border ${importResult.errors.length > 0 ? "bg-yellow-50 border-yellow-200 text-yellow-800" : "bg-green-50 border-green-200 text-green-800"}`}>
+          <p className="font-medium">{importResult.count}件をインポートしました。</p>
+          {importResult.errors.length > 0 && (
+            <ul className="mt-1 list-disc list-inside space-y-0.5">
+              {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          )}
+          <button onClick={() => setImportResult(null)} className="mt-1 underline text-xs">閉じる</button>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center gap-3">
         <Label className="text-sm text-gray-600">手配確認：</Label>
         <select value={filterHaichi}
@@ -150,6 +226,7 @@ function RequestsPageInner() {
           {HAICHI_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       </div>
+
       {loading ? (
         <div className="text-center py-12 text-gray-400">読み込み中...</div>
       ) : requests.length === 0 ? (
@@ -202,12 +279,11 @@ function RequestsPageInner() {
         </div>
       )}
 
-      {/* 新規作成モーダル */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-bold text-gray-800">依頼書を新規作成</h2>
+              <h2 className="text-lg font-bold text-gray-800">抜き型手配依頼書を新規作成</h2>
             </div>
             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
               <div>
@@ -297,12 +373,11 @@ function RequestsPageInner() {
         </div>
       )}
 
-      {/* 削除確認 */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-2">削除の確認</h2>
-            <p className="text-sm text-gray-600">依頼書 No.{deleteTarget.request_no} を削除しますか？</p>
+            <p className="text-sm text-gray-600">抜き型手配依頼書 No.{deleteTarget.request_no} を削除しますか？</p>
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setDeleteTarget(null)}>キャンセル</Button>
               <Button variant="destructive" onClick={handleDelete}>削除</Button>

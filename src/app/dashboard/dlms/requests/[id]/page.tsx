@@ -221,7 +221,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">依頼書 No.{request.request_no}</h1>
+              <h1 className="text-xl font-bold text-gray-900">抜き型手配依頼書 No.{request.request_no}</h1>
               <p className="text-xs text-gray-400 mt-0.5">{request.parent.uid_ntemp}{request.child ? ` - ${request.child.edaban}` : ""}</p>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b flex items-center justify-between flex-shrink-0">
-              <h2 className="text-base font-bold text-gray-900">依頼書を編集</h2>
+              <h2 className="text-base font-bold text-gray-900">抜き型手配依頼書を編集</h2>
               <button onClick={() => setEditModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
