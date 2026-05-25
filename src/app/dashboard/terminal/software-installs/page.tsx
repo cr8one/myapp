@@ -11,6 +11,7 @@ type DeviceSoftwareWithRefs = {
   softwareId: number
   version: string | null
   note: string | null
+  userId: string | null
   device: {
     deviceId: number
     deviceName: string
@@ -55,14 +56,13 @@ export default function SoftwareInstallsPage() {
           <p className="text-sm text-gray-500 mt-1">{records.length}件</p>
         </div>
       </div>
-
       <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
         <div className="flex gap-3 items-end">
           <div className="flex-1 min-w-40">
             <Input
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
-              placeholder="ソフト名・ベンダー・端末名・バージョンで検索"
+              placeholder="ソフト名・ベンダー・端末名・バージョン・利用者で検索"
               onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
               autoComplete="off"
             />
@@ -85,6 +85,7 @@ export default function SoftwareInstallsPage() {
                 <tr>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">端末名</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">資産番号</th>
+                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">利用者</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">ソフトウェア名</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">ベンダー</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">バージョン</th>
@@ -101,6 +102,14 @@ export default function SoftwareInstallsPage() {
                     </td>
                     <td className="px-3 py-2.5 text-gray-500 max-w-[120px]">
                       <div className="truncate">{trunc(r.device.assetNo)}</div>
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-500 max-w-[120px]">
+                      <div className="truncate">
+                        {r.userId
+                          ? <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{r.userId}</span>
+                          : <span className="text-gray-300 text-xs">共通</span>
+                        }
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 font-medium max-w-[180px]">
                       <div className="truncate">{r.software.name}</div>

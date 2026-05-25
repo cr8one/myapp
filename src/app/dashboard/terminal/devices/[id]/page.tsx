@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react"
-
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
 type DeviceSoftware = {
   id: number
   softwareId: number
   version: string | null
   note: string | null
+  userId: string | null
   software: { id: number; name: string; version: string | null; vendor: string | null; licenseType: string | null }
 }
 type MSoftware = { id: number; name: string; version: string | null; vendor: string | null }
@@ -25,17 +25,14 @@ type Device = {
   ipAddresses: DeviceIp[]
 }
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; imagePath: string | null }
-
 const STATUS_COLORS: Record<string, string> = {
   "使用中": "bg-green-100 text-green-700",
   "保管中": "bg-blue-100 text-blue-700",
   "修理中": "bg-yellow-100 text-yellow-700",
   "廃棄済": "bg-red-100 text-red-700",
 }
-
 const emptyIpForm = { ip: "", subnet: "", gateway: "", interface: "", note: "" }
-const emptySoftwareForm = { softwareId: "", version: "", note: "" }
-
+const emptySoftwareForm = { softwareId: "", version: "", note: "", userId: "" }
 export default function DeviceDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -44,14 +41,12 @@ export default function DeviceDetailPage() {
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [modelImageUrl, setModelImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
   // IP
   const [ipDialogOpen, setIpDialogOpen] = useState(false)
   const [editIpTarget, setEditIpTarget] = useState<DeviceIp | null>(null)
   const [ipForm, setIpForm] = useState(emptyIpForm)
   const [savingIp, setSavingIp] = useState(false)
   const [deleteIpTarget, setDeleteIpTarget] = useState<DeviceIp | null>(null)
-
   // Software
   const [softwares, setSoftwares] = useState<DeviceSoftware[]>([])
   const [softwareMasters, setSoftwareMasters] = useState<MSoftware[]>([])
@@ -60,7 +55,6 @@ export default function DeviceDetailPage() {
   const [swForm, setSwForm] = useState(emptySoftwareForm)
   const [savingSw, setSavingSw] = useState(false)
   const [deleteSwTarget, setDeleteSwTarget] = useState<DeviceSoftware | null>(null)
-
   const fetchDevice = async () => {
     const res = await fetch("/api/terminal/devices")
     const all: Device[] = await res.json()
@@ -82,19 +76,16 @@ export default function DeviceDetailPage() {
     }
     setLoading(false)
   }
-
   const fetchSoftwares = async () => {
     const res = await fetch(`/api/terminal/device-software?deviceId=${deviceId}`)
     const data = await res.json()
     setSoftwares(data)
   }
-
   useEffect(() => {
     fetchDevice()
     fetchSoftwares()
     fetch("/api/terminal/software").then(r => r.json()).then(setSoftwareMasters)
   }, [deviceId])
-
   // IP handlers
   const openAddIp = () => { setEditIpTarget(null); setIpForm(emptyIpForm); setIpDialogOpen(true) }
   const openEditIp = (ip: DeviceIp) => {
@@ -121,12 +112,11 @@ export default function DeviceDetailPage() {
     setDeleteIpTarget(null)
     fetchDevice()
   }
-
   // Software handlers
   const openAddSw = () => { setEditSwTarget(null); setSwForm(emptySoftwareForm); setSwDialogOpen(true) }
   const openEditSw = (sw: DeviceSoftware) => {
     setEditSwTarget(sw)
-    setSwForm({ softwareId: sw.softwareId.toString(), version: sw.version ?? "", note: sw.note ?? "" })
+    setSwForm({ softwareId: sw.softwareId.toString(), version: sw.version ?? "", note: sw.note ?? "", userId: sw.userId ?? "" })
     setSwDialogOpen(true)
   }
   const handleSaveSw = async () => {
@@ -148,18 +138,14 @@ export default function DeviceDetailPage() {
     setDeleteSwTarget(null)
     fetchSoftwares()
   }
-
   if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
   if (!device) return <div className="p-8 text-center text-gray-500">端末が見つかりません。</div>
-
   const val = (v: string | null | undefined) => v ?? <span className="text-gray-300">—</span>
-
   return (
     <div className="p-6 max-w-4xl">
       <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
         <ArrowLeft className="w-4 h-4" />一覧に戻る
       </button>
-
       {/* 端末情報 */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-start gap-6">
@@ -200,7 +186,6 @@ export default function DeviceDetailPage() {
           </div>
         </div>
       </div>
-
       {/* IPアドレス */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
@@ -243,7 +228,6 @@ export default function DeviceDetailPage() {
           </table>
         )}
       </div>
-
       {/* インストールソフト */}
       <div className="bg-white border rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
@@ -262,6 +246,7 @@ export default function DeviceDetailPage() {
                 <th className="text-left px-3 py-2 text-gray-600 font-medium">ベンダー</th>
                 <th className="text-left px-3 py-2 text-gray-600 font-medium">バージョン</th>
                 <th className="text-left px-3 py-2 text-gray-600 font-medium">ライセンス種別</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">利用者</th>
                 <th className="text-left px-3 py-2 text-gray-600 font-medium">備考</th>
                 <th className="px-3 py-2"></th>
               </tr>
@@ -279,6 +264,11 @@ export default function DeviceDetailPage() {
                         : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-3 py-2 text-gray-500">{sw.software.licenseType ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2 text-gray-500">
+                    {sw.userId
+                      ? <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{sw.userId}</span>
+                      : <span className="text-gray-300 text-xs">共通</span>}
+                  </td>
                   <td className="px-3 py-2 text-gray-500">{sw.note ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1">
@@ -292,7 +282,6 @@ export default function DeviceDetailPage() {
           </table>
         )}
       </div>
-
       {/* IP ダイアログ */}
       <Dialog open={ipDialogOpen} onOpenChange={setIpDialogOpen}>
         <DialogContent className="max-w-md">
@@ -327,7 +316,6 @@ export default function DeviceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* IP 削除確認 */}
       <Dialog open={!!deleteIpTarget} onOpenChange={v => !v && setDeleteIpTarget(null)}>
         <DialogContent className="max-w-sm">
@@ -339,7 +327,6 @@ export default function DeviceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* ソフトウェア ダイアログ */}
       <Dialog open={swDialogOpen} onOpenChange={setSwDialogOpen}>
         <DialogContent className="max-w-md">
@@ -365,6 +352,10 @@ export default function DeviceDetailPage() {
               <Input value={swForm.version} onChange={e => setSwForm(f => ({ ...f, version: e.target.value }))} placeholder="例：1.2.3" autoComplete="off" />
             </div>
             <div className="space-y-1">
+              <Label>利用者 <span className="text-xs text-gray-400">（空欄の場合は端末共通）</span></Label>
+              <Input value={swForm.userId} onChange={e => setSwForm(f => ({ ...f, userId: e.target.value }))} placeholder="例：山田太郎" autoComplete="off" />
+            </div>
+            <div className="space-y-1">
               <Label>備考</Label>
               <Input value={swForm.note} onChange={e => setSwForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" />
             </div>
@@ -377,7 +368,6 @@ export default function DeviceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* ソフトウェア 削除確認 */}
       <Dialog open={!!deleteSwTarget} onOpenChange={v => !v && setDeleteSwTarget(null)}>
         <DialogContent className="max-w-sm">

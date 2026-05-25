@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
         OR: [
           { version: { contains: keyword } },
           { note: { contains: keyword } },
+          { userId: { contains: keyword } },
           { software: { name: { contains: keyword } } },
           { software: { vendor: { contains: keyword } } },
           { device: { deviceName: { contains: keyword } } },
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       softwareId: parseInt(body.softwareId),
       version: body.version || null,
       note: body.note || null,
+      userId: body.userId || null,
     },
   })
   return NextResponse.json(record)
@@ -75,6 +77,7 @@ export async function PUT(req: NextRequest) {
       softwareId: parseInt(body.softwareId),
       version: body.version || null,
       note: body.note || null,
+      userId: body.userId || null,
     },
   })
   return NextResponse.json(record)
