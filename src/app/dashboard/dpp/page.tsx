@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,7 +8,6 @@ import { Plus, Search, Pencil, Trash2 } from "lucide-react"
 
 const PROGRESS_OPTIONS = ["保留", "入稿待ち", "入稿済", "製版中", "製版済", "出力中", "出力済", "印刷中", "印刷済", "完了"]
 const KOSEI_OPTIONS = ["初校", "再校", "三校", "四校", "五校", "六校", "七校", "八校", "九校"]
-
 const PROGRESS_COLORS: Record<string, string> = {
   "保留":    "bg-gray-100 text-gray-500",
   "入稿待ち": "bg-yellow-100 text-yellow-700",
@@ -24,22 +22,15 @@ const PROGRESS_COLORS: Record<string, string> = {
 }
 
 type DppSchedule = {
-  id: string
-  schedule_no: string
-  hinban: string | null
-  hinmei: string | null
-  artist_name: string | null
-  kosei_stage: string | null
-  nouki_date: string | null
-  nouki_time: string | null
-  progress: string | null
-  eigyo_tanto: string | null
-  seihan_tanto: string | null
-  biko: string | null
-  shuukei_daisuu: number | null
+  id: string; schedule_no: string; hinban: string | null; hinmei: string | null
+  artist_name: string | null; kosei_stage: string | null
+  nouki_date: string | null; nouki_time: string | null
+  progress: string | null; eigyo_tanto: string | null; seihan_tanto: string | null
+  biko: string | null; shuukei_daisuu: number | null
 }
-
 type DppMaster = { id: number; name: string; is_active: boolean }
+
+const DIRECT_INPUT = "__direct__"
 
 const emptyForm = {
   hinban: "", hinmei: "", artist_name: "", kosei_stage: "初校",
@@ -47,8 +38,51 @@ const emptyForm = {
   eigyo_tanto: "", seihan_tanto: "", biko: "", shuukei_daisuu: "",
 }
 
+// 担当者選択コンポーネント
+function TantoSelect({ label, value, onChange, suggestions }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  suggestions: string[]
+}) {
+  const isInSuggestions = suggestions.includes(value)
+  const selectValue = value === "" ? "" : isInSuggestions ? value : DIRECT_INPUT
+
+  const handleSelectChange = (v: string) => {
+    if (v === DIRECT_INPUT) {
+      onChange("")
+    } else {
+      onChange(v)
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{label}</Label>
+      <select
+        value={selectValue}
+        onChange={e => handleSelectChange(e.target.value)}
+        className="w-full h-8 border rounded px-2 text-sm bg-white"
+      >
+        <option value="">—</option>
+        {suggestions.map(s => <option key={s} value={s}>{s}</option>)}
+        <option value={DIRECT_INPUT}>直接入力...</option>
+      </select>
+      {selectValue === DIRECT_INPUT && (
+        <Input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="直接入力"
+          autoComplete="off"
+          className="h-8 text-sm mt-1"
+          autoFocus
+        />
+      )}
+    </div>
+  )
+}
+
 export default function DppPage() {
-  const router = useRouter()
   const [records, setRecords] = useState<DppSchedule[]>([])
   const [eigyoMasters, setEigyoMasters] = useState<DppMaster[]>([])
   const [seihanMasters, setSeihanMasters] = useState<DppMaster[]>([])
@@ -89,17 +123,12 @@ export default function DppPage() {
   const openEdit = (r: DppSchedule) => {
     setEditTarget(r)
     setForm({
-      hinban: r.hinban ?? "",
-      hinmei: r.hinmei ?? "",
-      artist_name: r.artist_name ?? "",
-      kosei_stage: r.kosei_stage ?? "初校",
+      hinban: r.hinban ?? "", hinmei: r.hinmei ?? "",
+      artist_name: r.artist_name ?? "", kosei_stage: r.kosei_stage ?? "初校",
       nouki_date: r.nouki_date ? r.nouki_date.split("T")[0] : "",
-      nouki_time: r.nouki_time ?? "",
-      progress: r.progress ?? "入稿待ち",
-      eigyo_tanto: r.eigyo_tanto ?? "",
-      seihan_tanto: r.seihan_tanto ?? "",
-      biko: r.biko ?? "",
-      shuukei_daisuu: r.shuukei_daisuu?.toString() ?? "",
+      nouki_time: r.nouki_time ?? "", progress: r.progress ?? "入稿待ち",
+      eigyo_tanto: r.eigyo_tanto ?? "", seihan_tanto: r.seihan_tanto ?? "",
+      biko: r.biko ?? "", shuukei_daisuu: r.shuukei_daisuu?.toString() ?? "",
     })
     setModalOpen(true)
   }
@@ -109,29 +138,24 @@ export default function DppPage() {
     try {
       if (editTarget) {
         await fetch("/api/dpp/schedules", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          method: "PUT", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: editTarget.id, ...form }),
         })
       } else {
         await fetch("/api/dpp/schedules", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         })
       }
       setModalOpen(false)
       fetchRecords()
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     await fetch("/api/dpp/schedules", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      method: "DELETE", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: deleteTarget.id }),
     })
     setDeleteTarget(null)
@@ -150,7 +174,6 @@ export default function DppPage() {
         </Button>
       </div>
 
-      {/* 検索 */}
       <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
         <div className="flex gap-3 items-end flex-wrap">
           <div className="flex-1 min-w-48">
@@ -170,7 +193,6 @@ export default function DppPage() {
         </div>
       </div>
 
-      {/* 一覧 */}
       {loading ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : records.length === 0 ? (
@@ -205,12 +227,8 @@ export default function DppPage() {
                         : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-3 py-2.5 font-medium text-gray-700 whitespace-nowrap">{r.hinban ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2.5 text-gray-700 max-w-[160px]">
-                      <div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div>
-                    </td>
-                    <td className="px-3 py-2.5 text-gray-600 max-w-[140px]">
-                      <div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div>
-                    </td>
+                    <td className="px-3 py-2.5 text-gray-700 max-w-[160px]"><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
+                    <td className="px-3 py-2.5 text-gray-600 max-w-[140px]"><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">
                       {r.nouki_date
                         ? <span className="font-medium">{new Date(r.nouki_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })}</span>
@@ -225,9 +243,7 @@ export default function DppPage() {
                     <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.shuukei_daisuu ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{r.eigyo_tanto ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{r.seihan_tanto ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-3 py-2.5 text-gray-500 max-w-[160px]">
-                      <div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div>
-                    </td>
+                    <td className="px-3 py-2.5 text-gray-500 max-w-[160px]"><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1">
                         <button onClick={() => openEdit(r)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
@@ -242,7 +258,6 @@ export default function DppPage() {
         </div>
       )}
 
-      {/* 新規作成・編集モーダル */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
@@ -289,22 +304,12 @@ export default function DppPage() {
                   <Label className="text-xs">集計台数</Label>
                   <Input type="number" value={form.shuukei_daisuu} onChange={e => setForm(f => ({ ...f, shuukei_daisuu: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">営業担当</Label>
-                  <Input value={form.eigyo_tanto} onChange={e => setForm(f => ({ ...f, eigyo_tanto: e.target.value }))}
-                    list="eigyo-list" autoComplete="off" className="h-8 text-sm" />
-                  <datalist id="eigyo-list">
-                    {eigyoSuggestions.map(s => <option key={s} value={s} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">製版担当</Label>
-                  <Input value={form.seihan_tanto} onChange={e => setForm(f => ({ ...f, seihan_tanto: e.target.value }))}
-                    list="seihan-list" autoComplete="off" className="h-8 text-sm" />
-                  <datalist id="seihan-list">
-                    {seihanSuggestions.map(s => <option key={s} value={s} />)}
-                  </datalist>
-                </div>
+                <TantoSelect label="営業担当" value={form.eigyo_tanto}
+                  onChange={v => setForm(f => ({ ...f, eigyo_tanto: v }))}
+                  suggestions={eigyoSuggestions} />
+                <TantoSelect label="製版担当" value={form.seihan_tanto}
+                  onChange={v => setForm(f => ({ ...f, seihan_tanto: v }))}
+                  suggestions={seihanSuggestions} />
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">備考</Label>
                   <Textarea value={form.biko} onChange={e => setForm(f => ({ ...f, biko: e.target.value }))} rows={3} className="text-sm" />
@@ -321,7 +326,6 @@ export default function DppPage() {
         </div>
       )}
 
-      {/* 削除確認 */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
