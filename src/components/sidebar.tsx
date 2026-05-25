@@ -95,6 +95,7 @@ const baseMenuItems = [
   ]},
   { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp" },
+    { label: "DPPマスタ管理", href: "/dashboard/dpp/masters" },
   ]},
   { label: "SSSS", href: "/dashboard/ssss", icon: "ssss", children: [
     { label: "支給管理表", href: "/dashboard/ssss/supplies" },

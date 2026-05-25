@@ -39,7 +39,7 @@ type DppSchedule = {
   shuukei_daisuu: number | null
 }
 
-type DppMember = { id: string; name: string | null; shortName: string | null }
+type DppMaster = { id: number; name: string; is_active: boolean }
 
 const emptyForm = {
   hinban: "", hinmei: "", artist_name: "", kosei_stage: "初校",
@@ -50,7 +50,8 @@ const emptyForm = {
 export default function DppPage() {
   const router = useRouter()
   const [records, setRecords] = useState<DppSchedule[]>([])
-  const [members, setMembers] = useState<DppMember[]>([])
+  const [eigyoMasters, setEigyoMasters] = useState<DppMaster[]>([])
+  const [seihanMasters, setSeihanMasters] = useState<DppMaster[]>([])
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [progressFilter, setProgressFilter] = useState("")
@@ -72,10 +73,12 @@ export default function DppPage() {
 
   useEffect(() => {
     fetchRecords()
-    fetch("/api/dpp/members").then(r => r.json()).then(setMembers)
+    fetch("/api/dpp/masters?type=eigyo").then(r => r.json()).then(setEigyoMasters)
+    fetch("/api/dpp/masters?type=seihan").then(r => r.json()).then(setSeihanMasters)
   }, [])
 
-  const memberSuggestions = members.map(m => m.shortName || m.name || "").filter(Boolean)
+  const eigyoSuggestions = eigyoMasters.filter(m => m.is_active).map(m => m.name)
+  const seihanSuggestions = seihanMasters.filter(m => m.is_active).map(m => m.name)
 
   const openCreate = () => {
     setEditTarget(null)
@@ -291,7 +294,7 @@ export default function DppPage() {
                   <Input value={form.eigyo_tanto} onChange={e => setForm(f => ({ ...f, eigyo_tanto: e.target.value }))}
                     list="eigyo-list" autoComplete="off" className="h-8 text-sm" />
                   <datalist id="eigyo-list">
-                    {memberSuggestions.map(s => <option key={s} value={s} />)}
+                    {eigyoSuggestions.map(s => <option key={s} value={s} />)}
                   </datalist>
                 </div>
                 <div className="space-y-1">
@@ -299,7 +302,7 @@ export default function DppPage() {
                   <Input value={form.seihan_tanto} onChange={e => setForm(f => ({ ...f, seihan_tanto: e.target.value }))}
                     list="seihan-list" autoComplete="off" className="h-8 text-sm" />
                   <datalist id="seihan-list">
-                    {memberSuggestions.map(s => <option key={s} value={s} />)}
+                    {seihanSuggestions.map(s => <option key={s} value={s} />)}
                   </datalist>
                 </div>
                 <div className="col-span-2 space-y-1">
