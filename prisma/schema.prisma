@@ -20,6 +20,8 @@ model User {
   role        Role                   @default(USER)
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
+  dppMember   Boolean                @default(false) @map("dpp_member")
+  shortName   String?                @map("short_name")
   products    Product[]
   exhibitions DevExhibitionVisitor[]
   permission  UserPermission?
@@ -757,4 +759,25 @@ model Drawing {
   updated_at          DateTime  @updatedAt
 
   @@map("t_drawings")
+}
+
+model DppSchedule {
+  id            String    @id @default(cuid())
+  schedule_no   String    @unique
+  hinban        String?
+  hinmei        String?
+  artist_name   String?
+  kosei_stage   String?
+  nouki_date    DateTime?
+  nouki_time    String?
+  progress      String?
+  eigyo_tanto   String?
+  seihan_tanto  String?
+  biko          String?
+  shuukei_daisuu Decimal? @db.Decimal(10, 2)
+  flg_del       Int       @default(0)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@map("t_dpp_schedules")
 }
