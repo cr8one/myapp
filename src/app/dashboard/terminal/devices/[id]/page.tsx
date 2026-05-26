@@ -4,15 +4,14 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react"
+
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
+type DeviceRemark = { id: number; date: string | null; title: string | null; content: string | null }
 type DeviceSoftware = {
-  id: number
-  softwareId: number
-  version: string | null
-  note: string | null
-  userId: string | null
+  id: number; softwareId: number; version: string | null; note: string | null; userId: string | null
   software: { id: number; name: string; version: string | null; vendor: string | null; licenseType: string | null }
 }
 type MSoftware = { id: number; name: string; version: string | null; vendor: string | null }
@@ -22,9 +21,11 @@ type Device = {
   memorySize: string | null; storageSize: string | null; location: string | null
   userId: string | null; purchaseDate: string | null; startDate: string | null
   status: string | null; managementType: string | null; remark: string | null
-  ipAddresses: DeviceIp[]
+  parentDeviceId: number | null; ipAddresses: DeviceIp[]
 }
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; imagePath: string | null }
+type Master = { id: number; category: string; value: string }
+
 const STATUS_COLORS: Record<string, string> = {
   "使用中": "bg-green-100 text-green-700",
   "保管中": "bg-blue-100 text-blue-700",
@@ -33,6 +34,14 @@ const STATUS_COLORS: Record<string, string> = {
 }
 const emptyIpForm = { ip: "", subnet: "", gateway: "", interface: "", note: "" }
 const emptySoftwareForm = { softwareId: "", version: "", note: "", userId: "" }
+const emptyRemarkForm = { date: "", title: "", content: "" }
+const emptyDeviceForm = {
+  assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
+  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
+  purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
+  parentDeviceId: "",
+}
+
 export default function DeviceDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -40,7 +49,14 @@ export default function DeviceDetailPage() {
   const [device, setDevice] = useState<Device | null>(null)
   const [model, setModel] = useState<DeviceModel | null>(null)
   const [modelImageUrl, setModelImageUrl] = useState<string | null>(null)
+  const [models, setModels] = useState<DeviceModel[]>([])
+  const [masters, setMasters] = useState<Master[]>([])
+  const [allDevices, setAllDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
+  // 端末編集
+  const [editDeviceOpen, setEditDeviceOpen] = useState(false)
+  const [deviceForm, setDeviceForm] = useState(emptyDeviceForm)
+  const [savingDevice, setSavingDevice] = useState(false)
   // IP
   const [ipDialogOpen, setIpDialogOpen] = useState(false)
   const [editIpTarget, setEditIpTarget] = useState<DeviceIp | null>(null)
@@ -55,16 +71,28 @@ export default function DeviceDetailPage() {
   const [swForm, setSwForm] = useState(emptySoftwareForm)
   const [savingSw, setSavingSw] = useState(false)
   const [deleteSwTarget, setDeleteSwTarget] = useState<DeviceSoftware | null>(null)
+  // Remarks
+  const [remarks, setRemarks] = useState<DeviceRemark[]>([])
+  const [remarkDialogOpen, setRemarkDialogOpen] = useState(false)
+  const [editRemarkTarget, setEditRemarkTarget] = useState<DeviceRemark | null>(null)
+  const [remarkForm, setRemarkForm] = useState(emptyRemarkForm)
+  const [savingRemark, setSavingRemark] = useState(false)
+  const [deleteRemarkTarget, setDeleteRemarkTarget] = useState<DeviceRemark | null>(null)
+
+  const getMasterValues = (category: string) => masters.filter(m => m.category === category).map(m => m.value)
+
   const fetchDevice = async () => {
     const res = await fetch("/api/terminal/devices")
     const all: Device[] = await res.json()
+    setAllDevices(all)
     const found = all.find(d => d.deviceId === parseInt(deviceId))
     if (!found) { setLoading(false); return }
     setDevice(found)
     if (found.modelId) {
       const modRes = await fetch("/api/terminal/device-models")
-      const models: DeviceModel[] = await modRes.json()
-      const m = models.find(m => m.modelId === found.modelId)
+      const mods: DeviceModel[] = await modRes.json()
+      setModels(mods)
+      const m = mods.find(m => m.modelId === found.modelId)
       if (m) {
         setModel(m)
         if (m.imagePath) {
@@ -73,20 +101,64 @@ export default function DeviceDetailPage() {
           setModelImageUrl(url)
         }
       }
+    } else {
+      const modRes = await fetch("/api/terminal/device-models")
+      setModels(await modRes.json())
     }
     setLoading(false)
   }
   const fetchSoftwares = async () => {
     const res = await fetch(`/api/terminal/device-software?deviceId=${deviceId}`)
-    const data = await res.json()
-    setSoftwares(data)
+    setSoftwares(await res.json())
+  }
+  const fetchRemarks = async () => {
+    const res = await fetch(`/api/terminal/device-remarks?deviceId=${deviceId}`)
+    setRemarks(await res.json())
   }
   useEffect(() => {
     fetchDevice()
     fetchSoftwares()
+    fetchRemarks()
     fetch("/api/terminal/software").then(r => r.json()).then(setSoftwareMasters)
+    fetch("/api/terminal/terminal-masters").then(r => r.json()).then(setMasters)
   }, [deviceId])
-  // IP handlers
+
+  const openEditDevice = () => {
+    if (!device) return
+    setDeviceForm({
+      assetNo: device.assetNo ?? "", deviceName: device.deviceName,
+      hostname: device.hostname ?? "", modelId: device.modelId?.toString() ?? "",
+      serialNo: device.serialNo ?? "", osVersion: device.osVersion ?? "",
+      memorySize: device.memorySize ?? "", storageSize: device.storageSize ?? "",
+      location: device.location ?? "", userId: device.userId ?? "",
+      purchaseDate: device.purchaseDate ? device.purchaseDate.split("T")[0] : "",
+      startDate: device.startDate ? device.startDate.split("T")[0] : "",
+      status: device.status ?? "", managementType: device.managementType ?? "",
+      remark: device.remark ?? "", parentDeviceId: device.parentDeviceId?.toString() ?? "",
+    })
+    setEditDeviceOpen(true)
+  }
+  const handleSaveDevice = async () => {
+    if (!device || !deviceForm.deviceName) return
+    setSavingDevice(true)
+    try {
+      await fetch("/api/terminal/devices", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...deviceForm, deviceId: device.deviceId }),
+      })
+      setEditDeviceOpen(false)
+      fetchDevice()
+    } finally { setSavingDevice(false) }
+  }
+  const handleDeleteDevice = async () => {
+    if (!device || !confirm(`「${device.deviceName}」を削除しますか？`)) return
+    await fetch("/api/terminal/devices", {
+      method: "DELETE", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: device.deviceId }),
+    })
+    router.push("/dashboard/terminal/devices")
+  }
+
   const openAddIp = () => { setEditIpTarget(null); setIpForm(emptyIpForm); setIpDialogOpen(true) }
   const openEditIp = (ip: DeviceIp) => {
     setEditIpTarget(ip)
@@ -112,7 +184,7 @@ export default function DeviceDetailPage() {
     setDeleteIpTarget(null)
     fetchDevice()
   }
-  // Software handlers
+
   const openAddSw = () => { setEditSwTarget(null); setSwForm(emptySoftwareForm); setSwDialogOpen(true) }
   const openEditSw = (sw: DeviceSoftware) => {
     setEditSwTarget(sw)
@@ -138,15 +210,60 @@ export default function DeviceDetailPage() {
     setDeleteSwTarget(null)
     fetchSoftwares()
   }
+
+  const openAddRemark = () => {
+    setEditRemarkTarget(null)
+    setRemarkForm({ date: new Date().toISOString().split("T")[0], title: "", content: "" })
+    setRemarkDialogOpen(true)
+  }
+  const openEditRemark = (r: DeviceRemark) => {
+    setEditRemarkTarget(r)
+    setRemarkForm({ date: r.date ? r.date.split("T")[0] : "", title: r.title ?? "", content: r.content ?? "" })
+    setRemarkDialogOpen(true)
+  }
+  const handleSaveRemark = async () => {
+    setSavingRemark(true)
+    try {
+      if (editRemarkTarget) {
+        await fetch("/api/terminal/device-remarks", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editRemarkTarget.id, ...remarkForm }) })
+      } else {
+        await fetch("/api/terminal/device-remarks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deviceId, ...remarkForm }) })
+      }
+      setRemarkDialogOpen(false)
+      fetchRemarks()
+    } finally { setSavingRemark(false) }
+  }
+  const handleDeleteRemark = async () => {
+    if (!deleteRemarkTarget) return
+    await fetch("/api/terminal/device-remarks", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: deleteRemarkTarget.id }) })
+    setDeleteRemarkTarget(null)
+    fetchRemarks()
+  }
+
+  const parentCandidates = allDevices.filter(d => d.deviceId !== parseInt(deviceId))
+
   if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
   if (!device) return <div className="p-8 text-center text-gray-500">端末が見つかりません。</div>
   const val = (v: string | null | undefined) => v ?? <span className="text-gray-300">—</span>
+
   return (
     <div className="p-6 max-w-4xl">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
-        <ArrowLeft className="w-4 h-4" />一覧に戻る
-      </button>
-      {/* 端末情報 */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="w-4 h-4" />一覧に戻る
+        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={openEditDevice}
+            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50">
+            <Pencil className="w-4 h-4" />編集
+          </button>
+          <button onClick={handleDeleteDevice}
+            className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50">
+            <Trash2 className="w-4 h-4" />削除
+          </button>
+        </div>
+      </div>
+
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-start gap-6">
           <div className="w-24 h-24 rounded-lg border bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -177,22 +294,14 @@ export default function DeviceDetailPage() {
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用開始日</span><span>{device.startDate ? new Date(device.startDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">管理区分</span><span>{val(device.managementType)}</span></div>
             </div>
-            {device.remark && (
-              <div className="mt-3 text-sm">
-                <span className="text-gray-400">備考　</span>
-                <span className="whitespace-pre-wrap">{device.remark}</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
-      {/* IPアドレス */}
+
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">IPアドレス</h2>
-          <Button size="sm" onClick={openAddIp} className="flex items-center gap-1">
-            <Plus className="w-4 h-4" />追加
-          </Button>
+          <Button size="sm" onClick={openAddIp} className="flex items-center gap-1"><Plus className="w-4 h-4" />追加</Button>
         </div>
         {device.ipAddresses.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">IPアドレスが登録されていません。</p>
@@ -228,13 +337,11 @@ export default function DeviceDetailPage() {
           </table>
         )}
       </div>
-      {/* インストールソフト */}
-      <div className="bg-white border rounded-xl shadow-sm p-6">
+
+      <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">インストールソフト</h2>
-          <Button size="sm" onClick={openAddSw} className="flex items-center gap-1">
-            <Plus className="w-4 h-4" />追加
-          </Button>
+          <Button size="sm" onClick={openAddSw} className="flex items-center gap-1"><Plus className="w-4 h-4" />追加</Button>
         </div>
         {softwares.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">インストールされたソフトウェアが登録されていません。</p>
@@ -257,17 +364,11 @@ export default function DeviceDetailPage() {
                   <td className="px-3 py-2 font-medium">{sw.software.name}</td>
                   <td className="px-3 py-2 text-gray-500">{sw.software.vendor ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2 font-mono text-gray-500">
-                    {sw.version
-                      ? sw.version
-                      : sw.software.version
-                        ? <span className="text-gray-400">{sw.software.version}</span>
-                        : <span className="text-gray-300">—</span>}
+                    {sw.version ? sw.version : sw.software.version ? <span className="text-gray-400">{sw.software.version}</span> : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-3 py-2 text-gray-500">{sw.software.licenseType ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2 text-gray-500">
-                    {sw.userId
-                      ? <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{sw.userId}</span>
-                      : <span className="text-gray-300 text-xs">共通</span>}
+                    {sw.userId ? <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{sw.userId}</span> : <span className="text-gray-300 text-xs">共通</span>}
                   </td>
                   <td className="px-3 py-2 text-gray-500">{sw.note ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-3 py-2">
@@ -282,41 +383,131 @@ export default function DeviceDetailPage() {
           </table>
         )}
       </div>
-      {/* IP ダイアログ */}
+
+      <div className="bg-white border rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold">備考</h2>
+          <Button size="sm" onClick={openAddRemark} className="flex items-center gap-1"><Plus className="w-4 h-4" />追加</Button>
+        </div>
+        {remarks.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">備考が登録されていません。</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">日付</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">タイトル</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">内容</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {remarks.map(r => (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
+                    {r.date ? new Date(r.date).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-3 py-2 font-medium text-gray-700">{r.title ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-3 py-2 text-gray-500 max-w-xs">
+                    <div className="whitespace-pre-wrap">{r.content ?? <span className="text-gray-300">—</span>}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1">
+                      <button onClick={() => openEditRemark(r)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteRemarkTarget(r)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Dialog open={editDeviceOpen} onOpenChange={setEditDeviceOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>端末を編集</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="space-y-1"><Label>端末名 <span className="text-red-500">*</span></Label>
+              <Input value={deviceForm.deviceName} onChange={e => setDeviceForm(f => ({ ...f, deviceName: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>資産番号</Label>
+              <Input value={deviceForm.assetNo} onChange={e => setDeviceForm(f => ({ ...f, assetNo: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>ホスト名</Label>
+              <Input value={deviceForm.hostname} onChange={e => setDeviceForm(f => ({ ...f, hostname: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>機種</Label>
+              <select value={deviceForm.modelId} onChange={e => {
+                const selected = models.find(m => m.modelId === parseInt(e.target.value)) as any
+                setDeviceForm(f => ({ ...f, modelId: e.target.value, osVersion: selected?.osName || f.osVersion, memorySize: selected?.memoryDefault || f.memorySize, storageSize: selected?.storageDefault || f.storageSize }))
+              }} className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">未選択</option>
+                {models.map(m => <option key={m.modelId} value={m.modelId}>{m.vendorName ? `${m.vendorName} ` : ""}{m.modelName}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1"><Label>シリアル番号</Label>
+              <Input value={deviceForm.serialNo} onChange={e => setDeviceForm(f => ({ ...f, serialNo: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>実OS</Label>
+              <Input value={deviceForm.osVersion} onChange={e => setDeviceForm(f => ({ ...f, osVersion: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>実メモリ</Label>
+              <Input value={deviceForm.memorySize} onChange={e => setDeviceForm(f => ({ ...f, memorySize: e.target.value }))} placeholder="例：16GB" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>実容量</Label>
+              <Input value={deviceForm.storageSize} onChange={e => setDeviceForm(f => ({ ...f, storageSize: e.target.value }))} placeholder="例：512GB SSD" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>設置場所</Label>
+              <Input value={deviceForm.location} onChange={e => setDeviceForm(f => ({ ...f, location: e.target.value }))} list="location-list" autoComplete="off" />
+              <datalist id="location-list">{getMasterValues("設置場所").map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div className="space-y-1"><Label>利用者</Label>
+              <Input value={deviceForm.userId} onChange={e => setDeviceForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>購入日</Label>
+              <Input type="date" value={deviceForm.purchaseDate} onChange={e => setDeviceForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>利用開始日</Label>
+              <Input type="date" value={deviceForm.startDate} onChange={e => setDeviceForm(f => ({ ...f, startDate: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>状態</Label>
+              <Input value={deviceForm.status} onChange={e => setDeviceForm(f => ({ ...f, status: e.target.value }))} list="status-list" autoComplete="off" />
+              <datalist id="status-list">{getMasterValues("状態").map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div className="space-y-1"><Label>管理区分</Label>
+              <Input value={deviceForm.managementType} onChange={e => setDeviceForm(f => ({ ...f, managementType: e.target.value }))} list="management-list" autoComplete="off" />
+              <datalist id="management-list">{getMasterValues("管理区分").map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div className="col-span-2 space-y-1"><Label>親端末（仮想マシンの場合に選択）</Label>
+              <select value={deviceForm.parentDeviceId} onChange={e => setDeviceForm(f => ({ ...f, parentDeviceId: e.target.value }))}
+                className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">なし（物理端末）</option>
+                {parentCandidates.map(d => <option key={d.deviceId} value={d.deviceId}>{d.deviceName}{d.assetNo ? ` (${d.assetNo})` : ""}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setEditDeviceOpen(false)}>キャンセル</Button>
+            <Button onClick={handleSaveDevice} disabled={savingDevice || !deviceForm.deviceName}>
+              {savingDevice ? "保存中..." : "保存"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={ipDialogOpen} onOpenChange={setIpDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editIpTarget ? "IPアドレスを編集" : "IPアドレスを追加"}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
-            <div className="space-y-1">
-              <Label>IPアドレス <span className="text-red-500">*</span></Label>
-              <Input value={ipForm.ip} onChange={e => setIpForm(f => ({ ...f, ip: e.target.value }))} placeholder="例：192.168.1.10" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>サブネットマスク</Label>
-              <Input value={ipForm.subnet} onChange={e => setIpForm(f => ({ ...f, subnet: e.target.value }))} placeholder="例：255.255.255.0" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>ゲートウェイ</Label>
-              <Input value={ipForm.gateway} onChange={e => setIpForm(f => ({ ...f, gateway: e.target.value }))} placeholder="例：192.168.1.1" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>インターフェース</Label>
-              <Input value={ipForm.interface} onChange={e => setIpForm(f => ({ ...f, interface: e.target.value }))} placeholder="例：Ethernet、Wi-Fi" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>備考</Label>
-              <Input value={ipForm.note} onChange={e => setIpForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" />
-            </div>
+            <div className="space-y-1"><Label>IPアドレス <span className="text-red-500">*</span></Label>
+              <Input value={ipForm.ip} onChange={e => setIpForm(f => ({ ...f, ip: e.target.value }))} placeholder="例：192.168.1.10" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>サブネットマスク</Label>
+              <Input value={ipForm.subnet} onChange={e => setIpForm(f => ({ ...f, subnet: e.target.value }))} placeholder="例：255.255.255.0" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>ゲートウェイ</Label>
+              <Input value={ipForm.gateway} onChange={e => setIpForm(f => ({ ...f, gateway: e.target.value }))} placeholder="例：192.168.1.1" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>インターフェース</Label>
+              <Input value={ipForm.interface} onChange={e => setIpForm(f => ({ ...f, interface: e.target.value }))} placeholder="例：Ethernet、Wi-Fi" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>備考</Label>
+              <Input value={ipForm.note} onChange={e => setIpForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" /></div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setIpDialogOpen(false)}>キャンセル</Button>
-              <Button onClick={handleSaveIp} disabled={savingIp || !ipForm.ip}>
-                {savingIp ? "保存中..." : "保存"}
-              </Button>
+              <Button onClick={handleSaveIp} disabled={savingIp || !ipForm.ip}>{savingIp ? "保存中..." : "保存"}</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      {/* IP 削除確認 */}
+
       <Dialog open={!!deleteIpTarget} onOpenChange={v => !v && setDeleteIpTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
@@ -327,48 +518,32 @@ export default function DeviceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* ソフトウェア ダイアログ */}
+
       <Dialog open={swDialogOpen} onOpenChange={setSwDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editSwTarget ? "インストールソフトを編集" : "インストールソフトを追加"}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
-            <div className="space-y-1">
-              <Label>ソフトウェア <span className="text-red-500">*</span></Label>
-              <select
-                value={swForm.softwareId}
-                onChange={e => setSwForm(f => ({ ...f, softwareId: e.target.value }))}
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
+            <div className="space-y-1"><Label>ソフトウェア <span className="text-red-500">*</span></Label>
+              <select value={swForm.softwareId} onChange={e => setSwForm(f => ({ ...f, softwareId: e.target.value }))}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option value="">選択してください</option>
-                {softwareMasters.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}{s.vendor ? ` (${s.vendor})` : ""}
-                  </option>
-                ))}
+                {softwareMasters.map(s => <option key={s.id} value={s.id}>{s.name}{s.vendor ? ` (${s.vendor})` : ""}</option>)}
               </select>
             </div>
-            <div className="space-y-1">
-              <Label>バージョン <span className="text-xs text-gray-400">（空欄の場合はマスタのバージョンを参照）</span></Label>
-              <Input value={swForm.version} onChange={e => setSwForm(f => ({ ...f, version: e.target.value }))} placeholder="例：1.2.3" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>利用者 <span className="text-xs text-gray-400">（空欄の場合は端末共通）</span></Label>
-              <Input value={swForm.userId} onChange={e => setSwForm(f => ({ ...f, userId: e.target.value }))} placeholder="例：山田太郎" autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <Label>備考</Label>
-              <Input value={swForm.note} onChange={e => setSwForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" />
-            </div>
+            <div className="space-y-1"><Label>バージョン <span className="text-xs text-gray-400">（空欄の場合はマスタのバージョンを参照）</span></Label>
+              <Input value={swForm.version} onChange={e => setSwForm(f => ({ ...f, version: e.target.value }))} placeholder="例：1.2.3" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>利用者 <span className="text-xs text-gray-400">（空欄の場合は端末共通）</span></Label>
+              <Input value={swForm.userId} onChange={e => setSwForm(f => ({ ...f, userId: e.target.value }))} placeholder="例：山田太郎" autoComplete="off" /></div>
+            <div className="space-y-1"><Label>備考</Label>
+              <Input value={swForm.note} onChange={e => setSwForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" /></div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setSwDialogOpen(false)}>キャンセル</Button>
-              <Button onClick={handleSaveSw} disabled={savingSw || !swForm.softwareId}>
-                {savingSw ? "保存中..." : "保存"}
-              </Button>
+              <Button onClick={handleSaveSw} disabled={savingSw || !swForm.softwareId}>{savingSw ? "保存中..." : "保存"}</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      {/* ソフトウェア 削除確認 */}
+
       <Dialog open={!!deleteSwTarget} onOpenChange={v => !v && setDeleteSwTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
@@ -376,6 +551,35 @@ export default function DeviceDetailPage() {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDeleteSwTarget(null)}>キャンセル</Button>
             <Button variant="destructive" onClick={handleDeleteSw}>削除</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={remarkDialogOpen} onOpenChange={setRemarkDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editRemarkTarget ? "備考を編集" : "備考を追加"}</DialogTitle></DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div className="space-y-1"><Label>日付</Label>
+              <Input type="date" value={remarkForm.date} onChange={e => setRemarkForm(f => ({ ...f, date: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>タイトル</Label>
+              <Input value={remarkForm.title} onChange={e => setRemarkForm(f => ({ ...f, title: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>内容</Label>
+              <Textarea value={remarkForm.content} onChange={e => setRemarkForm(f => ({ ...f, content: e.target.value }))} rows={4} /></div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setRemarkDialogOpen(false)}>キャンセル</Button>
+              <Button onClick={handleSaveRemark} disabled={savingRemark}>{savingRemark ? "保存中..." : "保存"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteRemarkTarget} onOpenChange={v => !v && setDeleteRemarkTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">「{deleteRemarkTarget?.title ?? "この備考"}」を削除しますか？</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteRemarkTarget(null)}>キャンセル</Button>
+            <Button variant="destructive" onClick={handleDeleteRemark}>削除</Button>
           </div>
         </DialogContent>
       </Dialog>
