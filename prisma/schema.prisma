@@ -670,6 +670,7 @@ model Device {
   parentDeviceId Int?      @map("parent_device_id")
   parent         Device?   @relation("DeviceChildren", fields: [parentDeviceId], references: [deviceId])
   children       Device[]  @relation("DeviceChildren")
+  remarks    DeviceRemark[]
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   ipAddresses    DeviceIp[]
@@ -705,6 +706,20 @@ model MSoftware {
   devices        DeviceSoftware[]
 
   @@map("m_software")
+}
+
+model DeviceRemark {
+  id        Int      @id @default(autoincrement())
+  deviceId  Int      @map("device_id")
+  date      DateTime?
+  title     String?
+  content   String?
+  flgDel    Boolean  @default(false) @map("flg_del")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  device    Device   @relation(fields: [deviceId], references: [deviceId])
+
+  @@map("t_device_remarks")
 }
 
 model DeviceSoftware {
