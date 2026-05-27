@@ -63,14 +63,16 @@ export default function DielinesPage() {
   }
 
   const handleExport = () => {
-    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", "展開たて", "展開よこ", "天地", "左右", "背幅", "条件1", "条件2", "条件3", "条件4"]]
+    const maxConds = Math.max(1, ...parents.map(p => p.conditions.length))
+    const condHeaders = Array.from({ length: maxConds }, (_, i) => `条件${i + 1}`)
+    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", "展開たて", "展開よこ", "天地", "左右", "背幅", ...condHeaders]]
     parents.forEach(p => {
       const conds = p.conditions.map(c => c.value)
-      while (conds.length < 4) conds.push("")
+      while (conds.length < maxConds) conds.push("")
       rows.push([
         p.uid_ntemp, p.kyugataban ?? "", p.genre ?? "", p.spec ?? "", p.hinmoku ?? "",
         "", "", p.sizey?.toString() ?? "", p.sizex?.toString() ?? "", p.widthy?.toString() ?? "",
-        conds[0], conds[1], conds[2], conds[3],
+        ...conds,
       ])
     })
     const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n")
@@ -156,7 +158,7 @@ export default function DielinesPage() {
             <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
           <p className="text-xs text-gray-500">
-            列順：型番号・旧型番号・ジャンル・仕様・品目・展開たて・展開よこ・天地・左右・背幅・条件1・条件2・条件3・条件4
+            列順：型番号・旧型番号・ジャンル・仕様・品目・展開たて・展開よこ・天地・左右・背幅・条件1・条件2...（条件数に応じて動的）
           </p>
 
           {importStatus === "idle" && (

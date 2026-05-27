@@ -9,6 +9,26 @@ const s3 = new S3Client({
   responseChecksumValidation: "WHEN_REQUIRED",
 })
 
+function parseCSVLine(line: string): string[] {
+  const cols: string[] = []
+  let field = ""
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { field += '"'; i++ }
+      else if (ch === '"') { inQuotes = false }
+      else { field += ch }
+    } else {
+      if (ch === '"') { inQuotes = true }
+      else if (ch === ',') { cols.push(field.trim()); field = "" }
+      else { field += ch }
+    }
+  }
+  cols.push(field.trim())
+  return cols
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -16,7 +36,6 @@ export async function POST(req: NextRequest) {
   const { key, offset } = await req.json()
   const CHUNK = 100
 
-  // S3からCSV取得
   const s3Res = await s3.send(new GetObjectCommand({
     Bucket: "japan-sleeve-system-files-936533876784",
     Key: key,
@@ -24,27 +43,30 @@ export async function POST(req: NextRequest) {
   const raw = await s3Res.Body?.transformToByteArray()
   if (!raw) return NextResponse.json({ error: "ファイル取得失敗" }, { status: 500 })
 
-  // Shift-JISデコード
   const text = new TextDecoder("shift-jis").decode(raw)
   const lines = text.split(/\r?\n/).filter(l => l.trim())
-  const dataLines = lines.slice(1) // ヘッダースキップ
+
+  // ヘッダーから条件列数を動的に判定
+  const headers = parseCSVLine(lines[0])
+  const condStartIndex = 10 // 型番号〜背幅の10列以降が条件列
+  const condCount = headers.slice(condStartIndex).filter(h => h.startsWith("条件")).length
+
+  const dataLines = lines.slice(1)
   const total = dataLines.length
   const chunk = dataLines.slice(offset, offset + CHUNK)
 
   let count = 0
   for (const line of chunk) {
-    const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) ?? []
-    const clean = cols.map(c => c.replace(/^"|"$/g, "").trim())
-
+    const clean = parseCSVLine(line)
     const [
       uid_ntemp, kyugataban, genre, spec, hinmoku,
       , , sizey, sizex, widthy,
-      cond1, cond2, cond3, cond4,
     ] = clean
 
     if (!uid_ntemp) continue
 
-    const conditions = [cond1, cond2, cond3, cond4]
+    // 条件列を動的に取得
+    const conditions = clean.slice(condStartIndex, condStartIndex + condCount)
       .filter(Boolean)
       .map((value, i) => ({ value, sortOrder: i }))
 
