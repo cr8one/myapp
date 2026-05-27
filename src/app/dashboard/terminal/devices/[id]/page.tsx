@@ -123,6 +123,7 @@ export default function DeviceDetailPage() {
     fetch("/api/terminal/terminal-masters").then(r => r.json()).then(setMasters)
   }, [deviceId])
 
+  // 端末編集
   const openEditDevice = () => {
     if (!device) return
     setDeviceForm({
@@ -159,6 +160,7 @@ export default function DeviceDetailPage() {
     router.push("/dashboard/terminal/devices")
   }
 
+  // IP handlers
   const openAddIp = () => { setEditIpTarget(null); setIpForm(emptyIpForm); setIpDialogOpen(true) }
   const openEditIp = (ip: DeviceIp) => {
     setEditIpTarget(ip)
@@ -185,6 +187,7 @@ export default function DeviceDetailPage() {
     fetchDevice()
   }
 
+  // Software handlers
   const openAddSw = () => { setEditSwTarget(null); setSwForm(emptySoftwareForm); setSwDialogOpen(true) }
   const openEditSw = (sw: DeviceSoftware) => {
     setEditSwTarget(sw)
@@ -211,6 +214,7 @@ export default function DeviceDetailPage() {
     fetchSoftwares()
   }
 
+  // Remark handlers
   const openAddRemark = () => {
     setEditRemarkTarget(null)
     setRemarkForm({ date: new Date().toISOString().split("T")[0], title: "", content: "" })
@@ -264,6 +268,7 @@ export default function DeviceDetailPage() {
         </div>
       </div>
 
+      {/* 端末情報 */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-start gap-6">
           <div className="w-24 h-24 rounded-lg border bg-gray-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -298,6 +303,7 @@ export default function DeviceDetailPage() {
         </div>
       </div>
 
+      {/* IPアドレス */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">IPアドレス</h2>
@@ -338,6 +344,7 @@ export default function DeviceDetailPage() {
         )}
       </div>
 
+      {/* インストールソフト */}
       <div className="bg-white border rounded-xl shadow-sm p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">インストールソフト</h2>
@@ -384,6 +391,7 @@ export default function DeviceDetailPage() {
         )}
       </div>
 
+      {/* 備考 */}
       <div className="bg-white border rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold">備考</h2>
@@ -424,6 +432,7 @@ export default function DeviceDetailPage() {
         )}
       </div>
 
+      {/* 端末編集ダイアログ */}
       <Dialog open={editDeviceOpen} onOpenChange={setEditDeviceOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>端末を編集</DialogTitle></DialogHeader>
@@ -486,6 +495,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* IP ダイアログ */}
       <Dialog open={ipDialogOpen} onOpenChange={setIpDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editIpTarget ? "IPアドレスを編集" : "IPアドレスを追加"}</DialogTitle></DialogHeader>
@@ -508,6 +518,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* IP 削除確認 */}
       <Dialog open={!!deleteIpTarget} onOpenChange={v => !v && setDeleteIpTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
@@ -519,6 +530,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ソフトウェア ダイアログ */}
       <Dialog open={swDialogOpen} onOpenChange={setSwDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editSwTarget ? "インストールソフトを編集" : "インストールソフトを追加"}</DialogTitle></DialogHeader>
@@ -544,6 +556,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ソフトウェア 削除確認 */}
       <Dialog open={!!deleteSwTarget} onOpenChange={v => !v && setDeleteSwTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
@@ -555,6 +568,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* 備考 ダイアログ */}
       <Dialog open={remarkDialogOpen} onOpenChange={setRemarkDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editRemarkTarget ? "備考を編集" : "備考を追加"}</DialogTitle></DialogHeader>
@@ -573,6 +587,7 @@ export default function DeviceDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* 備考 削除確認 */}
       <Dialog open={!!deleteRemarkTarget} onOpenChange={v => !v && setDeleteRemarkTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>

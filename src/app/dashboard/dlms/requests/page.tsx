@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Download, Upload } from "lucide-react"
+import { Plus, Download, Upload } from "lucide-react"
 
 const HAICHI_OPTIONS = ["未手配", "社内作成", "外注手配", "手配不要"]
 const LOCATION_OPTIONS = ["J 1", "島田PC", "島田ダイマト", "本社", "東京ユニオン", "イシイ埼玉", "パックウェル"]
@@ -237,13 +237,13 @@ function RequestsPageInner() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">No.</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">手配確認</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">依頼者</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">手配者</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">型番号-枝番</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">使用品番</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">担当者</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">型使用予定日</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">完成予定日</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">手配確認</th>
-                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -252,25 +252,20 @@ function RequestsPageInner() {
                   onClick={() => router.push(`/dashboard/dlms/requests/${r.id}`)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-700">{r.request_no}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.parent.uid_ntemp}{r.child ? `-${r.child.edaban}` : ""}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.shohin_no ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.seisan_tanto ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                    {r.use_date ? new Date(r.use_date).toLocaleDateString("ja-JP") : "—"} {r.use_time ?? ""}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                    {r.kansei_date ? new Date(r.kansei_date).toLocaleDateString("ja-JP") : "—"} {r.kansei_time ?? ""}
-                  </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${HAICHI_COLORS[r.haichi_kakunin] ?? "bg-gray-100 text-gray-700"}`}>
                       {r.haichi_kakunin}
                     </span>
                   </td>
-                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => setDeleteTarget(r)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <td className="px-4 py-3 text-gray-600">{r.seisan_tanto ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.haichi_kakunin_by ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.parent.uid_ntemp}{r.child ? `-${r.child.edaban}` : ""}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.shohin_no ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {r.use_date ? new Date(r.use_date).toLocaleDateString("ja-JP") : "—"} {r.use_time ?? ""}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {r.kansei_date ? new Date(r.kansei_date).toLocaleDateString("ja-JP") : "—"} {r.kansei_time ?? ""}
                   </td>
                 </tr>
               ))}
