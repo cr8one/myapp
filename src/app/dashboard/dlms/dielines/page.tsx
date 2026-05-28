@@ -15,7 +15,9 @@ type Child = { id: string; edaban: string; han: string | null; me: string | null
 type Parent = {
   id: string; uid_ntemp: string; kyugataban: string | null
   genre: string | null; spec: string | null; hinmoku: string | null
+  developy: number | null; developx: number | null; develop_depth: number | null
   sizey: number | null; sizex: number | null; widthy: number | null
+  inner_height: number | null; inner_width: number | null; inner_depth: number | null
   conditions: Condition[]; children: Child[]
 }
 
@@ -65,13 +67,15 @@ export default function DielinesPage() {
   const handleExport = () => {
     const maxConds = Math.max(1, ...parents.map(p => p.conditions.length))
     const condHeaders = Array.from({ length: maxConds }, (_, i) => `条件${i + 1}`)
-    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", "展開たて", "展開よこ", "天地", "左右", "背幅", ...condHeaders]]
+    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", "展開天地", "展開左右", "展開背", "仕上げ背", "仕上げ高さ", "仕上げ奥行き", "内寸背", "内寸高さ", "内寸奥行き", ...condHeaders]]
     parents.forEach(p => {
       const conds = p.conditions.map(c => c.value)
       while (conds.length < maxConds) conds.push("")
       rows.push([
         p.uid_ntemp, p.kyugataban ?? "", p.genre ?? "", p.spec ?? "", p.hinmoku ?? "",
-        "", "", p.sizey?.toString() ?? "", p.sizex?.toString() ?? "", p.widthy?.toString() ?? "",
+        p.developy?.toString() ?? "", p.developx?.toString() ?? "", p.develop_depth?.toString() ?? "",
+        p.sizey?.toString() ?? "", p.sizex?.toString() ?? "", p.widthy?.toString() ?? "",
+        p.inner_height?.toString() ?? "", p.inner_width?.toString() ?? "", p.inner_depth?.toString() ?? "",
         ...conds,
       ])
     })

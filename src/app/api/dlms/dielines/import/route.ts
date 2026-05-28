@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
   const text = new TextDecoder("shift-jis").decode(raw)
   const lines = text.split(/\r?\n/).filter(l => l.trim())
 
-  // ヘッダーから条件列数を動的に判定
+  // ヘッダーから条件列数を動的に判定（固定14列以降が条件列）
   const headers = parseCSVLine(lines[0])
-  const condStartIndex = 10 // 型番号〜背幅の10列以降が条件列
+  const condStartIndex = 14
   const condCount = headers.slice(condStartIndex).filter(h => h.startsWith("条件")).length
 
   const dataLines = lines.slice(1)
@@ -60,12 +60,13 @@ export async function POST(req: NextRequest) {
     const clean = parseCSVLine(line)
     const [
       uid_ntemp, kyugataban, genre, spec, hinmoku,
-      , , sizey, sizex, widthy,
+      developy, developx, develop_depth,
+      sizey, sizex, widthy,
+      inner_height, inner_width, inner_depth,
     ] = clean
 
     if (!uid_ntemp) continue
 
-    // 条件列を動的に取得
     const conditions = clean.slice(condStartIndex, condStartIndex + condCount)
       .filter(Boolean)
       .map((value, i) => ({ value, sortOrder: i }))
@@ -78,9 +79,15 @@ export async function POST(req: NextRequest) {
         genre: genre || null,
         spec: spec || null,
         hinmoku: hinmoku || null,
+        developy: developy ? parseFloat(developy) : null,
+        developx: developx ? parseFloat(developx) : null,
+        develop_depth: develop_depth ? parseFloat(develop_depth) : null,
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
+        inner_height: inner_height ? parseFloat(inner_height) : null,
+        inner_width: inner_width ? parseFloat(inner_width) : null,
+        inner_depth: inner_depth ? parseFloat(inner_depth) : null,
         conditions: { create: conditions },
       },
       update: {
@@ -88,9 +95,15 @@ export async function POST(req: NextRequest) {
         genre: genre || null,
         spec: spec || null,
         hinmoku: hinmoku || null,
+        developy: developy ? parseFloat(developy) : null,
+        developx: developx ? parseFloat(developx) : null,
+        develop_depth: develop_depth ? parseFloat(develop_depth) : null,
         sizey: sizey ? parseFloat(sizey) : null,
         sizex: sizex ? parseFloat(sizex) : null,
         widthy: widthy ? parseFloat(widthy) : null,
+        inner_height: inner_height ? parseFloat(inner_height) : null,
+        inner_width: inner_width ? parseFloat(inner_width) : null,
+        inner_depth: inner_depth ? parseFloat(inner_depth) : null,
         conditions: {
           deleteMany: {},
           create: conditions,
