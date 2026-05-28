@@ -6,10 +6,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { name } = await req.json()
+  const { name, sortOrder } = await req.json()
   const condition = await prisma.dlmsConditionMaster.update({
     where: { id: parseInt(id) },
-    data: { name },
+    data: { name, ...(sortOrder !== undefined ? { sortOrder: parseInt(sortOrder) } : {}) },
   })
   return NextResponse.json(condition)
 }
