@@ -474,11 +474,22 @@ model DlmsDielineRequest {
   child             DlmsDielineChild? @relation(fields: [childId], references: [id])
   @@map("dlms_dieline_requests")
 }
-model DlmsConditionMaster {
-  id        Int    @id @default(autoincrement())
-  name      String @unique
-  sortOrder Int    @default(0)
-  @@map("dlms_condition_masters")
+model DlmsTypeCondition {
+  id           Int      @id @default(autoincrement())
+  genre        String?
+  spec         String?
+  hinmoku      String?
+  tag1         String?
+  tag2         String?
+  genre_sort   Int      @default(0)
+  spec_sort    Int      @default(0)
+  hinmoku_sort Int      @default(0)
+  tag1_sort    Int      @default(0)
+  tag2_sort    Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("m_dlms_type_conditions")
 }
 model PrinserMUser {
   uid           String   @id
