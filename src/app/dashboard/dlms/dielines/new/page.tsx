@@ -11,7 +11,7 @@ const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 
-type ConditionMaster = { id: number; name: string }
+type TypeCondition = { id: number; genre: string | null; spec: string | null; hinmoku: string | null; tag1: string | null; tag2: string | null }
 
 export default function NewDielinePage() {
   const router = useRouter()
@@ -31,10 +31,11 @@ export default function NewDielinePage() {
   const [innerWidth, setInnerWidth] = useState("")
   const [innerDepth, setInnerDepth] = useState("")
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
-  const [conditionMasters, setConditionMasters] = useState<ConditionMaster[]>([])
+  const [typeConditions, setTypeConditions] = useState<TypeCondition[]>([])
+  const [showAllConditions, setShowAllConditions] = useState(false)
 
   useEffect(() => {
-    fetch("/api/dlms/conditions").then(r => r.json()).then(setConditionMasters)
+    fetch("/api/dlms/type-conditions").then(r => r.json()).then(setTypeConditions)
   }, [])
 
   const toggleCondition = (name: string) => {
@@ -42,6 +43,22 @@ export default function NewDielinePage() {
       prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
     )
   }
+
+  // ジャンル・仕様・品目に応じて絞り込み
+  const filtered = typeConditions.filter(tc =>
+    (!genre || tc.genre === genre) &&
+    (!spec || tc.spec === spec) &&
+    (!hinmoku || tc.hinmoku === hinmoku)
+  )
+  const filteredTags = [...new Set([
+    ...filtered.map(tc => tc.tag1).filter(Boolean),
+    ...filtered.map(tc => tc.tag2).filter(Boolean),
+  ])] as string[]
+  const allTags = [...new Set([
+    ...typeConditions.map(tc => tc.tag1).filter(Boolean),
+    ...typeConditions.map(tc => tc.tag2).filter(Boolean),
+  ])] as string[]
+  const displayTags = showAllConditions ? allTags : filteredTags
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -82,7 +99,7 @@ export default function NewDielinePage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>ジャンル</Label>
-                <select value={genre} onChange={e => setGenre(e.target.value)}
+                <select value={genre} onChange={e => { setGenre(e.target.value); setShowAllConditions(false) }}
                   className="w-full border rounded-md px-3 py-2 text-sm bg-white">
                   <option value="">未選択</option>
                   {GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -90,7 +107,7 @@ export default function NewDielinePage() {
               </div>
               <div className="space-y-2">
                 <Label>仕様</Label>
-                <select value={spec} onChange={e => setSpec(e.target.value)}
+                <select value={spec} onChange={e => { setSpec(e.target.value); setShowAllConditions(false) }}
                   className="w-full border rounded-md px-3 py-2 text-sm bg-white">
                   <option value="">未選択</option>
                   {SPEC_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -98,7 +115,7 @@ export default function NewDielinePage() {
               </div>
               <div className="space-y-2">
                 <Label>品目</Label>
-                <select value={hinmoku} onChange={e => setHinmoku(e.target.value)}
+                <select value={hinmoku} onChange={e => { setHinmoku(e.target.value); setShowAllConditions(false) }}
                   className="w-full border rounded-md px-3 py-2 text-sm bg-white">
                   <option value="">未選択</option>
                   {HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -148,37 +165,62 @@ export default function NewDielinePage() {
         <Card>
           <CardHeader><CardTitle>条件</CardTitle></CardHeader>
           <CardContent>
-            {conditionMasters.length === 0 ? (
-              <p className="text-sm text-gray-400">条件マスタが登録されていません。DLMSマスタ管理から追加してください。</p>
-            ) : (
-              <div className="space-y-3">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs text-gray-400">
+                  {filteredTags.length > 0 ? `${genre || ""}${spec || ""}${hinmoku || ""}に対応する候補` : "全条件"}
+                </span>
+                <button type="button" onClick={() => setShowAllConditions(v => !v)}
+                  className="text-xs text-blue-500 hover:text-blue-700 underline">
+                  {showAllConditions ? "絞り込む" : "全件表示"}
+                </button>
+              </div>
+              {displayTags.length === 0 ? (
+                <p className="text-sm text-gray-400">条件候補がありません。ジャンル・仕様・品目を選択するか、全件表示してください。</p>
+              ) : (
                 <div className="flex flex-wrap gap-2">
-                  {conditionMasters.map(c => (
-                    <button key={c.id} type="button" onClick={() => toggleCondition(c.name)}
+                  {displayTags.map(tag => (
+                    <button key={tag} type="button" onClick={() => toggleCondition(tag)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                        selectedConditions.includes(c.name)
+                        selectedConditions.includes(tag)
                           ? "bg-blue-600 text-white border-blue-600"
                           : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
                       }`}>
-                      {c.name}
+                      {tag}
                     </button>
                   ))}
                 </div>
-                {selectedConditions.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-2 border-t">
-                    <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
-                    {selectedConditions.map(c => (
-                      <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                        {c}
-                        <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              )}
+              {/* 手入力 */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  placeholder="手入力で追加"
+                  autoComplete="off"
+                  className="px-2 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      const val = (e.target as HTMLInputElement).value.trim()
+                      if (val) { toggleCondition(val); (e.target as HTMLInputElement).value = "" }
+                    }
+                  }}
+                />
+                <span className="text-xs text-gray-400">Enterで追加</span>
               </div>
-            )}
+              {selectedConditions.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-2 border-t">
+                  <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
+                  {selectedConditions.map(c => (
+                    <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                      {c}
+                      <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
