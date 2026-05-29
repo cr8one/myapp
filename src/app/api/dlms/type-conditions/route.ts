@@ -81,3 +81,15 @@ export async function DELETE(req: NextRequest) {
   await prisma.dlmsTypeCondition.delete({ where: { id: parseInt(id) } })
   return NextResponse.json({ ok: true })
 }
+
+export async function PATCH(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { action } = await req.json()
+  if (action === "deleteAll") {
+    await prisma.dlmsTypeCondition.deleteMany({})
+    return NextResponse.json({ ok: true })
+  }
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+}

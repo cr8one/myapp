@@ -140,6 +140,14 @@ export default function DlmsMastersPage() {
     fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
   }
   const handleTcExport = () => { window.location.href = "/api/dlms/type-conditions/export" }
+  const handleTcDeleteAll = async () => {
+    if (!confirm("型条件マスタを全件削除しますか？この操作は取り消せません。")) return
+    await fetch("/api/dlms/type-conditions", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "deleteAll" }),
+    })
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+  }
   const handleTcImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -490,6 +498,10 @@ export default function DlmsMastersPage() {
                   <button onClick={handleTcExport}
                     className="flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg bg-white hover:bg-gray-50">
                     <Download className="w-4 h-4" />エクスポート
+                  </button>
+                  <button onClick={handleTcDeleteAll}
+                    className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-red-200 rounded-lg bg-white hover:bg-red-50 text-red-600">
+                    <Trash2 className="w-4 h-4" />全削除
                   </button>
                   <label className={`flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg bg-white hover:bg-gray-50 cursor-pointer ${tcImporting ? "opacity-50 pointer-events-none" : ""}`}>
                     <Upload className="w-4 h-4" />{tcImporting ? "インポート中..." : "インポート"}
