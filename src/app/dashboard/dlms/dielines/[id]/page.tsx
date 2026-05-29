@@ -16,7 +16,7 @@ const ME_OPTIONS = ["Y", "T"]
 const KIRI_OPTIONS = ["1", "2", "3", "4", "長6", "角6", "8"]
 const MEN_OPTIONS = Array.from({ length: 18 }, (_, i) => String(i + 1))
 
-type ConditionMaster = { id: number; name: string }
+type TypeCondition = { id: number; genre: string | null; spec: string | null; hinmoku: string | null; tag1: string | null; tag2: string | null }
 type Condition = { id: string; value: string; sortOrder: number }
 type Request = { id: string; request_no: string; haichi_kakunin: string; dtindt: string }
 type Child = {
@@ -47,7 +47,8 @@ export default function DielineDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [conditionMasters, setConditionMasters] = useState<ConditionMaster[]>([])
+  const [typeConditions, setTypeConditions] = useState<TypeCondition[]>([])
+  const [showAllConditions, setShowAllConditions] = useState(false)
 
   const [genre, setGenre] = useState("")
   const [spec, setSpec] = useState("")
@@ -78,7 +79,7 @@ export default function DielineDetailPage() {
 
   useEffect(() => {
     fetchParent()
-    fetch("/api/dlms/conditions").then(r => r.json()).then(setConditionMasters)
+    fetch("/api/dlms/type-conditions").then(r => r.json()).then(setTypeConditions)
   }, [id])
 
   const toggleCondition = (name: string) => {
@@ -299,37 +300,81 @@ export default function DielineDetailPage() {
                 </div>
                 <div>
                   <Label className="text-sm text-gray-500 mb-2 block">条件</Label>
-                  {conditionMasters.length === 0 ? (
-                    <p className="text-sm text-gray-400">条件マスタが登録されていません。</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        {conditionMasters.map(c => (
-                          <button key={c.id} type="button" onClick={() => toggleCondition(c.name)}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                              selectedConditions.includes(c.name)
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
-                            }`}>
-                            {c.name}
+                  {(() => {
+                    // ジャンル・仕様・品目に応じて絞り込み
+                    const filtered = typeConditions.filter(tc =>
+                      (!genre || tc.genre === genre) &&
+                      (!spec || tc.spec === spec) &&
+                      (!hinmoku || tc.hinmoku === hinmoku)
+                    )
+                    const filteredTags = [...new Set([
+                      ...filtered.map(tc => tc.tag1).filter(Boolean),
+                      ...filtered.map(tc => tc.tag2).filter(Boolean),
+                    ])] as string[]
+                    const allTags = [...new Set([
+                      ...typeConditions.map(tc => tc.tag1).filter(Boolean),
+                      ...typeConditions.map(tc => tc.tag2).filter(Boolean),
+                    ])] as string[]
+                    const displayTags = showAllConditions ? allTags : filteredTags
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-gray-400">
+                            {filteredTags.length > 0 ? `${genre || ""}${spec || ""}${hinmoku || ""}に対応する候補` : "全条件"}
+                          </span>
+                          <button type="button" onClick={() => setShowAllConditions(v => !v)}
+                            className="text-xs text-blue-500 hover:text-blue-700 underline">
+                            {showAllConditions ? "絞り込む" : "全件表示"}
                           </button>
-                        ))}
-                      </div>
-                      {selectedConditions.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-2 border-t">
-                          <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
-                          {selectedConditions.map(c => (
-                            <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                              {c}
-                              <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {displayTags.length === 0 ? (
+                          <p className="text-sm text-gray-400">条件候補がありません。</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {displayTags.map(tag => (
+                              <button key={tag} type="button" onClick={() => toggleCondition(tag)}
+                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                                  selectedConditions.includes(tag)
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                                }`}>
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* 手入力 */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="手入力で追加"
+                            autoComplete="off"
+                            className="px-2 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                const val = (e.target as HTMLInputElement).value.trim()
+                                if (val) { toggleCondition(val); (e.target as HTMLInputElement).value = "" }
+                              }
+                            }}
+                          />
+                          <span className="text-xs text-gray-400">Enterで追加</span>
+                        </div>
+                        {selectedConditions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-2 border-t">
+                            <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
+                            {selectedConditions.map(c => (
+                              <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                {c}
+                                <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
