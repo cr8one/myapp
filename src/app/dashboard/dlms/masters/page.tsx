@@ -1,17 +1,22 @@
 "use client"
-import { useEffect, useState, useCallback } from "react"
-import { Plus, Pencil, Trash2, X, Check, AlertCircle } from "lucide-react"
+import { useEffect, useState, useCallback, useRef } from "react"
+import { Plus, Pencil, Trash2, X, Check, AlertCircle, Download, Upload } from "lucide-react"
 
 type Format = { id: number; name: string; width: number; height: number; unit: string; note?: string; sortOrder: number }
 type Part = { id: number; name: string; width: number; height: number; shape: string; note?: string; sortOrder: number }
 type Note = { id: number; name: string; content: string; fontSize: number; color: string; fontWeight: string; sortOrder: number }
-type Condition = { id: number; name: string; sortOrder: number }
-type Tab = "formats" | "parts" | "notes" | "conditions"
+type TypeCondition = {
+  id: number; genre: string | null; spec: string | null; hinmoku: string | null
+  tag1: string | null; tag2: string | null
+  genre_sort: number; spec_sort: number; hinmoku_sort: number; tag1_sort: number; tag2_sort: number
+}
+type Tab = "formats" | "parts" | "notes" | "type-conditions"
 
 const COLORS = ["#1a1a1a", "#e24b4a", "#378add", "#639922", "#ba7517", "#888780"]
 const emptyFormat = { name: "", width: 0, height: 0, unit: "mm", note: "", sortOrder: 0 }
 const emptyPart = { name: "", width: 0, height: 0, shape: "rect", note: "", sortOrder: 0 }
 const emptyNote = { name: "", content: "", fontSize: 12, color: "#1a1a1a", fontWeight: "normal", sortOrder: 0 }
+const emptyTypeCondition = { genre: "", spec: "", hinmoku: "", tag1: "", tag2: "", genre_sort: 0, spec_sort: 0, hinmoku_sort: 0, tag1_sort: 0, tag2_sort: 0 }
 
 function SortOrderInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -26,7 +31,7 @@ export default function DlmsMastersPage() {
   const [formats, setFormats] = useState<Format[]>([])
   const [parts, setParts] = useState<Part[]>([])
   const [notes, setNotes] = useState<Note[]>([])
-  const [conditions, setConditions] = useState<Condition[]>([])
+  const [typeConditions, setTypeConditions] = useState<TypeCondition[]>([])
   const [fetching, setFetching] = useState(true)
   const [editingFormat, setEditingFormat] = useState<Format | null>(null)
   const [addingFormat, setAddingFormat] = useState(false)
@@ -37,32 +42,49 @@ export default function DlmsMastersPage() {
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [addingNote, setAddingNote] = useState(false)
   const [newNote, setNewNote] = useState(emptyNote)
-  const [editingCondition, setEditingCondition] = useState<Condition | null>(null)
-  const [addingCondition, setAddingCondition] = useState(false)
-  const [newConditionName, setNewConditionName] = useState("")
-  const [newConditionSortOrder, setNewConditionSortOrder] = useState(0)
+  // 型条件マスタ
+  const [editingTypeCondition, setEditingTypeCondition] = useState<TypeCondition | null>(null)
+  const [addingTypeCondition, setAddingTypeCondition] = useState(false)
+  const [newTypeCondition, setNewTypeCondition] = useState(emptyTypeCondition)
+  const [tcImporting, setTcImporting] = useState(false)
+  const [tcImportResult, setTcImportResult] = useState<{ count: number } | null>(null)
+  const [tcFilterGenre, setTcFilterGenre] = useState("")
+  const [tcFilterSpec, setTcFilterSpec] = useState("")
+  const [tcFilterHinmoku, setTcFilterHinmoku] = useState("")
+  const tcImportRef = useRef<HTMLInputElement>(null)
 
   const fetchAll = useCallback(async () => {
     setFetching(true)
-    const [f, p, n, c] = await Promise.all([
+    const [f, p, n] = await Promise.all([
       fetch("/api/dlms/formats").then(r => r.json()),
       fetch("/api/dlms/parts").then(r => r.json()),
       fetch("/api/dlms/notes").then(r => r.json()),
-      fetch("/api/dlms/conditions").then(r => r.json()),
     ])
-    setFormats(Array.isArray(f) ? f : [])
-    setParts(Array.isArray(p) ? p : [])
-    setNotes(Array.isArray(n) ? n : [])
-    setConditions(Array.isArray(c) ? c : [])
+    setFormats(f); setParts(p); setNotes(n)
     setFetching(false)
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  const fetchTypeConditions = async (genre = "", spec = "", hinmoku = "") => {
+    const params = new URLSearchParams()
+    if (genre) params.set("genre", genre)
+    if (spec) params.set("spec", spec)
+    if (hinmoku) params.set("hinmoku", hinmoku)
+    const res = await fetch(`/api/dlms/type-conditions?${params.toString()}`)
+    setTypeConditions(await res.json())
+  }
 
+  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { if (tab === "type-conditions") fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku) }, [tab])
+
+  // ジャンル・仕様・品目のユニークリスト
+  const genreOptions = [...new Set(typeConditions.map(r => r.genre).filter(Boolean))] as string[]
+  const specOptions = [...new Set(typeConditions.filter(r => !tcFilterGenre || r.genre === tcFilterGenre).map(r => r.spec).filter(Boolean))] as string[]
+  const hinmokuOptions = [...new Set(typeConditions.filter(r => (!tcFilterGenre || r.genre === tcFilterGenre) && (!tcFilterSpec || r.spec === tcFilterSpec)).map(r => r.hinmoku).filter(Boolean))] as string[]
+
+  // Format handlers
   const saveFormat = async () => {
-    if (!newFormat.name.trim()) return
     await fetch("/api/dlms/formats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newFormat) })
-    setNewFormat(emptyFormat); setAddingFormat(false); fetchAll()
+    setAddingFormat(false); setNewFormat(emptyFormat); fetchAll()
   }
   const updateFormat = async (f: Format) => {
     await fetch(`/api/dlms/formats/${f.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) })
@@ -72,10 +94,11 @@ export default function DlmsMastersPage() {
     if (!confirm("削除しますか？")) return
     await fetch(`/api/dlms/formats/${id}`, { method: "DELETE" }); fetchAll()
   }
+
+  // Part handlers
   const savePart = async () => {
-    if (!newPart.name.trim()) return
     await fetch("/api/dlms/parts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newPart) })
-    setNewPart(emptyPart); setAddingPart(false); fetchAll()
+    setAddingPart(false); setNewPart(emptyPart); fetchAll()
   }
   const updatePart = async (p: Part) => {
     await fetch(`/api/dlms/parts/${p.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) })
@@ -85,10 +108,11 @@ export default function DlmsMastersPage() {
     if (!confirm("削除しますか？")) return
     await fetch(`/api/dlms/parts/${id}`, { method: "DELETE" }); fetchAll()
   }
+
+  // Note handlers
   const saveNote = async () => {
-    if (!newNote.name.trim()) return
     await fetch("/api/dlms/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newNote) })
-    setNewNote(emptyNote); setAddingNote(false); fetchAll()
+    setAddingNote(false); setNewNote(emptyNote); fetchAll()
   }
   const updateNote = async (n: Note) => {
     await fetch(`/api/dlms/notes/${n.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(n) })
@@ -98,396 +122,487 @@ export default function DlmsMastersPage() {
     if (!confirm("削除しますか？")) return
     await fetch(`/api/dlms/notes/${id}`, { method: "DELETE" }); fetchAll()
   }
-  const saveCondition = async () => {
-    if (!newConditionName.trim()) return
-    await fetch("/api/dlms/conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newConditionName, sortOrder: newConditionSortOrder }) })
-    setNewConditionName(""); setNewConditionSortOrder(0); setAddingCondition(false); fetchAll()
+
+  // TypeCondition handlers
+  const saveTypeCondition = async () => {
+    await fetch("/api/dlms/type-conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newTypeCondition) })
+    setAddingTypeCondition(false); setNewTypeCondition(emptyTypeCondition)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
   }
-  const updateCondition = async (c: Condition) => {
-    await fetch(`/api/dlms/conditions/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: c.name, sortOrder: c.sortOrder }) })
-    setEditingCondition(null); fetchAll()
+  const updateTypeCondition = async (tc: TypeCondition) => {
+    await fetch("/api/dlms/type-conditions", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tc) })
+    setEditingTypeCondition(null)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
   }
-  const deleteCondition = async (id: number) => {
+  const deleteTypeCondition = async (id: number) => {
     if (!confirm("削除しますか？")) return
-    await fetch(`/api/dlms/conditions/${id}`, { method: "DELETE" }); fetchAll()
+    await fetch("/api/dlms/type-conditions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+  }
+  const handleTcExport = () => { window.location.href = "/api/dlms/type-conditions/export" }
+  const handleTcImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setTcImporting(true); setTcImportResult(null)
+    const presignRes = await fetch("/api/dlms/type-conditions/presign", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name }),
+    })
+    const { url, key } = await presignRes.json()
+    await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
+    let offset = 0; let totalCount = 0
+    while (true) {
+      const res = await fetch("/api/dlms/type-conditions/import", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, offset }),
+      })
+      const data = await res.json()
+      totalCount += data.count ?? 0
+      offset = data.offset
+      if (data.done) break
+    }
+    setTcImportResult({ count: totalCount })
+    setTcImporting(false)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    if (tcImportRef.current) tcImportRef.current.value = ""
   }
 
-  const shapeLabel = (s: string) => ({ rect: "矩形", circle: "円", polygon: "多角形" }[s] ?? s)
   const tabs: [Tab, string, number][] = [
     ["formats", "判型マスタ", formats.length],
     ["parts", "パーツマスタ", parts.length],
     ["notes", "注記マスタ", notes.length],
-    ["conditions", "条件マスタ", conditions.length],
+    ["type-conditions", "型条件マスタ", typeConditions.length],
   ]
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <div className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-900">DLMSマスタ管理</h1>
-        <p className="text-xs text-gray-400 mt-0.5">判型・パーツ・注記・条件の管理</p>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">DLMSマスタ管理</h1>
+        <p className="text-xs text-gray-400 mt-0.5">判型・パーツ・注記・型条件の管理</p>
       </div>
-      <div className="bg-white border-b px-6">
-        <div className="flex gap-6">
-          {tabs.map(([key, label, count]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === key ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}>
-              {label}
-              <span className="ml-2 text-xs text-gray-400">{count}</span>
-            </button>
-          ))}
-        </div>
+      <div className="flex border-b mb-6 gap-1">
+        {tabs.map(([key, label, count]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === key ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+            {label}
+            <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${tab === key ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}`}>{count}</span>
+          </button>
+        ))}
       </div>
-      <div className="flex-1 px-6 py-6 max-w-3xl">
-        {fetching ? (
-          <div className="space-y-2">
-            {[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-white rounded-lg animate-pulse border border-gray-100" />)}
-          </div>
-        ) : (
-          <>
-            {/* 判型マスタ */}
-            {tab === "formats" && (
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <button onClick={() => setAddingFormat(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />判型を追加
-                  </button>
+      {fetching && tab !== "type-conditions" ? (
+        <div className="text-center py-12 text-gray-400 animate-pulse">読み込み中...</div>
+      ) : (
+        <>
+          {/* 判型マスタ */}
+          {tab === "formats" && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <button onClick={() => setAddingFormat(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />判型を追加
+                </button>
+              </div>
+              {addingFormat && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" value={newFormat.name} onChange={e => setNewFormat({ ...newFormat, name: e.target.value })} placeholder="判型名" autoFocus autoComplete="off"
+                      className="col-span-2 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={newFormat.width} onChange={e => setNewFormat({ ...newFormat, width: Number(e.target.value) })} placeholder="幅" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={newFormat.height} onChange={e => setNewFormat({ ...newFormat, height: Number(e.target.value) })} placeholder="高さ" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" value={newFormat.unit} onChange={e => setNewFormat({ ...newFormat, unit: e.target.value })} placeholder="単位" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" value={newFormat.note} onChange={e => setNewFormat({ ...newFormat, note: e.target.value })} placeholder="備考" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">順序</span>
+                    <SortOrderInput value={newFormat.sortOrder} onChange={v => setNewFormat({ ...newFormat, sortOrder: v })} />
+                    <button onClick={saveFormat} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
+                    <button onClick={() => { setAddingFormat(false); setNewFormat(emptyFormat) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                  </div>
                 </div>
-                {addingFormat && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input type="text" value={newFormat.name} onChange={e => setNewFormat(f => ({ ...f, name: e.target.value }))}
-                        placeholder="判型名（例：A4タテ）" autoFocus autoComplete="off"
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <select value={newFormat.unit} onChange={e => setNewFormat(f => ({ ...f, unit: e.target.value }))}
-                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="mm">mm</option>
-                        <option value="px">px</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">幅</span>
-                      <input type="number" value={newFormat.width} onChange={e => setNewFormat(f => ({ ...f, width: Number(e.target.value) }))}
-                        className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <span className="text-xs text-gray-500">高さ</span>
-                      <input type="number" value={newFormat.height} onChange={e => setNewFormat(f => ({ ...f, height: Number(e.target.value) }))}
-                        className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <input type="text" value={newFormat.note ?? ""} onChange={e => setNewFormat(f => ({ ...f, note: e.target.value }))}
-                        placeholder="備考" autoComplete="off" className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">順序</span>
-                        <SortOrderInput value={newFormat.sortOrder} onChange={v => setNewFormat(f => ({ ...f, sortOrder: v }))} />
-                      </div>
-                      <button onClick={saveFormat} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
-                      <button onClick={() => { setAddingFormat(false); setNewFormat(emptyFormat) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                    </div>
-                  </div>
-                )}
-                {formats.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                    <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">判型が登録されていません</p>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
-                    {formats.map(f => (
-                      <div key={f.id} className="flex items-center gap-3 px-4 py-3">
-                        {editingFormat?.id === f.id ? (
-                          <>
-                            <input type="text" value={editingFormat.name} onChange={e => setEditingFormat({ ...editingFormat, name: e.target.value })}
-                              autoFocus autoComplete="off" className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <select value={editingFormat.unit} onChange={e => setEditingFormat({ ...editingFormat, unit: e.target.value })}
-                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none">
-                              <option value="mm">mm</option>
-                              <option value="px">px</option>
-                            </select>
-                            <input type="number" value={editingFormat.width} onChange={e => setEditingFormat({ ...editingFormat, width: Number(e.target.value) })}
-                              className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
-                            <input type="number" value={editingFormat.height} onChange={e => setEditingFormat({ ...editingFormat, height: Number(e.target.value) })}
-                              className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
+              )}
+              {formats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
+                  <p className="text-sm">判型が登録されていません</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
+                  {formats.map(f => (
+                    <div key={f.id} className="flex items-center gap-3 px-4 py-3">
+                      {editingFormat?.id === f.id ? (
+                        <div className="flex-1 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="text" value={editingFormat.name} onChange={e => setEditingFormat({ ...editingFormat, name: e.target.value })} autoComplete="off"
+                              className="col-span-2 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="number" value={editingFormat.width} onChange={e => setEditingFormat({ ...editingFormat, width: Number(e.target.value) })} placeholder="幅" autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="number" value={editingFormat.height} onChange={e => setEditingFormat({ ...editingFormat, height: Number(e.target.value) })} placeholder="高さ" autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="text" value={editingFormat.unit} onChange={e => setEditingFormat({ ...editingFormat, unit: e.target.value })} placeholder="単位" autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="text" value={editingFormat.note ?? ""} onChange={e => setEditingFormat({ ...editingFormat, note: e.target.value })} placeholder="備考" autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">順序</span>
                             <SortOrderInput value={editingFormat.sortOrder} onChange={v => setEditingFormat({ ...editingFormat, sortOrder: v })} />
                             <button onClick={() => updateFormat(editingFormat)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingFormat(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-6 text-xs text-gray-400 text-right">{f.sortOrder}</span>
-                            <span className="flex-1 text-sm font-medium text-gray-800">{f.name}</span>
-                            <span className="text-xs text-gray-500">{f.width} × {f.height} {f.unit}</span>
-                            {f.note && <span className="text-xs text-gray-400">{f.note}</span>}
-                            <button onClick={() => setEditingFormat(f)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deleteFormat(f.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* パーツマスタ */}
-            {tab === "parts" && (
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <button onClick={() => setAddingPart(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />パーツを追加
-                  </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="w-6 text-xs text-gray-400 text-right">{f.sortOrder}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-800">{f.name}</p>
+                            <p className="text-xs text-gray-400">{f.width} × {f.height} {f.unit}{f.note ? ` / ${f.note}` : ""}</p>
+                          </div>
+                          <button onClick={() => setEditingFormat(f)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => deleteFormat(f.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {addingPart && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input type="text" value={newPart.name} onChange={e => setNewPart(p => ({ ...p, name: e.target.value }))}
-                        placeholder="パーツ名（例：スリーブA）" autoFocus autoComplete="off"
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <select value={newPart.shape} onChange={e => setNewPart(p => ({ ...p, shape: e.target.value }))}
-                        className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="rect">矩形</option>
-                        <option value="circle">円</option>
-                        <option value="polygon">多角形</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">幅(mm)</span>
-                      <input type="number" value={newPart.width} onChange={e => setNewPart(p => ({ ...p, width: Number(e.target.value) }))}
-                        className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <span className="text-xs text-gray-500">高さ(mm)</span>
-                      <input type="number" value={newPart.height} onChange={e => setNewPart(p => ({ ...p, height: Number(e.target.value) }))}
-                        className="w-24 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <input type="text" value={newPart.note ?? ""} onChange={e => setNewPart(p => ({ ...p, note: e.target.value }))}
-                        placeholder="備考" autoComplete="off" className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">順序</span>
-                        <SortOrderInput value={newPart.sortOrder} onChange={v => setNewPart(p => ({ ...p, sortOrder: v }))} />
-                      </div>
-                      <button onClick={savePart} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
-                      <button onClick={() => { setAddingPart(false); setNewPart(emptyPart) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                    </div>
+              )}
+            </div>
+          )}
+
+          {/* パーツマスタ */}
+          {tab === "parts" && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <button onClick={() => setAddingPart(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />パーツを追加
+                </button>
+              </div>
+              {addingPart && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" value={newPart.name} onChange={e => setNewPart({ ...newPart, name: e.target.value })} placeholder="パーツ名" autoFocus autoComplete="off"
+                      className="col-span-2 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={newPart.width} onChange={e => setNewPart({ ...newPart, width: Number(e.target.value) })} placeholder="幅" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={newPart.height} onChange={e => setNewPart({ ...newPart, height: Number(e.target.value) })} placeholder="高さ" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" value={newPart.shape} onChange={e => setNewPart({ ...newPart, shape: e.target.value })} placeholder="形状" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" value={newPart.note} onChange={e => setNewPart({ ...newPart, note: e.target.value })} placeholder="備考" autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-                )}
-                {parts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                    <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">パーツが登録されていません</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">順序</span>
+                    <SortOrderInput value={newPart.sortOrder} onChange={v => setNewPart({ ...newPart, sortOrder: v })} />
+                    <button onClick={savePart} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
+                    <button onClick={() => { setAddingPart(false); setNewPart(emptyPart) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                   </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
-                    {parts.map(p => (
-                      <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                        {editingPart?.id === p.id ? (
-                          <>
-                            <input type="text" value={editingPart.name} onChange={e => setEditingPart({ ...editingPart, name: e.target.value })}
-                              autoFocus autoComplete="off" className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <select value={editingPart.shape} onChange={e => setEditingPart({ ...editingPart, shape: e.target.value })}
-                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none">
-                              <option value="rect">矩形</option>
-                              <option value="circle">円</option>
-                              <option value="polygon">多角形</option>
-                            </select>
-                            <input type="number" value={editingPart.width} onChange={e => setEditingPart({ ...editingPart, width: Number(e.target.value) })}
-                              className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
-                            <input type="number" value={editingPart.height} onChange={e => setEditingPart({ ...editingPart, height: Number(e.target.value) })}
-                              className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
+                </div>
+              )}
+              {parts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
+                  <p className="text-sm">パーツが登録されていません</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
+                  {parts.map(p => (
+                    <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                      {editingPart?.id === p.id ? (
+                        <div className="flex-1 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="text" value={editingPart.name} onChange={e => setEditingPart({ ...editingPart, name: e.target.value })} autoComplete="off"
+                              className="col-span-2 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="number" value={editingPart.width} onChange={e => setEditingPart({ ...editingPart, width: Number(e.target.value) })} autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="number" value={editingPart.height} onChange={e => setEditingPart({ ...editingPart, height: Number(e.target.value) })} autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="text" value={editingPart.shape} onChange={e => setEditingPart({ ...editingPart, shape: e.target.value })} autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <input type="text" value={editingPart.note ?? ""} onChange={e => setEditingPart({ ...editingPart, note: e.target.value })} autoComplete="off"
+                              className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">順序</span>
                             <SortOrderInput value={editingPart.sortOrder} onChange={v => setEditingPart({ ...editingPart, sortOrder: v })} />
                             <button onClick={() => updatePart(editingPart)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingPart(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-6 text-xs text-gray-400 text-right">{p.sortOrder}</span>
-                            <span className="flex-1 text-sm font-medium text-gray-800">{p.name}</span>
-                            <span className="text-xs text-gray-500">{shapeLabel(p.shape)}</span>
-                            <span className="text-xs text-gray-500">{p.width} × {p.height} mm</span>
-                            {p.note && <span className="text-xs text-gray-400">{p.note}</span>}
-                            <button onClick={() => setEditingPart(p)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deletePart(p.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* 注記マスタ */}
-            {tab === "notes" && (
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <button onClick={() => setAddingNote(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />注記を追加
-                  </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="w-6 text-xs text-gray-400 text-right">{p.sortOrder}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                            <p className="text-xs text-gray-400">{p.width} × {p.height}{p.shape ? ` / ${p.shape}` : ""}{p.note ? ` / ${p.note}` : ""}</p>
+                          </div>
+                          <button onClick={() => setEditingPart(p)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => deletePart(p.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {addingNote && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
-                    <input type="text" value={newNote.name} onChange={e => setNewNote(n => ({ ...n, name: e.target.value }))}
-                      placeholder="注記名（例：折り線注意書き）" autoFocus autoComplete="off"
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <textarea rows={2} value={newNote.content} onChange={e => setNewNote(n => ({ ...n, content: e.target.value }))}
-                      placeholder="テキスト内容"
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">サイズ</span>
-                        <input type="number" min="8" max="72" value={newNote.fontSize} onChange={e => setNewNote(n => ({ ...n, fontSize: Number(e.target.value) }))}
-                          className="w-16 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
-                        <span className="text-xs text-gray-400">px</span>
-                      </div>
-                      <select value={newNote.fontWeight} onChange={e => setNewNote(n => ({ ...n, fontWeight: e.target.value }))}
-                        className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none">
-                        <option value="normal">標準</option>
-                        <option value="bold">太字</option>
-                      </select>
-                      <div className="flex items-center gap-1.5">
+              )}
+            </div>
+          )}
+
+          {/* 注記マスタ */}
+          {tab === "notes" && (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <button onClick={() => setAddingNote(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />注記を追加
+                </button>
+              </div>
+              {addingNote && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
+                  <input type="text" value={newNote.name} onChange={e => setNewNote({ ...newNote, name: e.target.value })} placeholder="注記名" autoFocus autoComplete="off"
+                    className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <textarea value={newNote.content} onChange={e => setNewNote({ ...newNote, content: e.target.value })} placeholder="内容" rows={3} autoComplete="off"
+                    className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">サイズ</span>
+                      <input type="number" value={newNote.fontSize} onChange={e => setNewNote({ ...newNote, fontSize: Number(e.target.value) })}
+                        className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">色</span>
+                      <div className="flex gap-1">
                         {COLORS.map(c => (
-                          <button key={c} onClick={() => setNewNote(n => ({ ...n, color: c }))}
-                            style={{ background: c, width: 18, height: 18, borderRadius: "50%", border: newNote.color === c ? "2px solid #378add" : "2px solid transparent" }} />
+                          <button key={c} onClick={() => setNewNote({ ...newNote, color: c })}
+                            className={`w-5 h-5 rounded-full border-2 ${newNote.color === c ? "border-blue-500 scale-110" : "border-transparent"}`}
+                            style={{ backgroundColor: c }} />
                         ))}
-                        <input type="color" value={newNote.color} onChange={e => setNewNote(n => ({ ...n, color: e.target.value }))}
-                          className="w-7 h-7 rounded cursor-pointer border" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">順序</span>
-                        <SortOrderInput value={newNote.sortOrder} onChange={v => setNewNote(n => ({ ...n, sortOrder: v }))} />
-                      </div>
-                      <div className="flex items-center gap-2 ml-auto">
-                        <button onClick={saveNote} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
-                        <button onClick={() => { setAddingNote(false); setNewNote(emptyNote) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                       </div>
                     </div>
-                    {newNote.content && (
-                      <div className="border rounded px-3 py-2 bg-white">
-                        <span style={{ fontSize: newNote.fontSize, color: newNote.color, fontWeight: newNote.fontWeight, whiteSpace: "pre-wrap" }}>{newNote.content}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">太さ</span>
+                      <select value={newNote.fontWeight} onChange={e => setNewNote({ ...newNote, fontWeight: e.target.value })}
+                        className="px-2 py-1 text-xs border border-gray-200 rounded-lg">
+                        <option value="normal">normal</option>
+                        <option value="bold">bold</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-1 ml-auto">
+                      <span className="text-xs text-gray-500">順序</span>
+                      <SortOrderInput value={newNote.sortOrder} onChange={v => setNewNote({ ...newNote, sortOrder: v })} />
+                      <button onClick={saveNote} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
+                      <button onClick={() => { setAddingNote(false); setNewNote(emptyNote) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    </div>
                   </div>
-                )}
-                {notes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                    <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">注記が登録されていません</p>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
-                    {notes.map(n => (
-                      <div key={n.id} className="px-4 py-3">
-                        {editingNote?.id === n.id ? (
-                          <div className="space-y-2">
-                            <input type="text" value={editingNote.name} onChange={e => setEditingNote({ ...editingNote, name: e.target.value })}
-                              autoFocus autoComplete="off" className="w-full px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <textarea rows={2} value={editingNote.content} onChange={e => setEditingNote({ ...editingNote, content: e.target.value })}
-                              className="w-full px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <input type="number" min="8" max="72" value={editingNote.fontSize} onChange={e => setEditingNote({ ...editingNote, fontSize: Number(e.target.value) })}
-                                className="w-16 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none" />
-                              <select value={editingNote.fontWeight} onChange={e => setEditingNote({ ...editingNote, fontWeight: e.target.value })}
-                                className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none">
-                                <option value="normal">標準</option>
-                                <option value="bold">太字</option>
-                              </select>
-                              <div className="flex items-center gap-1.5">
+                </div>
+              )}
+              {notes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
+                  <p className="text-sm">注記が登録されていません</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
+                  {notes.map(n => (
+                    <div key={n.id} className="flex items-start gap-3 px-4 py-3">
+                      {editingNote?.id === n.id ? (
+                        <div className="flex-1 space-y-2">
+                          <input type="text" value={editingNote.name} onChange={e => setEditingNote({ ...editingNote, name: e.target.value })} autoComplete="off"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <textarea value={editingNote.content} onChange={e => setEditingNote({ ...editingNote, content: e.target.value })} rows={3} autoComplete="off"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">サイズ</span>
+                              <input type="number" value={editingNote.fontSize} onChange={e => setEditingNote({ ...editingNote, fontSize: Number(e.target.value) })}
+                                className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-lg" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">色</span>
+                              <div className="flex gap-1">
                                 {COLORS.map(c => (
                                   <button key={c} onClick={() => setEditingNote({ ...editingNote, color: c })}
-                                    style={{ background: c, width: 18, height: 18, borderRadius: "50%", border: editingNote.color === c ? "2px solid #378add" : "2px solid transparent" }} />
+                                    className={`w-5 h-5 rounded-full border-2 ${editingNote.color === c ? "border-blue-500 scale-110" : "border-transparent"}`}
+                                    style={{ backgroundColor: c }} />
                                 ))}
-                                <input type="color" value={editingNote.color} onChange={e => setEditingNote({ ...editingNote, color: e.target.value })}
-                                  className="w-7 h-7 rounded cursor-pointer border" />
                               </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">太さ</span>
+                              <select value={editingNote.fontWeight} onChange={e => setEditingNote({ ...editingNote, fontWeight: e.target.value })}
+                                className="px-2 py-1 text-xs border border-gray-200 rounded-lg">
+                                <option value="normal">normal</option>
+                                <option value="bold">bold</option>
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-1 ml-auto">
+                              <span className="text-xs text-gray-500">順序</span>
                               <SortOrderInput value={editingNote.sortOrder} onChange={v => setEditingNote({ ...editingNote, sortOrder: v })} />
-                              <div className="flex gap-2 ml-auto">
-                                <button onClick={() => setEditingNote(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                                <button onClick={() => updateNote(editingNote)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
-                              </div>
+                              <button onClick={() => updateNote(editingNote)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingNote(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
                             </div>
-                            {editingNote.content && (
-                              <div className="border rounded px-3 py-2 bg-white">
-                                <span style={{ fontSize: editingNote.fontSize, color: editingNote.color, fontWeight: editingNote.fontWeight, whiteSpace: "pre-wrap" }}>{editingNote.content}</span>
-                              </div>
-                            )}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 text-xs text-gray-400 text-right">{n.sortOrder}</span>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-800">{n.name}</p>
-                              <p style={{ fontSize: Math.min(n.fontSize, 13), color: n.color, fontWeight: n.fontWeight, whiteSpace: "pre-wrap" }} className="mt-0.5 leading-tight">
-                                {n.content.length > 40 ? n.content.slice(0, 40) + "…" : n.content}
-                              </p>
-                            </div>
-                            <span className="text-xs text-gray-400">{n.fontSize}px</span>
-                            <button onClick={() => setEditingNote(n)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deleteNote(n.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="w-6 text-xs text-gray-400 text-right mt-1">{n.sortOrder}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium" style={{ color: n.color, fontWeight: n.fontWeight }}>{n.name}</p>
+                            <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{n.content}</p>
+                            <p className="text-xs text-gray-300 mt-0.5">{n.fontSize}pt</p>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* 条件マスタ */}
-            {tab === "conditions" && (
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <button onClick={() => setAddingCondition(true)}
+                          <button onClick={() => setEditingNote(n)} className="text-gray-400 hover:text-blue-600 mt-1"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => deleteNote(n.id)} className="text-gray-400 hover:text-red-600 mt-1"><Trash2 className="w-4 h-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 型条件マスタ */}
+          {tab === "type-conditions" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select value={tcFilterGenre} onChange={e => { setTcFilterGenre(e.target.value); setTcFilterSpec(""); setTcFilterHinmoku(""); fetchTypeConditions(e.target.value, "", "") }}
+                    className="h-8 border rounded px-2 text-sm bg-white">
+                    <option value="">ジャンル：すべて</option>
+                    {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <select value={tcFilterSpec} onChange={e => { setTcFilterSpec(e.target.value); setTcFilterHinmoku(""); fetchTypeConditions(tcFilterGenre, e.target.value, "") }}
+                    className="h-8 border rounded px-2 text-sm bg-white">
+                    <option value="">仕様：すべて</option>
+                    {specOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <select value={tcFilterHinmoku} onChange={e => { setTcFilterHinmoku(e.target.value); fetchTypeConditions(tcFilterGenre, tcFilterSpec, e.target.value) }}
+                    className="h-8 border rounded px-2 text-sm bg-white">
+                    <option value="">品目：すべて</option>
+                    {hinmokuOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleTcExport}
+                    className="flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg bg-white hover:bg-gray-50">
+                    <Download className="w-4 h-4" />エクスポート
+                  </button>
+                  <label className={`flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg bg-white hover:bg-gray-50 cursor-pointer ${tcImporting ? "opacity-50 pointer-events-none" : ""}`}>
+                    <Upload className="w-4 h-4" />{tcImporting ? "インポート中..." : "インポート"}
+                    <input ref={tcImportRef} type="file" accept=".csv" className="hidden" onChange={handleTcImport} />
+                  </label>
+                  <button onClick={() => { setAddingTypeCondition(true); setNewTypeCondition(emptyTypeCondition) }}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />条件を追加
+                    <Plus className="w-4 h-4" />追加
                   </button>
                 </div>
-                {addingCondition && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <input type="text" value={newConditionName} onChange={e => setNewConditionName(e.target.value)}
-                        placeholder="条件名（例：三方背、四方折返し）" autoFocus autoComplete="off"
-                        onKeyDown={e => { if (e.key === "Enter") saveCondition() }}
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">順序</span>
-                        <SortOrderInput value={newConditionSortOrder} onChange={setNewConditionSortOrder} />
-                      </div>
-                      <button onClick={saveCondition} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
-                      <button onClick={() => { setAddingCondition(false); setNewConditionName(""); setNewConditionSortOrder(0) }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                    </div>
+              </div>
+
+              {tcImportResult && (
+                <div className="px-4 py-2 rounded-lg text-sm bg-green-50 border border-green-200 text-green-800">
+                  {tcImportResult.count}件をインポートしました。
+                  <button onClick={() => setTcImportResult(null)} className="ml-2 underline text-xs">閉じる</button>
+                </div>
+              )}
+
+              {addingTypeCondition && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 space-y-2">
+                  <div className="grid grid-cols-5 gap-2 text-xs text-gray-500 font-medium">
+                    <span>ジャンル</span><span>仕様</span><span>品目</span><span>条件タグ1</span><span>条件タグ2</span>
                   </div>
-                )}
-                {conditions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                    <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">条件が登録されていません</p>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm divide-y divide-gray-100">
-                    {conditions.map(c => (
-                      <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                        {editingCondition?.id === c.id ? (
-                          <>
-                            <input type="text" value={editingCondition.name} onChange={e => setEditingCondition({ ...editingCondition, name: e.target.value })}
-                              autoFocus autoComplete="off"
-                              onKeyDown={e => { if (e.key === "Enter") updateCondition(editingCondition) }}
-                              className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <SortOrderInput value={editingCondition.sortOrder} onChange={v => setEditingCondition({ ...editingCondition, sortOrder: v })} />
-                            <button onClick={() => updateCondition(editingCondition)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => setEditingCondition(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-6 text-xs text-gray-400 text-right">{c.sortOrder}</span>
-                            <span className="flex-1 text-sm font-medium text-gray-800">{c.name}</span>
-                            <button onClick={() => setEditingCondition(c)} className="text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => deleteCondition(c.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                          </>
-                        )}
-                      </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {(["genre", "spec", "hinmoku", "tag1", "tag2"] as const).map(key => (
+                      <input key={key} type="text" value={newTypeCondition[key]} onChange={e => setNewTypeCondition(f => ({ ...f, [key]: e.target.value }))}
+                        autoComplete="off" className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     ))}
                   </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                  <div className="grid grid-cols-5 gap-2 text-xs text-gray-500 font-medium mt-1">
+                    <span>ジャンル順</span><span>仕様順</span><span>品目順</span><span>タグ1順</span><span>タグ2順</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {(["genre_sort", "spec_sort", "hinmoku_sort", "tag1_sort", "tag2_sort"] as const).map(key => (
+                      <input key={key} type="number" value={newTypeCondition[key]} onChange={e => setNewTypeCondition(f => ({ ...f, [key]: parseInt(e.target.value) || 0 }))}
+                        className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    ))}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={saveTypeCondition} className="text-blue-600 hover:text-blue-800"><Check className="w-5 h-5" /></button>
+                    <button onClick={() => setAddingTypeCondition(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                  </div>
+                </div>
+              )}
+
+              {typeConditions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
+                  <p className="text-sm">型条件が登録されていません</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-gray-500 font-medium">ジャンル</th>
+                        <th className="text-left px-3 py-2 text-gray-500 font-medium">仕様</th>
+                        <th className="text-left px-3 py-2 text-gray-500 font-medium">品目</th>
+                        <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ1</th>
+                        <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ2</th>
+                        <th className="px-3 py-2 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {typeConditions.map(tc => (
+                        <tr key={tc.id} className="hover:bg-gray-50">
+                          {editingTypeCondition?.id === tc.id ? (
+                            <td colSpan={6} className="px-3 py-2">
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-5 gap-2">
+                                  {(["genre", "spec", "hinmoku", "tag1", "tag2"] as const).map(key => (
+                                    <input key={key} type="text" value={editingTypeCondition[key] ?? ""} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: e.target.value }) : f)}
+                                      autoComplete="off" className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                  ))}
+                                </div>
+                                <div className="grid grid-cols-5 gap-2">
+                                  {(["genre_sort", "spec_sort", "hinmoku_sort", "tag1_sort", "tag2_sort"] as const).map(key => (
+                                    <input key={key} type="number" value={editingTypeCondition[key]} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: parseInt(e.target.value) || 0 }) : f)}
+                                      className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                  ))}
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => updateTypeCondition(editingTypeCondition)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
+                                  <button onClick={() => setEditingTypeCondition(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                                </div>
+                              </div>
+                            </td>
+                          ) : (
+                            <>
+                              <td className="px-3 py-2 text-gray-700">{tc.genre ?? <span className="text-gray-300">—</span>}</td>
+                              <td className="px-3 py-2 text-gray-700">{tc.spec ?? <span className="text-gray-300">—</span>}</td>
+                              <td className="px-3 py-2 text-gray-700">{tc.hinmoku ?? <span className="text-gray-300">—</span>}</td>
+                              <td className="px-3 py-2 text-gray-600">{tc.tag1 ?? <span className="text-gray-300">—</span>}</td>
+                              <td className="px-3 py-2 text-gray-600">{tc.tag2 ?? <span className="text-gray-300">—</span>}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex gap-1">
+                                  <button onClick={() => setEditingTypeCondition(tc)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
+                                  <button onClick={() => deleteTypeCondition(tc.id)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
