@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
   const raw = await s3Res.Body?.transformToByteArray()
   if (!raw) return NextResponse.json({ error: "ファイル取得失敗" }, { status: 500 })
 
-  const text = new TextDecoder("shift-jis").decode(raw)
+  const textRaw = new TextDecoder("utf-8").decode(raw)
+  const text = textRaw.replace(/^\uFEFF/, "") // BOM除去
   const lines = text.split(/\r?\n/).filter(l => l.trim())
 
   // ヘッダーから条件列数を動的に判定（固定14列以降が条件列）
