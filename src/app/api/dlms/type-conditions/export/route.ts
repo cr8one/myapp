@@ -32,7 +32,7 @@ export async function GET() {
   return new NextResponse(bom + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="DLMS型条件マスタ_${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="dlms-type-conditions_${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   })
 }
