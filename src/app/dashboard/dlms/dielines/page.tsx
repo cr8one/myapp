@@ -131,6 +131,57 @@ export default function DielinesPage() {
     }
   }
 
+  // 枝番インポート状態
+  const [showChildrenImport, setShowChildrenImport] = useState(false)
+  const [childrenImportFile, setChildrenImportFile] = useState<File | null>(null)
+  const [childrenImportStatus, setChildrenImportStatus] = useState<ImportStatus>("idle")
+  const [childrenImportProgress, setChildrenImportProgress] = useState({ count: 0, total: 0 })
+  const [childrenImportError, setChildrenImportError] = useState("")
+  const childrenImportRef = useRef<HTMLInputElement>(null)
+
+  const handleChildrenExport = () => { window.location.href = "/api/dlms/dielines/children-export" }
+
+  const handleChildrenImport = async () => {
+    if (!childrenImportFile) return
+    setChildrenImportStatus("uploading")
+    setChildrenImportError("")
+    setChildrenImportProgress({ count: 0, total: 0 })
+    try {
+      const presignRes = await fetch("/api/dlms/dielines/children-presign", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: childrenImportFile.name }),
+      })
+      const { url, key } = await presignRes.json()
+      await fetch(url, { method: "PUT", body: childrenImportFile, headers: { "Content-Type": "text/csv" } })
+      setChildrenImportStatus("importing")
+      let offset = 0; let total = 0; let totalCount = 0
+      while (true) {
+        const res = await fetch("/api/dlms/dielines/children-import", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, offset }),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error ?? "インポートエラー")
+        total = data.total; totalCount += data.count; offset = data.offset
+        setChildrenImportProgress({ count: totalCount, total })
+        if (data.done) break
+      }
+      setChildrenImportStatus("done")
+      fetchParents()
+    } catch (e) {
+      setChildrenImportError(e instanceof Error ? e.message : "エラーが発生しました")
+      setChildrenImportStatus("error")
+    }
+  }
+
+  const resetChildrenImport = () => {
+    setChildrenImportStatus("idle")
+    setChildrenImportFile(null)
+    setChildrenImportProgress({ count: 0, total: 0 })
+    setChildrenImportError("")
+    setShowChildrenImport(false)
+  }
+
   const resetImport = () => {
     setImportStatus("idle")
     setImportFile(null)
@@ -149,6 +200,12 @@ export default function DielinesPage() {
           </Button>
           <Button variant="outline" onClick={handleExport} className="flex items-center gap-1">
             <Download className="w-4 h-4" />CSVエクスポート
+          </Button>
+          <Button variant="outline" onClick={() => setShowChildrenImport(v => !v)} className="flex items-center gap-1">
+            <Upload className="w-4 h-4" />枝番インポート
+          </Button>
+          <Button variant="outline" onClick={handleChildrenExport} className="flex items-center gap-1">
+            <Download className="w-4 h-4" />枝番エクスポート
           </Button>
           <Button onClick={() => router.push("/dashboard/dlms/dielines/new")}>新規登録</Button>
         </div>
@@ -222,6 +279,68 @@ export default function DielinesPage() {
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">{importError}</span>
               <button onClick={() => setImportStatus("idle")} className="ml-auto text-xs text-red-600 hover:text-red-800">再試行</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 枝番インポートパネル */}
+      {showChildrenImport && (
+        <div className="bg-white border rounded-lg p-5 mb-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">枝番CSVインポート</h2>
+            <button onClick={resetChildrenImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+          </div>
+          <p className="text-xs text-gray-500">
+            列順：型番号・枝番・判・目・切・面・天地(mm)・左右(mm)・咥え(mm)・所在
+          </p>
+          {childrenImportStatus === "idle" && (
+            <div className="space-y-3">
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${childrenImportFile ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setChildrenImportFile(f) }}>
+                {childrenImportFile ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-gray-700 font-medium">{childrenImportFile.name}</span>
+                    <button onClick={() => setChildrenImportFile(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-500">CSVファイルをドラッグ＆ドロップ</p>
+                    <label className="mt-2 inline-block cursor-pointer text-blue-600 text-sm hover:underline">
+                      またはファイルを選択
+                      <input ref={childrenImportRef} type="file" accept=".csv" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) setChildrenImportFile(f) }} />
+                    </label>
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleChildrenImport} disabled={!childrenImportFile} size="sm">インポート開始</Button>
+            </div>
+          )}
+          {(childrenImportStatus === "uploading" || childrenImportStatus === "importing") && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">{childrenImportStatus === "uploading" ? "S3にアップロード中..." : `インポート中... ${childrenImportProgress.count} / ${childrenImportProgress.total} 件`}</p>
+              {childrenImportProgress.total > 0 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round(childrenImportProgress.count / childrenImportProgress.total * 100)}%` }} />
+                </div>
+              )}
+            </div>
+          )}
+          {childrenImportStatus === "done" && (
+            <div className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span className="text-sm">{childrenImportProgress.count}件のインポートが完了しました</span>
+              <button onClick={resetChildrenImport} className="ml-auto text-sm text-gray-500 hover:text-gray-700">閉じる</button>
+            </div>
+          )}
+          {childrenImportStatus === "error" && (
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm">{childrenImportError}</span>
+              <button onClick={resetChildrenImport} className="ml-auto text-sm text-gray-500 hover:text-gray-700">閉じる</button>
             </div>
           )}
         </div>
