@@ -6,6 +6,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 export const maxDuration = 60
 const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
+const PAGE_SIZE = 50
 const CSV_COLUMNS = [
   "tokuicd","tokuinm","tantou_nm","nonyu_cd","nonyu_nm1","nonyu_nm2",
   "nonyu_kana","nonyu_kigou","sy_shoyou_nissu","yubin_no","address1","address2",
@@ -38,21 +39,28 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
   const delFlg = searchParams.get("delFlg")
-  const records = await prisma.prinserMTokuiNonyu.findMany({
-    where: {
-      ...(keyword ? { OR: [
-        { nonyu_cd: { contains: keyword } },
-        { nonyu_nm1: { contains: keyword } },
-        { nonyu_nm2: { contains: keyword } },
-        { nonyu_kana: { contains: keyword } },
-        { tokuicd: { contains: keyword } },
-        { tokuinm: { contains: keyword } },
-      ]} : {}),
-      ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
-    },
-    orderBy: { nonyu_cd: "asc" },
-  })
-  return NextResponse.json(records)
+  const page = parseInt(searchParams.get("page") ?? "1") || 1
+  const where = {
+    ...(keyword ? { OR: [
+      { nonyu_cd: { contains: keyword } },
+      { nonyu_nm1: { contains: keyword } },
+      { nonyu_nm2: { contains: keyword } },
+      { nonyu_kana: { contains: keyword } },
+      { tokuicd: { contains: keyword } },
+      { tokuinm: { contains: keyword } },
+    ]} : {}),
+    ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
+  }
+  const [records, total] = await Promise.all([
+    prisma.prinserMTokuiNonyu.findMany({
+      where,
+      orderBy: { nonyu_cd: "asc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.prinserMTokuiNonyu.count({ where }),
+  ])
+  return NextResponse.json({ records, total })
 }
 export async function PUT(req: NextRequest) {
   const session = await auth()

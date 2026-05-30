@@ -2,58 +2,42 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Upload, Trash2, RefreshCw, Search } from "lucide-react"
-
+import { Upload, Trash2, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react"
+const PAGE_SIZE = 50
 type Record_ = {
-  nonyu_cd: string
-  tokuicd: string | null
-  tokuinm: string | null
-  tantou_nm: string | null
-  nonyu_nm1: string | null
-  nonyu_nm2: string | null
-  nonyu_kana: string | null
-  nonyu_kigou: string | null
-  sy_shoyou_nissu: number
-  yubin_no: string | null
-  address1: string | null
-  address2: string | null
-  tel_no: string | null
-  fax_no: string | null
-  tekiyou: string | null
-  dtindt: string
-  dtintm: string
-  dtinuid: string
-  dtupdt: string
-  dtuptm: string
-  dtupuid: string
-  del_flg: number
+  nonyu_cd: string; tokuicd: string | null; tokuinm: string | null; tantou_nm: string | null
+  nonyu_nm1: string | null; nonyu_nm2: string | null; nonyu_kana: string | null
+  nonyu_kigou: string | null; sy_shoyou_nissu: number; yubin_no: string | null
+  address1: string | null; address2: string | null; tel_no: string | null; fax_no: string | null
+  tekiyou: string | null; dtindt: string; dtintm: string; dtinuid: string
+  dtupdt: string; dtuptm: string; dtupuid: string; del_flg: number
   mitsumonavi_nohinsaki_name: string
 }
-
 export default function MTokuiNonyuPage() {
   const [records, setRecords] = useState<Record_[]>([])
   const [loading, setLoading] = useState(false)
   const [keyword, setKeyword] = useState("")
   const [delFlg, setDelFlg] = useState("")
   const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
-
-  const fetchRecords = async () => {
+  const fetchRecords = async (p = page) => {
     setLoading(true)
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
     if (delFlg) params.set("delFlg", delFlg)
+    params.set("page", String(p))
     const res = await fetch(`/api/prinser/m-tokui-nonyu?${params.toString()}`)
     const data = await res.json()
-    setRecords(data)
-    setTotalCount(data.length)
+    setRecords(data.records ?? [])
+    setTotalCount(data.total ?? 0)
     setLoading(false)
   }
-
-  useEffect(() => { fetchRecords() }, [])
-
+  useEffect(() => { fetchRecords(1) }, [])
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const handleSearch = () => { setPage(1); fetchRecords(1) }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -64,8 +48,7 @@ export default function MTokuiNonyuPage() {
       const { url, key } = await putRes.json()
       await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
       setImportProgress("インポート中...")
-      let offset = 0
-      let total = 0
+      let offset = 0; let total = 0
       while (true) {
         const res = await fetch("/api/prinser/m-tokui-nonyu/bulk", {
           method: "POST",
@@ -79,7 +62,7 @@ export default function MTokuiNonyuPage() {
         if (result.done) break
       }
       setImportProgress(`完了: ${total}件`)
-      fetchRecords()
+      setPage(1); fetchRecords(1)
     } catch (err: any) {
       setImportProgress("エラー: " + err.message)
     } finally {
@@ -87,21 +70,18 @@ export default function MTokuiNonyuPage() {
       if (fileRef.current) fileRef.current.value = ""
     }
   }
-
   const handleDelete = async () => {
     if (!confirm("全データを削除しますか？")) return
     await fetch("/api/prinser/m-tokui-nonyu", { method: "DELETE" })
-    fetchRecords()
+    setPage(1); fetchRecords(1)
   }
-
   const toStr = (v: string | null | undefined) => v ?? ""
-
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold">m_tokui_nonyu</h1>
-          <p className="text-sm text-gray-500">納品先マスタ（得意先別）</p>
+          <p className="text-sm text-gray-500">納品先マスタ（得意先別）（{totalCount}件）</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="destructive" size="sm" onClick={handleDelete}>
@@ -113,39 +93,29 @@ export default function MTokuiNonyuPage() {
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
         </div>
       </div>
-
       {importProgress && (
         <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
           {importProgress}
         </div>
       )}
-
       <div className="flex items-center gap-2 mb-4">
-        <Input
-          placeholder="納入先CD・名称・カナ・得意先で検索"
-          value={keyword}
+        <Input placeholder="納入先CD・名称・カナ・得意先で検索" value={keyword}
           onChange={e => setKeyword(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
-          className="max-w-xs"
-        />
-        <select
-          value={delFlg}
-          onChange={e => setDelFlg(e.target.value)}
-          className="border rounded px-2 py-1 text-sm h-9"
-        >
+          onKeyDown={e => { if (e.key === "Enter") handleSearch() }}
+          className="max-w-xs" />
+        <select value={delFlg} onChange={e => setDelFlg(e.target.value)}
+          className="border rounded px-2 py-1 text-sm h-9">
           <option value="">削除フラグ：全て</option>
           <option value="0">0：有効</option>
           <option value="1">1：削除</option>
         </select>
-        <Button onClick={fetchRecords} size="sm" className="flex items-center gap-1">
+        <Button onClick={handleSearch} size="sm" className="flex items-center gap-1">
           <Search className="w-4 h-4" />検索
         </Button>
-        <Button variant="outline" size="sm" onClick={() => { setKeyword(""); setDelFlg(""); setTimeout(fetchRecords, 0) }}>
+        <Button variant="outline" size="sm" onClick={() => { setKeyword(""); setDelFlg(""); setPage(1); setTimeout(() => fetchRecords(1), 0) }}>
           <RefreshCw className="w-4 h-4" />
         </Button>
-        <span className="text-sm text-gray-500 ml-2">{totalCount}件</span>
       </div>
-
       <div className="overflow-x-auto rounded border">
         <table className="text-xs whitespace-nowrap">
           <thead className="bg-gray-100 sticky top-0">
@@ -210,6 +180,24 @@ export default function MTokuiNonyuPage() {
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-1 mt-3">
+          <p className="text-xs text-gray-400">
+            {totalCount}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, totalCount)}件
+          </p>
+          <div className="flex items-center gap-1">
+            <button onClick={() => { const p = page - 1; setPage(p); fetchRecords(p) }} disabled={page === 1}
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs text-gray-600 px-2">{page} / {totalPages}</span>
+            <button onClick={() => { const p = page + 1; setPage(p); fetchRecords(p) }} disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

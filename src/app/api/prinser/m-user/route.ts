@@ -3,10 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-
 const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
-
+const PAGE_SIZE = 50
 const CSV_COLUMNS = [
   "uid","upass","unm","ukana","kencd","biko","ukbn","ulevel","listflg","folder_dl",
   "kanriuid","bumon_cd","ukbn_eigyo","ukbn_koumu","ukbn_prep","ukbn_press","ukbn_kako",
@@ -24,7 +23,6 @@ const CSV_COLUMNS = [
   "wgs_login_dt","wgs_login_tm","wgs_logout_dt","wgs_logout_tm","gaichu_flg","gaichu_cd",
   "mitsumonavi_user_flg"
 ]
-
 function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
   const { TextDecoder } = require("util")
   const decoder = new TextDecoder("shift-jis")
@@ -45,67 +43,54 @@ function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
     return row
   }).filter((r: Record<string, string>) => r.uid && r.uid.trim() !== "")
 }
-
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
   const delFlg = searchParams.get("delFlg")
-
-  const users = await prisma.prinserMUser.findMany({
-    where: {
-      ...(keyword ? {
-        OR: [
-          { uid: { contains: keyword } },
-          { unm: { contains: keyword } },
-          { ukana: { contains: keyword } },
-          { umail: { contains: keyword } },
-          { bumon_cd: { contains: keyword } },
-        ]
-      } : {}),
-      ...(delFlg !== null && delFlg !== "" ? { del_flg: delFlg } : {}),
-    },
-    orderBy: { uid: "asc" },
-  })
-  return NextResponse.json(users)
+  const page = parseInt(searchParams.get("page") ?? "1") || 1
+  const where = {
+    ...(keyword ? { OR: [
+      { uid: { contains: keyword } },
+      { unm: { contains: keyword } },
+      { ukana: { contains: keyword } },
+      { umail: { contains: keyword } },
+      { bumon_cd: { contains: keyword } },
+    ]} : {}),
+    ...(delFlg !== null && delFlg !== "" ? { del_flg: delFlg } : {}),
+  }
+  const [records, total] = await Promise.all([
+    prisma.prinserMUser.findMany({
+      where,
+      orderBy: { uid: "asc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.prinserMUser.count({ where }),
+  ])
+  return NextResponse.json({ records, total })
 }
-
 export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const key = `prinser/m_user_import_${Date.now()}.csv`
-  const command = new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-    ContentType: "text/csv",
-  })
+  const command = new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: "text/csv" })
   const url = await getSignedUrl(s3, command, { expiresIn: 300 })
   return NextResponse.json({ url, key })
 }
-
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { key } = await req.json()
   if (!key) return NextResponse.json({ error: "No key" }, { status: 400 })
-
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key })
   const response = await s3.send(command)
   const chunks: Uint8Array[] = []
-  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
-    chunks.push(chunk)
-  }
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) { chunks.push(chunk) }
   const buffer = Buffer.concat(chunks)
-
   const records = parseShiftJisCsv(buffer)
-  if (records.length === 0) {
-    return NextResponse.json({ error: "No records" }, { status: 400 })
-  }
-
+  if (records.length === 0) return NextResponse.json({ error: "No records" }, { status: 400 })
   let count = 0
   for (const r of records) {
     if (!r.uid) continue
@@ -134,10 +119,8 @@ export async function POST(req: NextRequest) {
     })
     count++
   }
-
   return NextResponse.json({ ok: true, count })
 }
-
 export async function DELETE() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

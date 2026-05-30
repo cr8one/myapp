@@ -3,12 +3,10 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-
 export const maxDuration = 60
-
 const s3 = new S3Client({ region: "ap-northeast-1", requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
-
+const PAGE_SIZE = 50
 const CSV_COLUMNS = [
   "tokuicd","tokuinm","tokuinm2","tokuinm3","ryk_nm","tokuikana","del_flg",
   "dtindt","dtintm","dtupdt","dtuptm","aitesaki_bumon_kanji","aitesaki_tantosya",
@@ -23,7 +21,6 @@ const CSV_COLUMNS = [
   "kin_hasu_kbn","zei_marume_tani","mototyo_vis_flg","sony_flg","nohon_kensa_kikaku_id",
   "seikyu_kbn","non_entertainment_flg","smc_online_flg"
 ]
-
 function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
   const { TextDecoder } = require("util")
   const decoder = new TextDecoder("shift-jis")
@@ -44,29 +41,34 @@ function parseShiftJisCsv(buffer: Buffer): Record<string, string>[] {
     return row
   }).filter((r: Record<string, string>) => r.tokuisaki_cd && r.tokuisaki_cd.trim() !== "" && r.siten_cd && r.siten_cd.trim() !== "")
 }
-
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
   const delFlg = searchParams.get("delFlg")
-  const records = await prisma.prinserMTokui.findMany({
-    where: {
-      ...(keyword ? { OR: [
-        { tokuicd: { contains: keyword } },
-        { tokuinm: { contains: keyword } },
-        { tokuikana: { contains: keyword } },
-        { tmail: { contains: keyword } },
-        { aitesaki_tel_no: { contains: keyword } },
-      ]} : {}),
-      ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
-    },
-    orderBy: [{ tokuisaki_cd: "asc" }, { siten_cd: "asc" }],
-  })
-  return NextResponse.json(records)
+  const page = parseInt(searchParams.get("page") ?? "1") || 1
+  const where = {
+    ...(keyword ? { OR: [
+      { tokuicd: { contains: keyword } },
+      { tokuinm: { contains: keyword } },
+      { tokuikana: { contains: keyword } },
+      { tmail: { contains: keyword } },
+      { aitesaki_tel_no: { contains: keyword } },
+    ]} : {}),
+    ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
+  }
+  const [records, total] = await Promise.all([
+    prisma.prinserMTokui.findMany({
+      where,
+      orderBy: [{ tokuisaki_cd: "asc" }, { siten_cd: "asc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.prinserMTokui.count({ where }),
+  ])
+  return NextResponse.json({ records, total })
 }
-
 export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -75,7 +77,6 @@ export async function PUT(req: NextRequest) {
   const url = await getSignedUrl(s3, command, { expiresIn: 300 })
   return NextResponse.json({ url, key })
 }
-
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -132,7 +133,6 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json({ ok: true, count })
 }
-
 export async function DELETE() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
