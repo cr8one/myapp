@@ -2,36 +2,53 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 
+const PAGE_SIZE = 50
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { searchParams } = new URL(req.url)
   const genre = searchParams.get("genre")
   const spec = searchParams.get("spec")
   const hinmoku = searchParams.get("hinmoku")
+  const countOnly = searchParams.get("count") === "true"
+  const page = parseInt(searchParams.get("page") ?? "1") || 1
 
-  const records = await prisma.dlmsTypeCondition.findMany({
-    where: {
-      ...(genre ? { genre } : {}),
-      ...(spec ? { spec } : {}),
-      ...(hinmoku ? { hinmoku } : {}),
-    },
-    orderBy: [
-      { genre_sort: "asc" },
-      { spec_sort: "asc" },
-      { hinmoku_sort: "asc" },
-      { tag1_sort: "asc" },
-      { tag2_sort: "asc" },
-    ],
-  })
-  return NextResponse.json(records)
+  const where = {
+    ...(genre ? { genre } : {}),
+    ...(spec ? { spec } : {}),
+    ...(hinmoku ? { hinmoku } : {}),
+  }
+
+  if (countOnly) {
+    const total = await prisma.dlmsTypeCondition.count({ where })
+    return NextResponse.json({ total })
+  }
+
+  const orderBy = [
+    { genre_sort: "asc" as const },
+    { spec_sort: "asc" as const },
+    { hinmoku_sort: "asc" as const },
+    { tag1_sort: "asc" as const },
+    { tag2_sort: "asc" as const },
+  ]
+
+  const [records, total] = await Promise.all([
+    prisma.dlmsTypeCondition.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.dlmsTypeCondition.count({ where }),
+  ])
+
+  return NextResponse.json({ records, total })
 }
 
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const body = await req.json()
   const record = await prisma.dlmsTypeCondition.create({
     data: {
@@ -53,7 +70,6 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const body = await req.json()
   const record = await prisma.dlmsTypeCondition.update({
     where: { id: parseInt(body.id) },
@@ -76,7 +92,6 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { id } = await req.json()
   await prisma.dlmsTypeCondition.delete({ where: { id: parseInt(id) } })
   return NextResponse.json({ ok: true })
@@ -85,7 +100,6 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { action } = await req.json()
   if (action === "deleteAll") {
     await prisma.dlmsTypeCondition.deleteMany({})

@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react"
-import { Plus, Pencil, Trash2, X, Check, AlertCircle, Download, Upload } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Check, AlertCircle, Download, Upload, ChevronLeft, ChevronRight } from "lucide-react"
 
 type Format = { id: number; name: string; width: number; height: number; unit: string; note?: string; sortOrder: number }
 type Part = { id: number; name: string; width: number; height: number; shape: string; note?: string; sortOrder: number }
@@ -13,6 +13,7 @@ type TypeCondition = {
 type Tab = "formats" | "parts" | "notes" | "type-conditions"
 
 const COLORS = ["#1a1a1a", "#e24b4a", "#378add", "#639922", "#ba7517", "#888780"]
+const PAGE_SIZE = 50
 const emptyFormat = { name: "", width: 0, height: 0, unit: "mm", note: "", sortOrder: 0 }
 const emptyPart = { name: "", width: 0, height: 0, shape: "rect", note: "", sortOrder: 0 }
 const emptyNote = { name: "", content: "", fontSize: 12, color: "#1a1a1a", fontWeight: "normal", sortOrder: 0 }
@@ -32,6 +33,8 @@ export default function DlmsMastersPage() {
   const [parts, setParts] = useState<Part[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [typeConditions, setTypeConditions] = useState<TypeCondition[]>([])
+  const [tcTotal, setTcTotal] = useState(0)
+  const [tcPage, setTcPage] = useState(1)
   const [fetching, setFetching] = useState(true)
   const [editingFormat, setEditingFormat] = useState<Format | null>(null)
   const [addingFormat, setAddingFormat] = useState(false)
@@ -42,7 +45,6 @@ export default function DlmsMastersPage() {
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [addingNote, setAddingNote] = useState(false)
   const [newNote, setNewNote] = useState(emptyNote)
-  // 型条件マスタ
   const [editingTypeCondition, setEditingTypeCondition] = useState<TypeCondition | null>(null)
   const [addingTypeCondition, setAddingTypeCondition] = useState(false)
   const [newTypeCondition, setNewTypeCondition] = useState(emptyTypeCondition)
@@ -55,26 +57,35 @@ export default function DlmsMastersPage() {
 
   const fetchAll = useCallback(async () => {
     setFetching(true)
-    const [f, p, n] = await Promise.all([
+    const [f, p, n, tc] = await Promise.all([
       fetch("/api/dlms/formats").then(r => r.json()),
       fetch("/api/dlms/parts").then(r => r.json()),
       fetch("/api/dlms/notes").then(r => r.json()),
+      fetch("/api/dlms/type-conditions?count=true").then(r => r.json()),
     ])
     setFormats(f); setParts(p); setNotes(n)
+    setTcTotal(tc.total ?? 0)
     setFetching(false)
   }, [])
 
-  const fetchTypeConditions = async (genre = "", spec = "", hinmoku = "") => {
+  const fetchTypeConditions = useCallback(async (genre = "", spec = "", hinmoku = "", page = 1) => {
     const params = new URLSearchParams()
     if (genre) params.set("genre", genre)
     if (spec) params.set("spec", spec)
     if (hinmoku) params.set("hinmoku", hinmoku)
+    params.set("page", String(page))
     const res = await fetch(`/api/dlms/type-conditions?${params.toString()}`)
-    setTypeConditions(await res.json())
-  }
+    const data = await res.json()
+    setTypeConditions(data.records ?? [])
+    setTcTotal(data.total ?? 0)
+  }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
-  useEffect(() => { if (tab === "type-conditions") fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku) }, [tab])
+  useEffect(() => {
+    if (tab === "type-conditions") fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, 1)
+  }, [tab])
+
+  const tcTotalPages = Math.ceil(tcTotal / PAGE_SIZE)
 
   // ジャンル・仕様・品目のユニークリスト
   const genreOptions = [...new Set(typeConditions.map(r => r.genre).filter(Boolean))] as string[]
@@ -127,17 +138,17 @@ export default function DlmsMastersPage() {
   const saveTypeCondition = async () => {
     await fetch("/api/dlms/type-conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newTypeCondition) })
     setAddingTypeCondition(false); setNewTypeCondition(emptyTypeCondition)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
   }
   const updateTypeCondition = async (tc: TypeCondition) => {
     await fetch("/api/dlms/type-conditions", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tc) })
     setEditingTypeCondition(null)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
   }
   const deleteTypeCondition = async (id: number) => {
     if (!confirm("削除しますか？")) return
     await fetch("/api/dlms/type-conditions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
   }
   const handleTcExport = () => { window.location.href = "/api/dlms/type-conditions/export" }
   const handleTcDeleteAll = async () => {
@@ -146,7 +157,8 @@ export default function DlmsMastersPage() {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "deleteAll" }),
     })
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    setTcPage(1)
+    fetchTypeConditions("", "", "", 1)
   }
   const handleTcImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -171,7 +183,8 @@ export default function DlmsMastersPage() {
     }
     setTcImportResult({ count: totalCount })
     setTcImporting(false)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku)
+    setTcPage(1)
+    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, 1)
     if (tcImportRef.current) tcImportRef.current.value = ""
   }
 
@@ -179,7 +192,7 @@ export default function DlmsMastersPage() {
     ["formats", "判型マスタ", formats.length],
     ["parts", "パーツマスタ", parts.length],
     ["notes", "注記マスタ", notes.length],
-    ["type-conditions", "型条件マスタ", typeConditions.length],
+    ["type-conditions", "型条件マスタ", tcTotal],
   ]
 
   return (
@@ -478,17 +491,17 @@ export default function DlmsMastersPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <select value={tcFilterGenre} onChange={e => { setTcFilterGenre(e.target.value); setTcFilterSpec(""); setTcFilterHinmoku(""); fetchTypeConditions(e.target.value, "", "") }}
+                  <select value={tcFilterGenre} onChange={e => { setTcFilterGenre(e.target.value); setTcFilterSpec(""); setTcFilterHinmoku(""); setTcPage(1); fetchTypeConditions(e.target.value, "", "", 1) }}
                     className="h-8 border rounded px-2 text-sm bg-white">
                     <option value="">ジャンル：すべて</option>
                     {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <select value={tcFilterSpec} onChange={e => { setTcFilterSpec(e.target.value); setTcFilterHinmoku(""); fetchTypeConditions(tcFilterGenre, e.target.value, "") }}
+                  <select value={tcFilterSpec} onChange={e => { setTcFilterSpec(e.target.value); setTcFilterHinmoku(""); setTcPage(1); fetchTypeConditions(tcFilterGenre, e.target.value, "", 1) }}
                     className="h-8 border rounded px-2 text-sm bg-white">
                     <option value="">仕様：すべて</option>
                     {specOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <select value={tcFilterHinmoku} onChange={e => { setTcFilterHinmoku(e.target.value); fetchTypeConditions(tcFilterGenre, tcFilterSpec, e.target.value) }}
+                  <select value={tcFilterHinmoku} onChange={e => { setTcFilterHinmoku(e.target.value); setTcPage(1); fetchTypeConditions(tcFilterGenre, tcFilterSpec, e.target.value, 1) }}
                     className="h-8 border rounded px-2 text-sm bg-white">
                     <option value="">品目：すべて</option>
                     {hinmokuOptions.map(h => <option key={h} value={h}>{h}</option>)}
@@ -554,62 +567,87 @@ export default function DlmsMastersPage() {
                   <p className="text-sm">型条件が登録されていません</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="text-left px-3 py-2 text-gray-500 font-medium">ジャンル</th>
-                        <th className="text-left px-3 py-2 text-gray-500 font-medium">仕様</th>
-                        <th className="text-left px-3 py-2 text-gray-500 font-medium">品目</th>
-                        <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ1</th>
-                        <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ2</th>
-                        <th className="px-3 py-2 w-16"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {typeConditions.map(tc => (
-                        <tr key={tc.id} className="hover:bg-gray-50">
-                          {editingTypeCondition?.id === tc.id ? (
-                            <td colSpan={6} className="px-3 py-2">
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-5 gap-2">
-                                  {(["genre", "spec", "hinmoku", "tag1", "tag2"] as const).map(key => (
-                                    <input key={key} type="text" value={editingTypeCondition[key] ?? ""} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: e.target.value }) : f)}
-                                      autoComplete="off" className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                  ))}
-                                </div>
-                                <div className="grid grid-cols-5 gap-2">
-                                  {(["genre_sort", "spec_sort", "hinmoku_sort", "tag1_sort", "tag2_sort"] as const).map(key => (
-                                    <input key={key} type="number" value={editingTypeCondition[key]} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: parseInt(e.target.value) || 0 }) : f)}
-                                      className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                  ))}
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <button onClick={() => updateTypeCondition(editingTypeCondition)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
-                                  <button onClick={() => setEditingTypeCondition(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                                </div>
-                              </div>
-                            </td>
-                          ) : (
-                            <>
-                              <td className="px-3 py-2 text-gray-700">{tc.genre ?? <span className="text-gray-300">—</span>}</td>
-                              <td className="px-3 py-2 text-gray-700">{tc.spec ?? <span className="text-gray-300">—</span>}</td>
-                              <td className="px-3 py-2 text-gray-700">{tc.hinmoku ?? <span className="text-gray-300">—</span>}</td>
-                              <td className="px-3 py-2 text-gray-600">{tc.tag1 ?? <span className="text-gray-300">—</span>}</td>
-                              <td className="px-3 py-2 text-gray-600">{tc.tag2 ?? <span className="text-gray-300">—</span>}</td>
-                              <td className="px-3 py-2">
-                                <div className="flex gap-1">
-                                  <button onClick={() => setEditingTypeCondition(tc)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
-                                  <button onClick={() => deleteTypeCondition(tc.id)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-4 h-4" /></button>
+                <>
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="text-left px-3 py-2 text-gray-500 font-medium">ジャンル</th>
+                          <th className="text-left px-3 py-2 text-gray-500 font-medium">仕様</th>
+                          <th className="text-left px-3 py-2 text-gray-500 font-medium">品目</th>
+                          <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ1</th>
+                          <th className="text-left px-3 py-2 text-gray-500 font-medium">条件タグ2</th>
+                          <th className="px-3 py-2 w-16"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {typeConditions.map(tc => (
+                          <tr key={tc.id} className="hover:bg-gray-50">
+                            {editingTypeCondition?.id === tc.id ? (
+                              <td colSpan={6} className="px-3 py-2">
+                                <div className="space-y-2">
+                                  <div className="grid grid-cols-5 gap-2">
+                                    {(["genre", "spec", "hinmoku", "tag1", "tag2"] as const).map(key => (
+                                      <input key={key} type="text" value={editingTypeCondition[key] ?? ""} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: e.target.value }) : f)}
+                                        autoComplete="off" className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    ))}
+                                  </div>
+                                  <div className="grid grid-cols-5 gap-2">
+                                    {(["genre_sort", "spec_sort", "hinmoku_sort", "tag1_sort", "tag2_sort"] as const).map(key => (
+                                      <input key={key} type="number" value={editingTypeCondition[key]} onChange={e => setEditingTypeCondition(f => f ? ({ ...f, [key]: parseInt(e.target.value) || 0 }) : f)}
+                                        className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    ))}
+                                  </div>
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => updateTypeCondition(editingTypeCondition)} className="text-blue-600 hover:text-blue-800"><Check className="w-4 h-4" /></button>
+                                    <button onClick={() => setEditingTypeCondition(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                                  </div>
                                 </div>
                               </td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            ) : (
+                              <>
+                                <td className="px-3 py-2 text-gray-700">{tc.genre ?? <span className="text-gray-300">—</span>}</td>
+                                <td className="px-3 py-2 text-gray-700">{tc.spec ?? <span className="text-gray-300">—</span>}</td>
+                                <td className="px-3 py-2 text-gray-700">{tc.hinmoku ?? <span className="text-gray-300">—</span>}</td>
+                                <td className="px-3 py-2 text-gray-600">{tc.tag1 ?? <span className="text-gray-300">—</span>}</td>
+                                <td className="px-3 py-2 text-gray-600">{tc.tag2 ?? <span className="text-gray-300">—</span>}</td>
+                                <td className="px-3 py-2">
+                                  <div className="flex gap-1">
+                                    <button onClick={() => setEditingTypeCondition(tc)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-4 h-4" /></button>
+                                    <button onClick={() => deleteTypeCondition(tc.id)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-4 h-4" /></button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* ページネーション */}
+                  {tcTotalPages > 1 && (
+                    <div className="flex items-center justify-between px-1">
+                      <p className="text-xs text-gray-400">
+                        {tcTotal}件中 {(tcPage - 1) * PAGE_SIZE + 1}〜{Math.min(tcPage * PAGE_SIZE, tcTotal)}件
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => { const p = tcPage - 1; setTcPage(p); fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, p) }}
+                          disabled={tcPage === 1}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs text-gray-600 px-2">{tcPage} / {tcTotalPages}</span>
+                        <button
+                          onClick={() => { const p = tcPage + 1; setTcPage(p); fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, p) }}
+                          disabled={tcPage === tcTotalPages}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
