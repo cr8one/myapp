@@ -39,8 +39,9 @@ function TifPreview({ url }: { url: string }) {
         const ifd = ifds[0]
         const width = ifd.width
         const height = ifd.height
-        // dataはUint8Array or Uint16Array
         const raw = ifd.data as Uint8Array
+        const spp = (ifd as any).samplesPerPixel ?? 1
+        const bps = (ifd as any).bitsPerSample ?? 8
         if (cancelled) return
         const canvas = canvasRef.current
         if (!canvas) return
@@ -49,10 +50,25 @@ function TifPreview({ url }: { url: string }) {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
         const imageData = ctx.createImageData(width, height)
-        // samplesPerPixel を考慮してRGBAに変換
-        const spp = ifd.samplesPerPixel ?? 1
-        if (spp === 1) {
-          // グレースケール
+        if (bps === 1) {
+          // 1ビット白黒：1バイトに8ピクセル格納
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const bitIndex = y * width + x
+              const byteIndex = Math.floor(bitIndex / 8)
+              const bitOffset = 7 - (bitIndex % 8)
+              const bit = (raw[byteIndex] >> bitOffset) & 1
+              // TIFFの1ビット画像は0=黒、1=白（MinIsWhite依存だが一般的に逆）
+              const v = bit === 0 ? 0 : 255
+              const i = (y * width + x) * 4
+              imageData.data[i + 0] = v
+              imageData.data[i + 1] = v
+              imageData.data[i + 2] = v
+              imageData.data[i + 3] = 255
+            }
+          }
+        } else if (spp === 1) {
+          // グレースケール8bit
           for (let i = 0; i < width * height; i++) {
             const v = raw[i]
             imageData.data[i * 4 + 0] = v
@@ -61,7 +77,6 @@ function TifPreview({ url }: { url: string }) {
             imageData.data[i * 4 + 3] = 255
           }
         } else if (spp === 3) {
-          // RGB
           for (let i = 0; i < width * height; i++) {
             imageData.data[i * 4 + 0] = raw[i * 3 + 0]
             imageData.data[i * 4 + 1] = raw[i * 3 + 1]
@@ -69,7 +84,6 @@ function TifPreview({ url }: { url: string }) {
             imageData.data[i * 4 + 3] = 255
           }
         } else if (spp === 4) {
-          // RGBA
           for (let i = 0; i < width * height * 4; i++) {
             imageData.data[i] = raw[i]
           }
