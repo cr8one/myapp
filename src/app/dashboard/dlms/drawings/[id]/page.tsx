@@ -1,7 +1,8 @@
 "use client"
-import { useEffect, useState, use } from "react"
+import { useEffect, useState, use, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload } from "lucide-react"
+import { decode } from "tiff"
 
 type Drawing = {
   id: number
@@ -22,6 +23,75 @@ type Drawing = {
   new_file_path: string | null
   new_file_type: string | null
   dieline: { id: string; uid_ntemp: string; kyugataban: string | null } | null
+}
+
+function TifPreview({ url }: { url: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [error, setError] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const render = async () => {
+      try {
+        const res = await fetch(url)
+        const buffer = await res.arrayBuffer()
+        const ifds = decode(buffer)
+        if (!ifds || ifds.length === 0) { setError(true); return }
+        const ifd = ifds[0]
+        const width = ifd.width
+        const height = ifd.height
+        // dataはUint8Array or Uint16Array
+        const raw = ifd.data as Uint8Array
+        if (cancelled) return
+        const canvas = canvasRef.current
+        if (!canvas) return
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return
+        const imageData = ctx.createImageData(width, height)
+        // samplesPerPixel を考慮してRGBAに変換
+        const spp = ifd.samplesPerPixel ?? 1
+        if (spp === 1) {
+          // グレースケール
+          for (let i = 0; i < width * height; i++) {
+            const v = raw[i]
+            imageData.data[i * 4 + 0] = v
+            imageData.data[i * 4 + 1] = v
+            imageData.data[i * 4 + 2] = v
+            imageData.data[i * 4 + 3] = 255
+          }
+        } else if (spp === 3) {
+          // RGB
+          for (let i = 0; i < width * height; i++) {
+            imageData.data[i * 4 + 0] = raw[i * 3 + 0]
+            imageData.data[i * 4 + 1] = raw[i * 3 + 1]
+            imageData.data[i * 4 + 2] = raw[i * 3 + 2]
+            imageData.data[i * 4 + 3] = 255
+          }
+        } else if (spp === 4) {
+          // RGBA
+          for (let i = 0; i < width * height * 4; i++) {
+            imageData.data[i] = raw[i]
+          }
+        }
+        ctx.putImageData(imageData, 0, 0)
+      } catch {
+        if (!cancelled) setError(true)
+      }
+    }
+    render()
+    return () => { cancelled = true }
+  }, [url])
+  if (error) return (
+    <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">
+      プレビュー失敗
+    </div>
+  )
+  return (
+    <canvas ref={canvasRef}
+      style={{ maxHeight: "256px", width: "100%", objectFit: "contain" }}
+      className="rounded-lg border border-gray-200 bg-gray-50" />
+  )
 }
 
 export default function DrawingDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -136,10 +206,11 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
           <div className="relative group">
             {isImage ? (
               <img src={signedUrl} alt={label} className="w-full rounded-lg border border-gray-200 object-contain max-h-64 bg-gray-50" loading="lazy" />
+            ) : isTif ? (
+              <TifPreview url={signedUrl} />
             ) : (
-              <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 gap-3">
+              <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
                 <span className="text-xs text-gray-500 uppercase font-mono font-bold">{fileType}</span>
-                {isTif && <span className="text-xs text-gray-400">プレビュー非対応</span>}
               </div>
             )}
             <a href={signedUrl} target="_blank" rel="noopener noreferrer"
