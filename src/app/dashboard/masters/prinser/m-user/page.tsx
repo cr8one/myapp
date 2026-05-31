@@ -23,6 +23,29 @@ const CSV_COLUMNS = [
 ]
 const PAGE_SIZE = 50
 type MUser = { uid: string; del_flg: string | null; rawData: string | null; importedAt: string }
+function Pagination({ page, totalPages, totalCount, onPageChange }: {
+  page: number; totalPages: number; totalCount: number; onPageChange: (p: number) => void
+}) {
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex items-center justify-between px-1 py-2">
+      <p className="text-xs text-gray-400">
+        {totalCount}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, totalCount)}件
+      </p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPageChange(page - 1)} disabled={page === 1}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-xs text-gray-600 px-2">{page} / {totalPages}</span>
+        <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
 export default function PrinserMUserPage() {
   const router = useRouter()
   const [users, setUsers] = useState<MUser[]>([])
@@ -49,6 +72,7 @@ export default function PrinserMUserPage() {
   useEffect(() => { fetchUsers(1) }, [])
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
   const handleSearch = () => { setPage(1); fetchUsers(1) }
+  const handlePageChange = (p: number) => { setPage(p); fetchUsers(p) }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -149,6 +173,7 @@ export default function PrinserMUserPage() {
           <p className="text-center text-gray-500 py-8">データがありません。CSVをインポートしてください。</p>
         ) : (
           <>
+            <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={handlePageChange} />
             <div className="border rounded-lg shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="text-xs bg-white" style={{ minWidth: "max-content" }}>
@@ -187,24 +212,7 @@ export default function PrinserMUserPage() {
                 </table>
               </div>
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-1 mt-3">
-                <p className="text-xs text-gray-400">
-                  {totalCount}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, totalCount)}件
-                </p>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => { const p = page - 1; setPage(p); fetchUsers(p) }} disabled={page === 1}
-                    className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs text-gray-600 px-2">{page} / {totalPages}</span>
-                  <button onClick={() => { const p = page + 1; setPage(p); fetchUsers(p) }} disabled={page === totalPages}
-                    className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={handlePageChange} />
           </>
         )}
       </div>
