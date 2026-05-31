@@ -1,8 +1,7 @@
 "use client"
-import { useEffect, useState, use, useRef } from "react"
+import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Pencil, Trash2, ExternalLink, Upload } from "lucide-react"
-import { decode } from "tiff"
 
 type Drawing = {
   id: number
@@ -23,89 +22,6 @@ type Drawing = {
   new_file_path: string | null
   new_file_type: string | null
   dieline: { id: string; uid_ntemp: string; kyugataban: string | null } | null
-}
-
-function TifPreview({ url }: { url: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [error, setError] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    const render = async () => {
-      try {
-        const res = await fetch(url)
-        const buffer = await res.arrayBuffer()
-        const ifds = decode(buffer)
-        if (!ifds || ifds.length === 0) { setError(true); return }
-        const ifd = ifds[0]
-        const width = ifd.width
-        const height = ifd.height
-        const raw = ifd.data as Uint8Array
-        const spp = (ifd as any).samplesPerPixel ?? 1
-        const bps = (ifd as any).bitsPerSample ?? 8
-        if (cancelled) return
-        const canvas = canvasRef.current
-        if (!canvas) return
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext("2d")
-        if (!ctx) return
-        const imageData = ctx.createImageData(width, height)
-        if (bps === 1) {
-          // 1ビット白黒：1バイトに8ピクセル格納
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const bitIndex = y * width + x
-              const byteIndex = Math.floor(bitIndex / 8)
-              const bitOffset = 7 - (bitIndex % 8)
-              const bit = (raw[byteIndex] >> bitOffset) & 1
-              // TIFFの1ビット画像は0=黒、1=白（MinIsWhite依存だが一般的に逆）
-              const v = bit === 0 ? 0 : 255
-              const i = (y * width + x) * 4
-              imageData.data[i + 0] = v
-              imageData.data[i + 1] = v
-              imageData.data[i + 2] = v
-              imageData.data[i + 3] = 255
-            }
-          }
-        } else if (spp === 1) {
-          // グレースケール8bit
-          for (let i = 0; i < width * height; i++) {
-            const v = raw[i]
-            imageData.data[i * 4 + 0] = v
-            imageData.data[i * 4 + 1] = v
-            imageData.data[i * 4 + 2] = v
-            imageData.data[i * 4 + 3] = 255
-          }
-        } else if (spp === 3) {
-          for (let i = 0; i < width * height; i++) {
-            imageData.data[i * 4 + 0] = raw[i * 3 + 0]
-            imageData.data[i * 4 + 1] = raw[i * 3 + 1]
-            imageData.data[i * 4 + 2] = raw[i * 3 + 2]
-            imageData.data[i * 4 + 3] = 255
-          }
-        } else if (spp === 4) {
-          for (let i = 0; i < width * height * 4; i++) {
-            imageData.data[i] = raw[i]
-          }
-        }
-        ctx.putImageData(imageData, 0, 0)
-      } catch {
-        if (!cancelled) setError(true)
-      }
-    }
-    render()
-    return () => { cancelled = true }
-  }, [url])
-  if (error) return (
-    <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">
-      プレビュー失敗
-    </div>
-  )
-  return (
-    <canvas ref={canvasRef}
-      style={{ maxHeight: "256px", width: "100%", objectFit: "contain" }}
-      className="rounded-lg border border-gray-200 bg-gray-50" />
-  )
 }
 
 export default function DrawingDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -172,16 +88,31 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
     })
     const { url, key } = await presignRes.json()
     await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
+    // TIF/TIFFの場合はサーバーサイドで変換
     const fileType = file.name.split(".").pop()?.toLowerCase() ?? ""
-    await fetch(`/api/dlms/drawings/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        kind === "legacy"
-          ? { legacy_file_path: key, legacy_file_type: fileType }
-          : { new_file_path: key, new_file_type: fileType }
-      ),
-    })
+    const isTif = ["tif", "tiff"].includes(fileType)
+    if (isTif) {
+      // サーバーサイド変換API呼び出し
+      const convertRes = await fetch("/api/dlms/drawings/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, drawingId: id, kind }),
+      })
+      const convertData = await convertRes.json()
+      if (!convertData.ok) {
+        alert("TIF変換に失敗しました")
+      }
+    } else {
+      await fetch(`/api/dlms/drawings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          kind === "legacy"
+            ? { legacy_file_path: key, legacy_file_type: fileType }
+            : { new_file_path: key, new_file_type: fileType }
+        ),
+      })
+    }
     setUploadingKind(null)
     fetchDrawing()
   }
@@ -202,7 +133,6 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
   }) => {
     const label = kind === "legacy" ? "旧図面" : "新図面"
     const isImage = fileType && ["png", "jpg", "jpeg", "gif", "webp"].includes(fileType)
-    const isTif = fileType && ["tif", "tiff"].includes(fileType)
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -215,13 +145,13 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
           </label>
         </div>
         {uploadingKind === kind ? (
-          <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">アップロード中...</div>
+          <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-400">
+            {["tif","tiff"].includes(fileType ?? "") ? "変換・アップロード中..." : "アップロード中..."}
+          </div>
         ) : path && signedUrl ? (
           <div className="relative group">
             {isImage ? (
               <img src={signedUrl} alt={label} className="w-full rounded-lg border border-gray-200 object-contain max-h-64 bg-gray-50" loading="lazy" />
-            ) : isTif ? (
-              <TifPreview url={signedUrl} />
             ) : (
               <div className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
                 <span className="text-xs text-gray-500 uppercase font-mono font-bold">{fileType}</span>
