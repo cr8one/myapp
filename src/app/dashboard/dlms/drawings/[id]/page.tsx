@@ -220,7 +220,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ id: st
               <div><label className="block text-xs font-medium text-gray-600 mb-1">用紙例</label><input type="text" {...f("paper_type")} /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">刃渡り</label><input type="text" {...f("blade_size")} /></div>
               <div><label className="block text-xs font-medium text-gray-600 mb-1">保管場所</label><input type="text" {...f("storage_location")} /></div>
-              <div><label className="block text-xs font-medium text-gray-600 mb-1">作成年月日</label><input type="text" {...f("created_date")} /></div>
+              <div><label className="block text-xs font-medium text-gray-600 mb-1">作成年月日</label><input type="date" {...f("created_date")} /></div>
               <div className="col-span-2"><label className="block text-xs font-medium text-gray-600 mb-1">備考</label>
                 <textarea {...f("note")} rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />

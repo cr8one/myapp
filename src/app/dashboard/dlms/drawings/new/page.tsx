@@ -2,9 +2,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, X, ChevronLeft } from "lucide-react"
-
 type FileKind = "legacy" | "new"
-
 export default function DrawingNewPage() {
   const router = useRouter()
   const [form, setForm] = useState({
@@ -27,17 +25,25 @@ export default function DrawingNewPage() {
     })
     const { url, key } = await res.json()
     await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
-    return { key, type: file.name.split(".").pop()?.toLowerCase() ?? "" }
+    const fileType = file.name.split(".").pop()?.toLowerCase() ?? ""
+    return { key, type: fileType }
+  }
+
+  const convertTif = async (key: string, drawingId: number, kind: FileKind) => {
+    const res = await fetch("/api/dlms/drawings/convert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, drawingId: String(drawingId), kind }),
+    })
+    return res.json()
   }
 
   const handleSave = async () => {
     if (!form.title && !form.drawing_no) { setError("型名または図面番号を入力してください"); return }
-    if (!legacyFile && !newFile) { setError("旧図面または新図面のどちらかをアップロードしてください"); return }
     setSaving(true); setError("")
     try {
       let legacy_file_path = null, legacy_file_type = null
       let new_file_path = null, new_file_type = null
-
       if (legacyFile) {
         const r = await uploadFile(legacyFile, "legacy")
         legacy_file_path = r.key; legacy_file_type = r.type
@@ -46,7 +52,7 @@ export default function DrawingNewPage() {
         const r = await uploadFile(newFile, "new")
         new_file_path = r.key; new_file_type = r.type
       }
-
+      // レコード作成
       const res = await fetch("/api/dlms/drawings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,6 +65,13 @@ export default function DrawingNewPage() {
       })
       if (!res.ok) throw new Error("保存に失敗しました")
       const created = await res.json()
+      // TIF変換（作成後にdrawingIdが確定してから実行）
+      if (legacyFile && ["tif","tiff"].includes(legacy_file_type ?? "")) {
+        await convertTif(legacy_file_path!, created.id, "legacy")
+      }
+      if (newFile && ["tif","tiff"].includes(new_file_type ?? "")) {
+        await convertTif(new_file_path!, created.id, "new")
+      }
       router.push(`/dashboard/dlms/drawings/${created.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : "エラーが発生しました")
@@ -105,11 +118,8 @@ export default function DrawingNewPage() {
           </div>
         </div>
       </div>
-
       <div className="px-6 py-6 max-w-3xl w-full space-y-6">
         {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</div>}
-
-        {/* ファイルアップロード */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">図面ファイル</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -117,8 +127,6 @@ export default function DrawingNewPage() {
             <FileUploadBox kind="new" file={newFile} onFile={setNewFile} />
           </div>
         </div>
-
-        {/* 基本情報 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">基本情報</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -129,7 +137,11 @@ export default function DrawingNewPage() {
             <div><label className="block text-xs font-medium text-gray-600 mb-1">用紙例</label><input type="text" {...f("paper_type")} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">刃渡り</label><input type="text" {...f("blade_size")} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">保管場所</label><input type="text" {...f("storage_location")} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">作成年月日</label><input type="text" {...f("created_date")} placeholder="例：2019.05.16" /></div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">作成年月日</label>
+              <input type="date" {...f("created_date")}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">抜き型番号（uid_ntemp）</label><input type="text" {...f("dieline_id")} placeholder="紐付ける抜き型番号" /></div>
           </div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">備考</label>
@@ -137,8 +149,6 @@ export default function DrawingNewPage() {
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
         </div>
-
-        {/* 承認情報 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">承認情報</h2>
           <div className="grid grid-cols-3 gap-4">
@@ -147,7 +157,6 @@ export default function DrawingNewPage() {
             <div><label className="block text-xs font-medium text-gray-600 mb-1">担当者</label><input type="text" {...f("assigned_by")} /></div>
           </div>
         </div>
-
         <div className="flex justify-end gap-3 pb-8">
           <button onClick={() => router.back()} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium">キャンセル</button>
           <button onClick={handleSave} disabled={saving}

@@ -5,7 +5,6 @@ import { auth } from "@/auth"
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { id } = await params
   const drawing = await prisma.drawing.findUnique({
     where: { id: parseInt(id) },
@@ -20,12 +19,13 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { id } = await params
   const body = await req.json()
+  // リレーションや自動管理フィールドを除外
+  const { dieline, created_at, updated_at, flg_del, ...data } = body
   const drawing = await prisma.drawing.update({
     where: { id: parseInt(id) },
-    data: body,
+    data,
   })
   return NextResponse.json(drawing)
 }
@@ -33,7 +33,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { id } = await params
   await prisma.drawing.update({
     where: { id: parseInt(id) },
