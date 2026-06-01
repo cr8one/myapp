@@ -449,7 +449,7 @@ export default function DeviceDetailPage() {
                 setDeviceForm(f => ({ ...f, modelId: e.target.value, osVersion: selected?.osName || f.osVersion, memorySize: selected?.memoryDefault || f.memorySize, storageSize: selected?.storageDefault || f.storageSize }))
               }} className="w-full h-10 border rounded px-3 text-sm bg-white">
                 <option value="">未選択</option>
-                {models.map(m => <option key={m.modelId} value={m.modelId}>{m.vendorName ? `${m.vendorName} ` : ""}{m.modelName}</option>)}
+                {models.map(m => <option key={m.modelId} value={m.modelId}>{m.modelName}</option>)}
               </select>
             </div>
             <div className="space-y-1"><Label>シリアル番号</Label>
