@@ -1,13 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Layers, FileImage } from "lucide-react"
-
+import { Layers, FileImage, FileText, Settings } from "lucide-react"
 type Stats = {
   dielineCount: number
   drawingCount: number
+  requestCount: number
+  formatCount: number
 }
-
 function DlmsIcon({ style }: { style?: React.CSSProperties }) {
   return (
     <svg style={style} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,7 +18,6 @@ function DlmsIcon({ style }: { style?: React.CSSProperties }) {
     </svg>
   )
 }
-
 const cards = [
   {
     label: "抜き型管理",
@@ -40,14 +39,32 @@ const cards = [
     border: "border-amber-100",
     hover: "hover:border-amber-300",
   },
+  {
+    label: "手配依頼書管理",
+    key: "requestCount" as keyof Stats,
+    href: "/dashboard/dlms/requests",
+    icon: FileText,
+    bg: "bg-yellow-50",
+    text: "text-yellow-600",
+    border: "border-yellow-100",
+    hover: "hover:border-yellow-300",
+  },
+  {
+    label: "マスタ管理",
+    key: "formatCount" as keyof Stats,
+    href: "/dashboard/dlms/masters",
+    icon: Settings,
+    bg: "bg-red-50",
+    text: "text-red-600",
+    border: "border-red-100",
+    hover: "hover:border-red-300",
+  },
 ]
-
 export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
   const [phase, setPhase] = useState<0 | 1 | 2>(0)
   const [visibleChars, setVisibleChars] = useState(0)
   const [pulseAnim, setPulseAnim] = useState(false)
   const fullText = "Die Line Management System"
-
   useEffect(() => {
     const t1 = setTimeout(() => setPulseAnim(true), 200)
     const t2 = setTimeout(() => setPulseAnim(false), 800)
@@ -55,7 +72,6 @@ export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
     const t4 = setTimeout(() => setPhase(2), 900)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [])
-
   useEffect(() => {
     if (phase !== 2) return
     if (visibleChars < fullText.length) {
@@ -63,9 +79,7 @@ export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
       return () => clearTimeout(t)
     }
   }, [phase, visibleChars])
-
   const logoSize = phase >= 2 ? 52 : 72
-
   return (
     <div className="p-8">
       <style>{`
@@ -76,10 +90,8 @@ export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
         }
         .blade-anim { animation: bladedrop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
       `}</style>
-
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
-          {/* ロゴ */}
           <div
             className="relative flex items-center justify-center rounded-2xl shadow-lg flex-shrink-0 overflow-hidden"
             style={{
@@ -102,8 +114,6 @@ export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
               <span className="absolute inset-0 rounded-2xl ring-4 ring-orange-300 ring-opacity-50 animate-ping" />
             )}
           </div>
-
-          {/* テキスト */}
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span className="text-2xl font-black tracking-tight text-gray-900">DLMS</span>
@@ -128,8 +138,6 @@ export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
           </div>
         </div>
       </div>
-
-      {/* 統計カード */}
       <div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500"
         style={{
