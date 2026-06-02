@@ -298,7 +298,7 @@ export default function DeviceDetailPage() {
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用開始日</span><span>{device.startDate ? new Date(device.startDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">管理区分</span><span>{val(device.managementType)}</span></div>
-              <div className="flex gap-2 col-span-2"><span className="text-gray-400 w-24 flex-shrink-0">備考</span><span>{val(device.remark)}</span></div>
+              <div className="flex gap-2 col-span-2"><span className="text-gray-400 w-24 flex-shrink-0">備考</span><span className="whitespace-pre-wrap">{val(device.remark)}</span></div>
             </div>
           </div>
         </div>
@@ -478,6 +478,9 @@ export default function DeviceDetailPage() {
             <div className="space-y-1"><Label>管理区分</Label>
               <Input value={deviceForm.managementType} onChange={e => setDeviceForm(f => ({ ...f, managementType: e.target.value }))} list="management-list" autoComplete="off" />
               <datalist id="management-list">{getMasterValues("管理区分").map(v => <option key={v} value={v} />)}</datalist>
+            </div>
+            <div className="col-span-2 space-y-1"><Label>備考</Label>
+              <Textarea value={deviceForm.remark} onChange={e => setDeviceForm(f => ({ ...f, remark: e.target.value }))} rows={3} placeholder="端末固有の備考" />
             </div>
             <div className="col-span-2 space-y-1"><Label>親端末（仮想マシンの場合に選択）</Label>
               <select value={deviceForm.parentDeviceId} onChange={e => setDeviceForm(f => ({ ...f, parentDeviceId: e.target.value }))}
