@@ -20,7 +20,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-8 py-4 flex justify-between items-center">
+      <header className="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-50">
         <h1 className="text-lg font-bold">Japan Sleeve System</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">{session.user?.name}</span>
