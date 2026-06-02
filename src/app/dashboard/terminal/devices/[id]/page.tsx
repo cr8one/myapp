@@ -298,6 +298,7 @@ export default function DeviceDetailPage() {
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用開始日</span><span>{device.startDate ? new Date(device.startDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">管理区分</span><span>{val(device.managementType)}</span></div>
+              <div className="flex gap-2 col-span-2"><span className="text-gray-400 w-24 flex-shrink-0">備考</span><span>{val(device.remark)}</span></div>
             </div>
           </div>
         </div>
@@ -394,11 +395,11 @@ export default function DeviceDetailPage() {
       {/* 備考 */}
       <div className="bg-white border rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold">備考</h2>
+          <h2 className="text-base font-semibold">履歴</h2>
           <Button size="sm" onClick={openAddRemark} className="flex items-center gap-1"><Plus className="w-4 h-4" />追加</Button>
         </div>
         {remarks.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">備考が登録されていません。</p>
+          <p className="text-sm text-gray-400 text-center py-4">履歴が登録されていません。</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -571,7 +572,7 @@ export default function DeviceDetailPage() {
       {/* 備考 ダイアログ */}
       <Dialog open={remarkDialogOpen} onOpenChange={setRemarkDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editRemarkTarget ? "備考を編集" : "備考を追加"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editRemarkTarget ? "履歴を編集" : "履歴を追加"}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="space-y-1"><Label>日付</Label>
               <Input type="date" value={remarkForm.date} onChange={e => setRemarkForm(f => ({ ...f, date: e.target.value }))} /></div>
