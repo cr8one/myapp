@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null }
 type Master = { id: number; category: string; value: string }
@@ -136,7 +137,7 @@ export default function DeviceNewPage() {
           </div>
           <div className="col-span-2 space-y-1">
             <Label>備考</Label>
-            <Input value={form.remark} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} autoComplete="off" />
+            <Textarea value={form.remark} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} rows={3} placeholder="端末固有の備考" />
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-2">
