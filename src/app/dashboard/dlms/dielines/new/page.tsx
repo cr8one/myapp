@@ -35,7 +35,7 @@ export default function NewDielinePage() {
   const [showAllConditions, setShowAllConditions] = useState(false)
 
   useEffect(() => {
-    fetch("/api/dlms/type-conditions").then(r => r.json()).then(setTypeConditions)
+    fetch("/api/dlms/type-conditions?all=true").then(r => r.json()).then(d => setTypeConditions(d.records ?? []))
   }, [])
 
   const toggleCondition = (name: string) => {

@@ -79,7 +79,7 @@ export default function DielineDetailPage() {
 
   useEffect(() => {
     fetchParent()
-    fetch("/api/dlms/type-conditions").then(r => r.json()).then(setTypeConditions)
+    fetch("/api/dlms/type-conditions?all=true").then(r => r.json()).then(d => setTypeConditions(d.records ?? []))
   }, [id])
 
   const toggleCondition = (name: string) => {
