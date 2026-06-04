@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(bom + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="抜き型手配依頼書_${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="dieline-requests_${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   })
 }
