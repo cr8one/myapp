@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react"
-import { Plus, Pencil, Trash2, X, Check, AlertCircle, Download, Upload, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Check, AlertCircle, Download, Upload, Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 type Format = { id: number; name: string; width: number; height: number; unit: string; note?: string; sortOrder: number }
 type Part = { id: number; name: string; width: number; height: number; shape: string; note?: string; sortOrder: number }
@@ -27,6 +27,30 @@ function SortOrderInput({ value, onChange }: { value: number; onChange: (v: numb
   )
 }
 
+function Pagination({ page, totalPages, totalCount, onPageChange }: {
+  page: number; totalPages: number; totalCount: number; onPageChange: (p: number) => void
+}) {
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex items-center justify-between px-1 py-2">
+      <p className="text-xs text-gray-400">
+        {totalCount}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, totalCount)}件
+      </p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPageChange(page - 1)} disabled={page === 1}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-xs text-gray-600 px-2">{page} / {totalPages}</span>
+        <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DlmsMastersPage() {
   const [tab, setTab] = useState<Tab>("formats")
   const [formats, setFormats] = useState<Format[]>([])
@@ -50,9 +74,12 @@ export default function DlmsMastersPage() {
   const [newTypeCondition, setNewTypeCondition] = useState(emptyTypeCondition)
   const [tcImporting, setTcImporting] = useState(false)
   const [tcImportResult, setTcImportResult] = useState<{ count: number } | null>(null)
+  const [tcKeyword, setTcKeyword] = useState("")
   const [tcFilterGenre, setTcFilterGenre] = useState("")
   const [tcFilterSpec, setTcFilterSpec] = useState("")
   const [tcFilterHinmoku, setTcFilterHinmoku] = useState("")
+  const [tcFilterTag1, setTcFilterTag1] = useState("")
+  const [tcFilterTag2, setTcFilterTag2] = useState("")
   const tcImportRef = useRef<HTMLInputElement>(null)
 
   const fetchAll = useCallback(async () => {
@@ -68,11 +95,14 @@ export default function DlmsMastersPage() {
     setFetching(false)
   }, [])
 
-  const fetchTypeConditions = useCallback(async (genre = "", spec = "", hinmoku = "", page = 1) => {
+  const fetchTypeConditions = useCallback(async (keyword = "", genre = "", spec = "", hinmoku = "", tag1 = "", tag2 = "", page = 1) => {
     const params = new URLSearchParams()
+    if (keyword) params.set("keyword", keyword)
     if (genre) params.set("genre", genre)
     if (spec) params.set("spec", spec)
     if (hinmoku) params.set("hinmoku", hinmoku)
+    if (tag1) params.set("tag1", tag1)
+    if (tag2) params.set("tag2", tag2)
     params.set("page", String(page))
     const res = await fetch(`/api/dlms/type-conditions?${params.toString()}`)
     const data = await res.json()
@@ -82,15 +112,24 @@ export default function DlmsMastersPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
   useEffect(() => {
-    if (tab === "type-conditions") fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, 1)
+    if (tab === "type-conditions") fetchTypeConditions("", "", "", "", "", "", 1)
   }, [tab])
 
   const tcTotalPages = Math.ceil(tcTotal / PAGE_SIZE)
 
-  // ジャンル・仕様・品目のユニークリスト
-  const genreOptions = [...new Set(typeConditions.map(r => r.genre).filter(Boolean))] as string[]
-  const specOptions = [...new Set(typeConditions.filter(r => !tcFilterGenre || r.genre === tcFilterGenre).map(r => r.spec).filter(Boolean))] as string[]
-  const hinmokuOptions = [...new Set(typeConditions.filter(r => (!tcFilterGenre || r.genre === tcFilterGenre) && (!tcFilterSpec || r.spec === tcFilterSpec)).map(r => r.hinmoku).filter(Boolean))] as string[]
+  const handleTcSearch = () => {
+    setTcPage(1)
+    fetchTypeConditions(tcKeyword, tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcFilterTag1, tcFilterTag2, 1)
+  }
+  const handleTcReset = () => {
+    setTcKeyword(""); setTcFilterGenre(""); setTcFilterSpec(""); setTcFilterHinmoku(""); setTcFilterTag1(""); setTcFilterTag2("")
+    setTcPage(1)
+    fetchTypeConditions("", "", "", "", "", "", 1)
+  }
+  const handleTcPageChange = (p: number) => {
+    setTcPage(p)
+    fetchTypeConditions(tcKeyword, tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcFilterTag1, tcFilterTag2, p)
+  }
 
   // Format handlers
   const saveFormat = async () => {
@@ -138,17 +177,17 @@ export default function DlmsMastersPage() {
   const saveTypeCondition = async () => {
     await fetch("/api/dlms/type-conditions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newTypeCondition) })
     setAddingTypeCondition(false); setNewTypeCondition(emptyTypeCondition)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
+    fetchTypeConditions(tcKeyword, tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcFilterTag1, tcFilterTag2, tcPage)
   }
   const updateTypeCondition = async (tc: TypeCondition) => {
     await fetch("/api/dlms/type-conditions", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tc) })
     setEditingTypeCondition(null)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
+    fetchTypeConditions(tcKeyword, tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcFilterTag1, tcFilterTag2, tcPage)
   }
   const deleteTypeCondition = async (id: number) => {
     if (!confirm("削除しますか？")) return
     await fetch("/api/dlms/type-conditions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcPage)
+    fetchTypeConditions(tcKeyword, tcFilterGenre, tcFilterSpec, tcFilterHinmoku, tcFilterTag1, tcFilterTag2, tcPage)
   }
   const handleTcExport = () => { window.location.href = "/api/dlms/type-conditions/export" }
   const handleTcDeleteAll = async () => {
@@ -158,7 +197,7 @@ export default function DlmsMastersPage() {
       body: JSON.stringify({ action: "deleteAll" }),
     })
     setTcPage(1)
-    fetchTypeConditions("", "", "", 1)
+    fetchTypeConditions("", "", "", "", "", "", 1)
   }
   const handleTcImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -184,7 +223,7 @@ export default function DlmsMastersPage() {
     setTcImportResult({ count: totalCount })
     setTcImporting(false)
     setTcPage(1)
-    fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, 1)
+    fetchTypeConditions("", "", "", "", "", "", 1)
     if (tcImportRef.current) tcImportRef.current.value = ""
   }
 
@@ -489,24 +528,47 @@ export default function DlmsMastersPage() {
           {/* 型条件マスタ */}
           {tab === "type-conditions" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select value={tcFilterGenre} onChange={e => { setTcFilterGenre(e.target.value); setTcFilterSpec(""); setTcFilterHinmoku(""); setTcPage(1); fetchTypeConditions(e.target.value, "", "", 1) }}
-                    className="h-8 border rounded px-2 text-sm bg-white">
-                    <option value="">ジャンル：すべて</option>
-                    {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                  <select value={tcFilterSpec} onChange={e => { setTcFilterSpec(e.target.value); setTcFilterHinmoku(""); setTcPage(1); fetchTypeConditions(tcFilterGenre, e.target.value, "", 1) }}
-                    className="h-8 border rounded px-2 text-sm bg-white">
-                    <option value="">仕様：すべて</option>
-                    {specOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <select value={tcFilterHinmoku} onChange={e => { setTcFilterHinmoku(e.target.value); setTcPage(1); fetchTypeConditions(tcFilterGenre, tcFilterSpec, e.target.value, 1) }}
-                    className="h-8 border rounded px-2 text-sm bg-white">
-                    <option value="">品目：すべて</option>
-                    {hinmokuOptions.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
+              {/* 検索エリア */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text" value={tcKeyword} onChange={e => setTcKeyword(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleTcSearch() }}
+                      placeholder="フリーワード検索（全カラム対象）" autoComplete="off"
+                      className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button onClick={handleTcSearch}
+                    className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                    検索
+                  </button>
+                  <button onClick={handleTcReset}
+                    className="px-4 py-2 text-sm border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg">
+                    リセット
+                  </button>
                 </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { label: "ジャンル", value: tcFilterGenre, setter: setTcFilterGenre },
+                    { label: "仕様", value: tcFilterSpec, setter: setTcFilterSpec },
+                    { label: "品目", value: tcFilterHinmoku, setter: setTcFilterHinmoku },
+                    { label: "条件タグ1", value: tcFilterTag1, setter: setTcFilterTag1 },
+                    { label: "条件タグ2", value: tcFilterTag2, setter: setTcFilterTag2 },
+                  ].map(({ label, value, setter }) => (
+                    <input key={label} type="text" value={value}
+                      onChange={e => setter(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleTcSearch() }}
+                      placeholder={label} autoComplete="off"
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* 操作ボタン */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <button onClick={handleTcExport}
                     className="flex items-center gap-1.5 text-sm px-3 py-1.5 border rounded-lg bg-white hover:bg-gray-50">
@@ -520,11 +582,11 @@ export default function DlmsMastersPage() {
                     <Upload className="w-4 h-4" />{tcImporting ? "インポート中..." : "インポート"}
                     <input ref={tcImportRef} type="file" accept=".csv" className="hidden" onChange={handleTcImport} />
                   </label>
-                  <button onClick={() => { setAddingTypeCondition(true); setNewTypeCondition(emptyTypeCondition) }}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
-                    <Plus className="w-4 h-4" />追加
-                  </button>
                 </div>
+                <button onClick={() => { setAddingTypeCondition(true); setNewTypeCondition(emptyTypeCondition) }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" />追加
+                </button>
               </div>
 
               {tcImportResult && (
@@ -568,6 +630,7 @@ export default function DlmsMastersPage() {
                 </div>
               ) : (
                 <>
+                  <Pagination page={tcPage} totalPages={tcTotalPages} totalCount={tcTotal} onPageChange={handleTcPageChange} />
                   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 border-b">
@@ -624,29 +687,7 @@ export default function DlmsMastersPage() {
                       </tbody>
                     </table>
                   </div>
-                  {/* ページネーション */}
-                  {tcTotalPages > 1 && (
-                    <div className="flex items-center justify-between px-1">
-                      <p className="text-xs text-gray-400">
-                        {tcTotal}件中 {(tcPage - 1) * PAGE_SIZE + 1}〜{Math.min(tcPage * PAGE_SIZE, tcTotal)}件
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => { const p = tcPage - 1; setTcPage(p); fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, p) }}
-                          disabled={tcPage === 1}
-                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <span className="text-xs text-gray-600 px-2">{tcPage} / {tcTotalPages}</span>
-                        <button
-                          onClick={() => { const p = tcPage + 1; setTcPage(p); fetchTypeConditions(tcFilterGenre, tcFilterSpec, tcFilterHinmoku, p) }}
-                          disabled={tcPage === tcTotalPages}
-                          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <Pagination page={tcPage} totalPages={tcTotalPages} totalCount={tcTotal} onPageChange={handleTcPageChange} />
                 </>
               )}
             </div>

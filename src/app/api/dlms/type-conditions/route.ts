@@ -9,13 +9,27 @@ export async function GET(req: NextRequest) {
   const genre = searchParams.get("genre")
   const spec = searchParams.get("spec")
   const hinmoku = searchParams.get("hinmoku")
+  const tag1 = searchParams.get("tag1")
+  const tag2 = searchParams.get("tag2")
+  const keyword = searchParams.get("keyword")
   const countOnly = searchParams.get("count") === "true"
   const all = searchParams.get("all") === "true"
   const page = parseInt(searchParams.get("page") ?? "1") || 1
-  const where = {
-    ...(genre ? { genre } : {}),
-    ...(spec ? { spec } : {}),
-    ...(hinmoku ? { hinmoku } : {}),
+  const where: any = {
+    ...(genre ? { genre: { contains: genre } } : {}),
+    ...(spec ? { spec: { contains: spec } } : {}),
+    ...(hinmoku ? { hinmoku: { contains: hinmoku } } : {}),
+    ...(tag1 ? { tag1: { contains: tag1 } } : {}),
+    ...(tag2 ? { tag2: { contains: tag2 } } : {}),
+    ...(keyword ? {
+      OR: [
+        { genre: { contains: keyword } },
+        { spec: { contains: keyword } },
+        { hinmoku: { contains: keyword } },
+        { tag1: { contains: keyword } },
+        { tag2: { contains: keyword } },
+      ]
+    } : {}),
   }
   if (countOnly) {
     const total = await prisma.dlmsTypeCondition.count({ where })
