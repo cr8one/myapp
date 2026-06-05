@@ -12,30 +12,38 @@ export async function GET(req: NextRequest) {
   const hinmoku = searchParams.get("hinmoku")
   const condition = searchParams.get("condition")
   const keyword = searchParams.get("keyword")
+  const page = parseInt(searchParams.get("page") ?? "1")
+  const PAGE_SIZE = 50
 
-  const parents = await prisma.dlmsDielineParent.findMany({
-    where: {
-      flg_del: 0,
-      ...(genre ? { genre } : {}),
-      ...(spec ? { spec } : {}),
-      ...(hinmoku ? { hinmoku } : {}),
-      ...(condition ? { conditions: { some: { value: { contains: condition } } } } : {}),
-      ...(keyword ? {
-        OR: [
-          { uid_ntemp: { contains: keyword } },
-          { kyugataban: { contains: keyword } },
-        ]
-      } : {}),
-    },
-    include: {
-      conditions: { orderBy: { sortOrder: "asc" } },
-      children: { where: { flg_del: 0 }, orderBy: { edaban: "asc" } },
-    },
-    orderBy: { uid_ntemp: "desc" },
-    take: 200,
-  })
+  const where = {
+    flg_del: 0,
+    ...(genre ? { genre } : {}),
+    ...(spec ? { spec } : {}),
+    ...(hinmoku ? { hinmoku } : {}),
+    ...(condition ? { conditions: { some: { value: { contains: condition } } } } : {}),
+    ...(keyword ? {
+      OR: [
+        { uid_ntemp: { contains: keyword } },
+        { kyugataban: { contains: keyword } },
+      ]
+    } : {}),
+  }
 
-  return NextResponse.json(parents)
+  const [total, parents] = await Promise.all([
+    prisma.dlmsDielineParent.count({ where }),
+    prisma.dlmsDielineParent.findMany({
+      where,
+      include: {
+        conditions: { orderBy: { sortOrder: "asc" } },
+        children: { where: { flg_del: 0 }, orderBy: { edaban: "asc" } },
+      },
+      orderBy: { uid_ntemp: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ])
+
+  return NextResponse.json({ records: parents, total })
 }
 
 export async function POST(req: NextRequest) {
@@ -45,7 +53,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { conditions, children, ...parentData } = body
 
-  // 採番：現在の最大値+1
   const last = await prisma.dlmsDielineParent.findFirst({
     orderBy: { uid_ntemp: "desc" },
   })
@@ -66,6 +73,5 @@ export async function POST(req: NextRequest) {
       children: true,
     },
   })
-
   return NextResponse.json(parent)
 }
