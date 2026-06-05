@@ -8,16 +8,11 @@ type DrawObject =
   | { id: string; type: "line"; x1: number; y1: number; x2: number; y2: number; color: string; lineWidth: number; lineType: LineType }
   | { id: string; type: "rect"; x: number; y: number; w: number; h: number; color: string; lineWidth: number; lineType: LineType }
   | { id: string; type: "circle"; cx: number; cy: number; rx: number; ry: number; color: string; lineWidth: number; lineType: LineType }
-  | { id: string; type: "text"; x: number; y: number; text: string; color: string; lineWidth: number }
+  | { id: string; type: "text"; x: number; y: number; text: string; color: string; lineWidth: number; fontSize: number }
   | { id: string; type: "dimension"; x1: number; y1: number; x2: number; y2: number; color: string; lineWidth: number }
   | { id: string; type: "image"; dataUrl: string; x: number; y: number; w: number; h: number }
 
-type Handle = {
-  id: string
-  x: number
-  y: number
-  cursor: string
-}
+type Handle = { id: string; x: number; y: number; cursor: string }
 
 const LINE_TYPES: { key: LineType; label: string; dash: string }[] = [
   { key: "kirehba", label: "切れ刃", dash: "none" },
@@ -40,14 +35,12 @@ const HIT_MARGIN = 6
 const HANDLE_SIZE = 7
 
 function uid() { return Math.random().toString(36).slice(2) }
-
 function getDash(lt: LineType): number[] {
   if (lt === "suji")  return [8, 4]
   if (lt === "mishi") return [2, 3]
   return []
 }
 
-// オブジェクトのリサイズハンドル一覧を返す
 function getHandles(obj: DrawObject): Handle[] {
   switch (obj.type) {
     case "rect": {
@@ -73,12 +66,11 @@ function getHandles(obj: DrawObject): Handle[] {
       ]
     }
     case "line":
-    case "dimension": {
+    case "dimension":
       return [
         { id: "p1", x: obj.x1, y: obj.y1, cursor: "crosshair" },
         { id: "p2", x: obj.x2, y: obj.y2, cursor: "crosshair" },
       ]
-    }
     case "image": {
       const { x, y, w, h } = obj
       return [
@@ -88,17 +80,14 @@ function getHandles(obj: DrawObject): Handle[] {
         { id: "sw", x, y: y + h, cursor: "nesw-resize" },
       ]
     }
-    default:
-      return []
+    default: return []
   }
 }
 
-// ハンドルのヒットテスト
-function hitHandle(handle: Handle, x: number, y: number): boolean {
-  return Math.abs(x - handle.x) <= HANDLE_SIZE && Math.abs(y - handle.y) <= HANDLE_SIZE
+function hitHandle(h: Handle, x: number, y: number): boolean {
+  return Math.abs(x - h.x) <= HANDLE_SIZE && Math.abs(y - h.y) <= HANDLE_SIZE
 }
 
-// ハンドルドラッグでオブジェクトをリサイズ
 function resizeObject(obj: DrawObject, handleId: string, dx: number, dy: number): DrawObject {
   switch (obj.type) {
     case "rect": {
@@ -118,11 +107,10 @@ function resizeObject(obj: DrawObject, handleId: string, dx: number, dy: number)
       return { ...obj, cx, cy, rx: Math.max(4, Math.abs(rx)), ry: Math.max(4, Math.abs(ry)) }
     }
     case "line":
-    case "dimension": {
+    case "dimension":
       if (handleId === "p1") return { ...obj, x1: obj.x1 + dx, y1: obj.y1 + dy }
       if (handleId === "p2") return { ...obj, x2: obj.x2 + dx, y2: obj.y2 + dy }
       return obj
-    }
     case "image": {
       let { x, y, w, h } = obj
       if (handleId === "nw") { x += dx; w -= dx; y += dy; h -= dy }
@@ -131,22 +119,18 @@ function resizeObject(obj: DrawObject, handleId: string, dx: number, dy: number)
       if (handleId === "sw") { x += dx; w -= dx; h += dy }
       return { ...obj, x, y, w: Math.max(20, w), h: Math.max(20, h) }
     }
-    default:
-      return obj
+    default: return obj
   }
 }
 
 function hitTest(obj: DrawObject, x: number, y: number): boolean {
   switch (obj.type) {
-    case "line":
-    case "dimension": {
+    case "line": case "dimension": {
       const { x1, y1, x2, y2 } = obj
       const len = Math.hypot(x2 - x1, y2 - y1)
       if (len === 0) return false
-      const t = ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / (len * len)
-      const tc = Math.max(0, Math.min(1, t))
-      const px = x1 + tc * (x2 - x1); const py = y1 + tc * (y2 - y1)
-      return Math.hypot(x - px, y - py) <= HIT_MARGIN + obj.lineWidth
+      const t = Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / (len * len)))
+      return Math.hypot(x - (x1 + t * (x2 - x1)), y - (y1 + t * (y2 - y1))) <= HIT_MARGIN + obj.lineWidth
     }
     case "rect": {
       const { x: rx, y: ry, w, h } = obj
@@ -156,11 +140,8 @@ function hitTest(obj: DrawObject, x: number, y: number): boolean {
              (Math.abs(y - ry) <= HIT_MARGIN && x >= rx - HIT_MARGIN && x <= x2 + HIT_MARGIN) ||
              (Math.abs(y - y2) <= HIT_MARGIN && x >= rx - HIT_MARGIN && x <= x2 + HIT_MARGIN)
     }
-    case "circle": {
-      const dist = Math.hypot(x - obj.cx, y - obj.cy)
-      const r = (obj.rx + obj.ry) / 2
-      return Math.abs(dist - r) <= HIT_MARGIN + obj.lineWidth
-    }
+    case "circle":
+      return Math.abs(Math.hypot(x - obj.cx, y - obj.cy) - (obj.rx + obj.ry) / 2) <= HIT_MARGIN + obj.lineWidth
     case "text":
       return Math.abs(x - obj.x) <= 60 && Math.abs(y - obj.y) <= 20
     case "image":
@@ -176,6 +157,15 @@ function moveObject(obj: DrawObject, dx: number, dy: number): DrawObject {
     case "text":   return { ...obj, x: obj.x + dx, y: obj.y + dy }
     case "image":  return { ...obj, x: obj.x + dx, y: obj.y + dy }
   }
+}
+
+function drawHandles(ctx: CanvasRenderingContext2D, handles: Handle[]) {
+  handles.forEach(h => {
+    ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#378add"; ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.rect(h.x - HANDLE_SIZE / 2, h.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE)
+    ctx.fill(); ctx.stroke()
+  })
 }
 
 function renderObject(ctx: CanvasRenderingContext2D, obj: DrawObject, selected: boolean) {
@@ -195,7 +185,7 @@ function renderObject(ctx: CanvasRenderingContext2D, obj: DrawObject, selected: 
       ctx.ellipse(obj.cx, obj.cy, Math.abs(obj.rx), Math.abs(obj.ry), 0, 0, Math.PI * 2)
       ctx.stroke(); break
     case "text":
-      ctx.font = `${14 * obj.lineWidth}px sans-serif`; ctx.fillText(obj.text, obj.x, obj.y); break
+      ctx.font = `${obj.fontSize}px sans-serif`; ctx.fillText(obj.text, obj.x, obj.y); break
     case "dimension": {
       ctx.setLineDash([])
       const y = obj.y1
@@ -218,19 +208,10 @@ function renderObject(ctx: CanvasRenderingContext2D, obj: DrawObject, selected: 
       }
       case "rect":   ctx.strokeRect(obj.x - 4, obj.y - 4, obj.w + 8, obj.h + 8); break
       case "circle": ctx.strokeRect(obj.cx - Math.abs(obj.rx) - 4, obj.cy - Math.abs(obj.ry) - 4, Math.abs(obj.rx) * 2 + 8, Math.abs(obj.ry) * 2 + 8); break
-      case "text":   ctx.strokeRect(obj.x - 4, obj.y - 18, 80, 24); break
+      case "text":   ctx.strokeRect(obj.x - 4, obj.y - obj.fontSize - 2, 120, obj.fontSize + 8); break
     }
-
-    // ハンドルを描画
     ctx.setLineDash([])
-    getHandles(obj).forEach(h => {
-      ctx.fillStyle = "#ffffff"
-      ctx.strokeStyle = "#378add"
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.rect(h.x - HANDLE_SIZE / 2, h.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE)
-      ctx.fill(); ctx.stroke()
-    })
+    drawHandles(ctx, getHandles(obj))
   }
   ctx.restore()
 }
@@ -241,6 +222,7 @@ export default function DrawingEditor() {
   const [lineType, setLineType] = useState<LineType>("kirehba")
   const [color, setColor] = useState("#1a1a1a")
   const [lineWidth, setLineWidth] = useState(1.5)
+  const [fontSize, setFontSize] = useState(16)
   const [zoom, setZoom] = useState(100)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [canUndo, setCanUndo] = useState(false)
@@ -260,6 +242,10 @@ export default function DrawingEditor() {
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // 選択中オブジェクト
+  const selectedObj = objectsRef.current.find(o => o.id === selectedId) ?? null
+  const selectedText = selectedObj?.type === "text" ? selectedObj : null
+
   const redraw = useCallback(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext("2d")
@@ -273,17 +259,12 @@ export default function DrawingEditor() {
           ctx.save(); ctx.globalAlpha = 0.5
           ctx.drawImage(img, obj.x, obj.y, obj.w, obj.h)
           ctx.globalAlpha = 1; ctx.restore()
-          // 選択中は画像もハンドル表示
           if (obj.id === selectedId) {
             ctx.save()
             ctx.setLineDash([4, 3]); ctx.strokeStyle = "#378add"; ctx.lineWidth = 1
             ctx.strokeRect(obj.x, obj.y, obj.w, obj.h)
             ctx.setLineDash([])
-            getHandles(obj).forEach(h => {
-              ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#378add"; ctx.lineWidth = 1.5
-              ctx.beginPath(); ctx.rect(h.x - HANDLE_SIZE / 2, h.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE)
-              ctx.fill(); ctx.stroke()
-            })
+            drawHandles(ctx, getHandles(obj))
             ctx.restore()
           }
         }
@@ -295,6 +276,11 @@ export default function DrawingEditor() {
   }, [selectedId])
 
   useEffect(() => { redraw() }, [redraw])
+
+  // テキスト選択時にfontSizeを同期
+  useEffect(() => {
+    if (selectedText) setFontSize(selectedText.fontSize)
+  }, [selectedId])
 
   const saveHistory = useCallback(() => {
     const snapshot = objectsRef.current.map(o => ({ ...o }))
@@ -327,6 +313,20 @@ export default function DrawingEditor() {
     setSelectedId(null); saveHistory(); redraw()
   }, [selectedId, saveHistory, redraw])
 
+  // テキストのフォントサイズをリアルタイム変更
+  const handleFontSizeChange = useCallback((val: number) => {
+    setFontSize(val)
+    if (!selectedId) return
+    objectsRef.current = objectsRef.current.map(o =>
+      o.id === selectedId && o.type === "text" ? { ...o, fontSize: val } : o
+    )
+    redraw()
+  }, [selectedId, redraw])
+
+  const handleFontSizeCommit = useCallback(() => {
+    saveHistory()
+  }, [saveHistory])
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo() }
@@ -344,23 +344,14 @@ export default function DrawingEditor() {
 
   const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getPos(e)
-
     if (tool === "select") {
-      // 選択中オブジェクトのハンドルを先にチェック
       if (selectedId) {
         const selObj = objectsRef.current.find(o => o.id === selectedId)
         if (selObj) {
-          const handles = getHandles(selObj)
-          const hit = handles.find(h => hitHandle(h, pos.x, pos.y))
-          if (hit) {
-            isResizingRef.current = true
-            activeHandleRef.current = hit.id
-            dragStartRef.current = pos
-            return
-          }
+          const hit = getHandles(selObj).find(h => hitHandle(h, pos.x, pos.y))
+          if (hit) { isResizingRef.current = true; activeHandleRef.current = hit.id; dragStartRef.current = pos; return }
         }
       }
-      // オブジェクト本体のヒットテスト
       let found: DrawObject | null = null
       for (let i = objectsRef.current.length - 1; i >= 0; i--) {
         if (hitTest(objectsRef.current[i], pos.x, pos.y)) { found = objectsRef.current[i]; break }
@@ -369,36 +360,28 @@ export default function DrawingEditor() {
       if (found) { isDraggingRef.current = true; dragStartRef.current = pos }
       return
     }
-
     if (tool === "text") {
       const text = prompt("テキストを入力:")
       if (!text) return
-      const obj: DrawObject = { id: uid(), type: "text", x: pos.x, y: pos.y, text, color, lineWidth }
+      const obj: DrawObject = { id: uid(), type: "text", x: pos.x, y: pos.y, text, color, lineWidth, fontSize }
       objectsRef.current = [...objectsRef.current, obj]
       saveHistory(); redraw(); return
     }
-
     startPos.current = pos; isDrawingRef.current = true
   }
 
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getPos(e)
-
-    // カーソル更新（ホバー時）
     if (tool === "select" && !isDraggingRef.current && !isResizingRef.current) {
       if (selectedId) {
         const selObj = objectsRef.current.find(o => o.id === selectedId)
         if (selObj) {
-          const handles = getHandles(selObj)
-          const hit = handles.find(h => hitHandle(h, pos.x, pos.y))
+          const hit = getHandles(selObj).find(h => hitHandle(h, pos.x, pos.y))
           if (hit) { setCursorStyle(hit.cursor); return }
         }
       }
-      const anyHit = objectsRef.current.slice().reverse().some(o => hitTest(o, pos.x, pos.y))
-      setCursorStyle(anyHit ? "grab" : "default")
+      setCursorStyle(objectsRef.current.slice().reverse().some(o => hitTest(o, pos.x, pos.y)) ? "grab" : "default")
     }
-
-    // リサイズ中
     if (tool === "select" && isResizingRef.current && dragStartRef.current && selectedId && activeHandleRef.current) {
       const dx = pos.x - dragStartRef.current.x; const dy = pos.y - dragStartRef.current.y
       dragStartRef.current = pos
@@ -407,16 +390,12 @@ export default function DrawingEditor() {
       )
       redraw(); return
     }
-
-    // 移動中
     if (tool === "select" && isDraggingRef.current && dragStartRef.current && selectedId) {
       const dx = pos.x - dragStartRef.current.x; const dy = pos.y - dragStartRef.current.y
       dragStartRef.current = pos
       objectsRef.current = objectsRef.current.map(o => o.id === selectedId ? moveObject(o, dx, dy) : o)
       redraw(); return
     }
-
-    // 描画プレビュー
     if (!isDrawingRef.current || !startPos.current) return
     const { x: sx, y: sy } = startPos.current
     const base = { id: "__preview__", color, lineWidth, lineType }
@@ -475,8 +454,7 @@ export default function DrawingEditor() {
     setSelectedId(null); saveHistory(); redraw()
   }
 
-  const computedCursor = tool === "select" ? cursorStyle
-    : tool === "text" ? "text" : "crosshair"
+  const computedCursor = tool === "select" ? cursorStyle : tool === "text" ? "text" : "crosshair"
 
   return (
     <div className="flex flex-col h-full" style={{ userSelect: "none" }}>
@@ -522,11 +500,13 @@ export default function DrawingEditor() {
             </svg>
           </button>
         </div>
+
         <div className="flex-1 overflow-auto bg-gray-100 flex items-start justify-start p-4">
           <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H}
             style={{ cursor: computedCursor, boxShadow: "0 2px 12px rgba(0,0,0,0.12)", display: "block", width: `${zoom}%`, maxWidth: "none" }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp} />
         </div>
+
         <div className="w-36 flex flex-col gap-3 px-2 py-3 border-l bg-white flex-shrink-0 overflow-y-auto">
           <div>
             <p className="text-xs text-gray-400 mb-1.5 px-1">線の種類</p>
@@ -558,6 +538,22 @@ export default function DrawingEditor() {
               onChange={e => setLineWidth(Number(e.target.value))} className="w-full" />
           </div>
           <div className="border-t border-gray-100" />
+          {/* テキストツール or テキスト選択中はフォントサイズ表示 */}
+          {(tool === "text" || selectedText) && (
+            <>
+              <div>
+                <p className="text-xs text-gray-400 mb-1.5 px-1">
+                  文字サイズ: {selectedText ? selectedText.fontSize : fontSize}px
+                </p>
+                <input type="range" min="8" max="96" step="1"
+                  value={selectedText ? selectedText.fontSize : fontSize}
+                  onChange={e => handleFontSizeChange(Number(e.target.value))}
+                  onMouseUp={handleFontSizeCommit}
+                  className="w-full" />
+              </div>
+              <div className="border-t border-gray-100" />
+            </>
+          )}
           <div>
             <p className="text-xs text-gray-400 mb-1.5 px-1">ズーム: {zoom}%</p>
             <input type="range" min="30" max="200" step="10" value={zoom}
