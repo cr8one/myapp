@@ -4,11 +4,12 @@ import { auth } from "@/auth"
 import { renderToBuffer } from "@react-pdf/renderer"
 import { createElement } from "react"
 import CadRequestPdf from "@/app/dashboard/cad/requests/pdf/CadRequestPdf"
+import path from "path"
 import { Font } from "@react-pdf/renderer"
 
 Font.register({
   family: "NotoSansJP",
-  src: "/NotoSansJP.otf",
+  src: path.join(process.cwd(), "public/NotoSansJP.otf"),
 })
 
 const n = (v: string | null | undefined) => v ?? undefined
