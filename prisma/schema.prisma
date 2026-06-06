@@ -35,6 +35,7 @@ model User {
   announcements               Announcement[]
   loginLogs                   LoginLog[]
   auditLogs                   AuditLog[]
+  cadRequests                 CadRequest[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -828,4 +829,38 @@ model DppSeihanMaster {
   updated_at DateTime @updatedAt
 
   @@map("m_dpp_seihan")
+}
+model CadRequest {
+  id              String    @id @default(cuid())
+  uid             String    @unique
+  request_date    DateTime
+  request_time    String
+  requester_id    String?
+  requester_name  String
+  department      String?
+  content         String?
+  client          String?
+  title           String?
+  genre           String?
+  hinmoku         String?
+  hinban          String?
+  dieline_no      String?
+  develop_y       Float?
+  develop_x       Float?
+  paper           String?
+  finish_count    Int?
+  desired_date    DateTime?
+  desired_time    String?
+  tray            String?
+  degi_spec       String?
+  tray_count      Int?
+  pocket          String?
+  remarks         String?
+  flg_del         Int       @default(0)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  requester       User?     @relation(fields: [requester_id], references: [id])
+
+  @@map("t_cad_requests")
 }
