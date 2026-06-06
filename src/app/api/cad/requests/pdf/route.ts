@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="cad-request-${record.uid}.pdf"`,
+      "Content-Disposition": `attachment; filename="cad-request-${record.uid}.pdf"`,
     },
   })
 }

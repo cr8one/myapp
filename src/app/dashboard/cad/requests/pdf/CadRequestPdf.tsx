@@ -107,7 +107,7 @@ function formatDesiredDate(str?: string) {
 export default function CadRequestPdf(props: Props) {
   return (
     <Document>
-      <Page size={[595.28, 419.53]} orientation="landscape" style={F.page}>
+      <Page size={[595.28, 419.53]} style={F.page}>
         {/* ヘッダー */}
         <View style={F.header}>
           <Text style={F.headerTitle}>CAD作業依頼書</Text>
