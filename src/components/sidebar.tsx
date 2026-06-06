@@ -81,7 +81,7 @@ const baseMenuItems = [
     { label: "種別管理", href: "/dashboard/dev/company-type-masters" },
   ]},
   { label: "CAD/台紙", href: "/dashboard/cad", icon: "cad", children: [
-    { label: "CAD依頼書",     href: "/dashboard/cad/cad-requests" },
+    { label: "CAD依頼書",     href: "/dashboard/cad/requests" },
     { label: "DXF変換依頼書", href: "/dashboard/cad/dxf-requests" },
     { label: "台紙作成依頼書", href: "/dashboard/cad/daishi-requests" },
     { label: "台紙DB",        href: "/dashboard/cad/daishi-db" },
