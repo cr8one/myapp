@@ -9,7 +9,6 @@ const F = StyleSheet.create({
     fontSize: 8,
     backgroundColor: "#fff",
   },
-  // ヘッダー
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -22,99 +21,87 @@ const F = StyleSheet.create({
   headerNoBox: { border: "1pt solid #000", width: "22mm", padding: "1mm 2mm", fontSize: 10, textAlign: "right" },
   headerDateLabel: { fontSize: 9, marginLeft: "4mm", marginRight: "2mm" },
   headerDateVal: { fontSize: 9 },
-
-  // 本体
   body: { flexDirection: "row", flex: 1 },
-
-  // 左カラム
   left: { width: "55mm", borderRight: "0.5pt solid #000", paddingRight: "2mm" },
   row: { flexDirection: "row", alignItems: "flex-start", marginBottom: "1.2mm" },
   rowLabel: { width: "16mm", fontSize: 7.5, color: "#000" },
   rowVal: { flex: 1, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5.5mm" },
-  rowValNoBorder: { flex: 1, padding: "0.8mm 0", fontSize: 8 },
-  dimRow: { flexDirection: "row", alignItems: "center" },
+  dimRow: { flexDirection: "row", alignItems: "flex-end" },
   dimBox: { border: "0.5pt solid #000", width: "16mm", padding: "0.8mm 1.5mm", fontSize: 8, textAlign: "right" },
   dimSep: { marginHorizontal: "1mm", fontSize: 8 },
-  dimUnit: { fontSize: 6, color: "#555", marginTop: "1mm" },
-
-  // 中央線（ファイリング）
+  dimUnit: { fontSize: 6, color: "#555" },
   center: { width: "4mm", alignItems: "center", justifyContent: "center" },
-  triangle: { width: 0, height: 0, borderStyle: "solid" },
-
-  // 右カラム
   right: { flex: 1, paddingLeft: "2mm" },
   rightSection: { marginBottom: "2mm" },
   rightSectionTitle: { fontSize: 6.5, color: "#555", marginBottom: "1mm" },
-  trayRow: { flexDirection: "row", gap: "2mm", marginBottom: "1.5mm" },
-  trayBox: { flex: 2, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "10mm" },
-  degiBox: { flex: 1, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "10mm" },
-  trayRow2: { flexDirection: "row", alignItems: "center", gap: "2mm", marginBottom: "2mm" },
+  trayRow: { flexDirection: "row", marginBottom: "1.5mm" },
+  trayBox: { flex: 2, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "10mm", marginRight: "2mm" },
+  degiBox: { width: "20mm", border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "10mm" },
+  trayRow2: { flexDirection: "row", alignItems: "center", marginBottom: "2mm" },
   trayCountLabel: { fontSize: 7.5 },
-  trayCountBox: { border: "0.5pt solid #000", width: "18mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
-  pocketLabel: { fontSize: 7.5, marginLeft: "2mm" },
-  pocketBox: { flex: 1, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
-  remarksBox: { border: "0.5pt solid #000", flex: 1, padding: "1.5mm 2mm", fontSize: 8 },
-  remarksGrid: {
-    flex: 1,
-    border: "0.5pt solid #000",
-    backgroundImage: "none",
-  },
-
-  // フッター
+  trayCountBox: { border: "0.5pt solid #000", width: "18mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm", marginLeft: "1mm", marginRight: "2mm" },
+  pocketLabel: { fontSize: 7.5 },
+  pocketBox: { flex: 1, border: "0.5pt solid #000", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm", marginLeft: "1mm" },
+  remarksBox: { flex: 1, border: "0.5pt solid #000", padding: "1.5mm 2mm", fontSize: 8 },
   footer: {
     borderTop: "1pt solid #000",
     paddingTop: "1.5mm",
     marginTop: "2mm",
     flexDirection: "row",
     alignItems: "center",
-    gap: "3mm",
   },
-  footerLabel: { fontSize: 8 },
-  footerBox: { border: "0.5pt solid #000", width: "22mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
+  footerLabel: { fontSize: 8, marginRight: "1mm" },
+  footerBox: { border: "0.5pt solid #000", width: "22mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm", marginRight: "3mm" },
   footerBoxSm: { border: "0.5pt solid #000", width: "14mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
   footerSep: { fontSize: 9, marginHorizontal: "1mm" },
-  footerMin: { fontSize: 8, marginLeft: "1mm" },
+  footerMin: { fontSize: 8, marginLeft: "1mm", marginRight: "3mm" },
   footerConfirmBox: { border: "0.5pt solid #000", width: "10mm", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
   spacer: { flex: 1 },
 })
 
 type Props = {
   uid: string
-  request_date: string | null
+  request_date?: string
   request_time: string
   requester_name: string
-  department: string | null
-  content: string | null
-  client: string | null
-  title: string | null
-  genre: string | null
-  hinmoku: string | null
-  hinban: string | null
-  dieline_no: string | null
-  develop_y: number | null
-  develop_x: number | null
-  paper: string | null
-  finish_count: number | null
-  desired_date: string | null
-  desired_time: string | null
-  tray: string | null
-  degi_spec: string | null
-  tray_count: number | null
-  pocket: string | null
-  remarks: string | null
+  department?: string
+  content?: string
+  client?: string
+  title?: string
+  genre?: string
+  hinmoku?: string
+  hinban?: string
+  dieline_no?: string
+  develop_y?: number
+  develop_x?: number
+  paper?: string
+  finish_count?: number
+  desired_date?: string
+  desired_time?: string
+  tray?: string
+  degi_spec?: string
+  tray_count?: number
+  pocket?: string
+  remarks?: string
 }
 
-function formatDate(str: string | null) {
+function formatDate(str?: string) {
   if (!str) return ""
   const d = new Date(str)
   return `${d.getFullYear() - 2000 + 1}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 
-function formatTime(t: string) {
+function formatTime(t?: string) {
   if (!t) return ""
   const [h, m] = t.split(":")
   const hour = parseInt(h)
   return `${hour >= 12 ? "PM" : "AM"} ${hour > 12 ? hour - 12 : hour}:${m}`
+}
+
+function formatDesiredDate(str?: string) {
+  if (!str) return ""
+  const d = new Date(str)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 export default function CadRequestPdf(props: Props) {
@@ -177,12 +164,12 @@ export default function CadRequestPdf(props: Props) {
               <View style={F.dimRow}>
                 <View>
                   <Text style={F.dimBox}>{props.develop_y ?? ""}</Text>
-                  <Text style={F.dimUnit}>　　mm</Text>
+                  <Text style={F.dimUnit}>　mm</Text>
                 </View>
                 <Text style={F.dimSep}>×</Text>
                 <View>
                   <Text style={F.dimBox}>{props.develop_x ?? ""}</Text>
-                  <Text style={F.dimUnit}>　　mm</Text>
+                  <Text style={F.dimUnit}>　mm</Text>
                 </View>
               </View>
             </View>
@@ -197,15 +184,14 @@ export default function CadRequestPdf(props: Props) {
             <View style={F.row}>
               <Text style={F.rowLabel}>希望納期</Text>
               <Text style={F.rowVal}>
-                {props.desired_date ? `${new Date(props.desired_date).getMonth() + 1}月${new Date(props.desired_date).getDate()}日` : ""}
-                {props.desired_time ? `　${props.desired_time}` : ""}
+                {formatDesiredDate(props.desired_date)}{props.desired_time ? `　${props.desired_time}` : ""}
               </Text>
             </View>
           </View>
 
           {/* 中央ファイリングライン */}
           <View style={F.center}>
-            <Text style={{ fontSize: 8, color: "#999", transform: "rotate(90deg)" }}>▽</Text>
+            <Text style={{ fontSize: 7, color: "#aaa" }}>▽</Text>
           </View>
 
           {/* 右カラム */}
@@ -213,7 +199,7 @@ export default function CadRequestPdf(props: Props) {
             <View style={F.rightSection}>
               <Text style={F.rightSectionTitle}>トレイ仕様詳細</Text>
               <View style={F.trayRow}>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, marginRight: "2mm" }}>
                   <Text style={[F.rightSectionTitle, { marginBottom: "0.5mm" }]}>使用トレイ</Text>
                   <Text style={F.trayBox}>{props.tray ?? ""}</Text>
                 </View>
@@ -231,7 +217,7 @@ export default function CadRequestPdf(props: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={F.rightSectionTitle}>詳細記入欄</Text>
-              <Text style={{ ...F.remarksBox, flex: 1 }}>{props.remarks ?? ""}</Text>
+              <Text style={F.remarksBox}>{props.remarks ?? ""}</Text>
             </View>
           </View>
         </View>

@@ -152,7 +152,6 @@ export default function CadRequestDetailPage() {
               <Button onClick={() => setEditing(true)}>編集</Button>
             </>
           )}
-          )}
         </div>
       </div>
 

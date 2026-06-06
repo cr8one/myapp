@@ -15,6 +15,8 @@ Font.register({
   ],
 })
 
+const n = (v: string | null | undefined) => v ?? undefined
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -29,28 +31,28 @@ export async function GET(req: NextRequest) {
   const buf = await renderToBuffer(
     createElement(CadRequestPdf, {
       uid: record.uid,
-      request_date: record.request_date?.toISOString() ?? null,
+      request_date: record.request_date?.toISOString() ?? undefined,
       request_time: record.request_time,
       requester_name: record.requester_name,
-      department: record.department,
-      content: record.content,
-      client: record.client,
-      title: record.title,
-      genre: record.genre,
-      hinmoku: record.hinmoku,
-      hinban: record.hinban,
-      dieline_no: record.dieline_no,
-      develop_y: record.develop_y,
-      develop_x: record.develop_x,
-      paper: record.paper,
-      finish_count: record.finish_count,
-      desired_date: record.desired_date?.toISOString() ?? null,
-      desired_time: record.desired_time,
-      tray: record.tray,
-      degi_spec: record.degi_spec,
-      tray_count: record.tray_count,
-      pocket: record.pocket,
-      remarks: record.remarks,
+      department: n(record.department),
+      content: n(record.content),
+      client: n(record.client),
+      title: n(record.title),
+      genre: n(record.genre),
+      hinmoku: n(record.hinmoku),
+      hinban: n(record.hinban),
+      dieline_no: n(record.dieline_no),
+      develop_y: record.develop_y ?? undefined,
+      develop_x: record.develop_x ?? undefined,
+      paper: n(record.paper),
+      finish_count: record.finish_count ?? undefined,
+      desired_date: record.desired_date?.toISOString() ?? undefined,
+      desired_time: n(record.desired_time),
+      tray: n(record.tray),
+      degi_spec: n(record.degi_spec),
+      tray_count: record.tray_count ?? undefined,
+      pocket: n(record.pocket),
+      remarks: n(record.remarks),
     })
   )
 
