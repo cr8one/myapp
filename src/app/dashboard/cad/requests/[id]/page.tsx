@@ -147,6 +147,7 @@ export default function CadRequestDetailPage() {
               <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
             </>
           ) : (
+            <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
             <Button onClick={() => setEditing(true)}>編集</Button>
           )}
         </div>
