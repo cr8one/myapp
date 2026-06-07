@@ -1,178 +1,287 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import * as THREE from "three"
 
 export default function LoginPage() {
   const [csrfToken, setCsrfToken] = useState("")
   const [error, setError] = useState("")
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const frameRef = useRef<number>(0)
 
   useEffect(() => {
-    fetch("/api/auth/csrf")
-      .then((r) => r.json())
-      .then((d) => setCsrfToken(d.csrfToken))
-    setTimeout(() => setMounted(true), 100)
+    fetch("/api/auth/csrf").then(r => r.json()).then(d => setCsrfToken(d.csrfToken))
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("error")) setError("メールアドレスまたはパスワードが正しくありません")
+    setTimeout(() => setMounted(true), 150)
   }, [])
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get("error")) {
-      setError("メールアドレスまたはパスワードが正しくありません")
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setClearColor(0xf7f8fa, 1)
+
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100)
+    camera.position.z = 6
+
+    type OrbitalParticle = {
+      mesh: THREE.Mesh
+      orbitA: number
+      orbitB: number
+      speed: number
+      phase: number
+      tiltX: number
+      tiltZ: number
+      centerX: number
+      centerY: number
+    }
+
+    const particles: OrbitalParticle[] = []
+    const particleGeo = new THREE.SphereGeometry(0.022, 8, 8)
+
+    // CMYKカラー（薄め）
+    const cmykColors = [
+      0x7fd4e0, // Cyan（薄）
+      0xe87fb0, // Magenta（薄）
+      0xf0d060, // Yellow（薄）
+      0x909090, // Key/Black（薄グレー）
+      0xb0c8d8, // Cyan mix
+      0xd8b0c8, // Magenta mix
+    ]
+
+    for (let i = 0; i < 130; i++) {
+      const color = cmykColors[Math.floor(Math.random() * cmykColors.length)]
+      const mat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: Math.random() * 0.45 + 0.15,
+      })
+      const mesh = new THREE.Mesh(particleGeo, mat)
+      scene.add(mesh)
+
+      particles.push({
+        mesh,
+        orbitA: Math.random() * 3.5 + 1.2,
+        orbitB: Math.random() * 2.2 + 0.7,
+        speed: (Math.random() * 0.003 + 0.0008) * (Math.random() > 0.5 ? 1 : -1),
+        phase: Math.random() * Math.PI * 2,
+        tiltX: (Math.random() - 0.5) * Math.PI,
+        tiltZ: (Math.random() - 0.5) * Math.PI * 0.5,
+        centerX: (Math.random() - 0.5) * 2.5,
+        centerY: (Math.random() - 0.5) * 2,
+      })
+    }
+
+    // 薄いグリッド線
+    const gridMat = new THREE.LineBasicMaterial({ color: 0xe0e8f0, transparent: true, opacity: 0.5 })
+    for (let i = -6; i <= 6; i++) {
+      const hGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-9, i * 0.75, -2),
+        new THREE.Vector3(9, i * 0.75, -2),
+      ])
+      scene.add(new THREE.Line(hGeo, gridMat))
+      const vGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(i * 1.2, -6, -2),
+        new THREE.Vector3(i * 1.2, 6, -2),
+      ])
+      scene.add(new THREE.Line(vGeo, gridMat))
+    }
+
+    const mouse = { x: 0, y: 0 }
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = (e.clientX / window.innerWidth - 0.5) * 0.4
+      mouse.y = (e.clientY / window.innerHeight - 0.5) * 0.4
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+
+    let t = 0
+    const animate = () => {
+      frameRef.current = requestAnimationFrame(animate)
+      t += 1
+
+      for (const p of particles) {
+        const angle = p.phase + t * p.speed
+        const x = p.centerX + Math.cos(angle) * p.orbitA
+        const y = p.centerY + Math.sin(angle) * p.orbitB
+        const cosX = Math.cos(p.tiltX)
+        const sinX = Math.sin(p.tiltX)
+        const cosZ = Math.cos(p.tiltZ)
+        const sinZ = Math.sin(p.tiltZ)
+        p.mesh.position.x = x * cosZ - y * sinZ * cosX
+        p.mesh.position.y = x * sinZ + y * cosZ * cosX
+        p.mesh.position.z = y * sinX - 1
+      }
+
+      camera.position.x += (mouse.x - camera.position.x) * 0.025
+      camera.position.y += (-mouse.y - camera.position.y) * 0.025
+      camera.lookAt(0, 0, 0)
+
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    const handleResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight
+      camera.updateProjectionMatrix()
+      renderer.setSize(window.innerWidth, window.innerHeight)
+    }
+    window.addEventListener("resize", handleResize)
+
+    return () => {
+      cancelAnimationFrame(frameRef.current)
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("resize", handleResize)
+      renderer.dispose()
     }
   }, [])
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* アニメーション背景 */}
       <style>{`
-        @keyframes gradientShift {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes float1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(30px, -40px) scale(1.1); }
+        .form-in {
+          animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        @keyframes float2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(-20px, 30px) scale(0.95); }
+        .input-field {
+          width: 100%;
+          padding: 10px 14px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          color: #1a2640;
+          font-size: 0.875rem;
+          font-family: 'DM Sans', sans-serif;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          outline: none;
         }
-        @keyframes float3 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(15px, 20px) scale(1.05); }
+        .input-field::placeholder { color: #c0ccd8; }
+        .input-field:focus {
+          border-color: #93b4d4;
+          box-shadow: 0 0 0 3px rgba(100,160,220,0.1);
         }
-        @keyframes spinSlow {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+        .submit-btn {
+          width: 100%;
+          padding: 11px;
+          background: #1e3a5f;
+          border: none;
+          border-radius: 8px;
+          color: #ffffff;
+          font-size: 0.875rem;
+          font-weight: 500;
+          font-family: 'DM Sans', sans-serif;
+          letter-spacing: 0.03em;
+          cursor: pointer;
+          transition: all 0.2s;
         }
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateY(24px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes logoIn {
-          from { opacity: 0; transform: scale(0.7) rotate(-10deg); }
-          to   { opacity: 1; transform: scale(1) rotate(0deg); }
-        }
-        @keyframes loginSuccess {
-          0%   { transform: scale(1); }
-          30%  { transform: scale(0.96); }
-          60%  { transform: scale(1.03); }
-          100% { transform: scale(1); opacity: 0.7; }
-        }
-        .bg-animated {
-          background: linear-gradient(-45deg, #0f172a, #1e3a5f, #1d4ed8, #0369a1, #1e3a5f, #0f172a);
-          background-size: 400% 400%;
-          animation: gradientShift 12s ease infinite;
-        }
-        .blob1 { animation: float1 8s ease-in-out infinite; }
-        .blob2 { animation: float2 10s ease-in-out infinite; }
-        .blob3 { animation: float3 7s ease-in-out infinite; }
-        .card-in { animation: cardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        .logo-in { animation: logoIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
-        .login-success { animation: loginSuccess 0.4s ease forwards; }
-        .ring-spin { animation: spinSlow 3s linear infinite; }
+        .submit-btn:hover { background: #16304f; }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
       `}</style>
 
-      {/* 背景 */}
-      <div className="absolute inset-0 bg-animated" />
+      {/* Three.js */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }} />
 
-      {/* Blob装飾 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="blob1 absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full opacity-20"
-          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }} />
-        <div className="blob2 absolute bottom-[-80px] right-[-80px] w-[400px] h-[400px] rounded-full opacity-15"
-          style={{ background: "radial-gradient(circle, #0ea5e9, transparent)" }} />
-        <div className="blob3 absolute top-1/2 right-1/4 w-[300px] h-[300px] rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #6366f1, transparent)" }} />
-      </div>
+      {/* 中央グロー */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        zIndex: 2,
+        background: "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.75) 0%, transparent 65%)",
+      }} />
 
       {/* カード */}
       <div
-        className={`relative z-10 w-full max-w-sm mx-4 ${mounted ? "card-in" : "opacity-0"}`}
+        className={`relative ${mounted ? "form-in" : "opacity-0"}`}
+        style={{ zIndex: 10, width: "100%", maxWidth: "340px", padding: "0 16px" }}
       >
-        <div className="backdrop-blur-xl bg-white bg-opacity-10 border border-white border-opacity-20 rounded-3xl shadow-2xl px-8 py-10">
-
-          {/* アイコン */}
-          <div className={`flex justify-center mb-6 ${mounted ? "logo-in" : "opacity-0"}`}>
-            <div className="relative">
-              {/* 外側リング */}
-              <div className="absolute inset-[-6px] rounded-2xl border-2 border-blue-400 border-opacity-40 ring-spin" />
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)" }}>
-                <svg viewBox="0 0 32 32" className="w-9 h-9" fill="none">
-                  {/* JSS アイコン：スリーブ（包装）をイメージした形 */}
-                  <rect x="4" y="6" width="24" height="20" rx="3" stroke="white" strokeWidth="1.5" fill="white" fillOpacity="0.15"/>
-                  <path d="M4 11 Q16 15 28 11" stroke="white" strokeWidth="1.5" fill="none"/>
-                  <path d="M4 21 Q16 17 28 21" stroke="white" strokeWidth="1.5" fill="none"/>
-                  <circle cx="16" cy="16" r="3" fill="white" fillOpacity="0.8"/>
-                  <line x1="16" y1="6" x2="16" y2="26" stroke="white" strokeWidth="1" strokeOpacity="0.4" strokeDasharray="2 2"/>
-                </svg>
-              </div>
-            </div>
-          </div>
+        <div style={{
+          background: "rgba(255,255,255,0.93)",
+          border: "1px solid rgba(200,215,230,0.7)",
+          borderRadius: "18px",
+          padding: "44px 36px 36px",
+          boxShadow: "0 8px 40px rgba(80,120,160,0.10), 0 1px 4px rgba(80,120,160,0.06)",
+          backdropFilter: "blur(16px)",
+        }}>
 
           {/* タイトル */}
-          <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-white tracking-tight mb-1">Japan Sleeve System</h1>
-            <p className="text-blue-200 text-xs tracking-widest uppercase opacity-70">Sign in to continue</p>
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: "1.65rem",
+              fontWeight: 400,
+              color: "#0f1e35",
+              lineHeight: 1.2,
+              letterSpacing: "-0.01em",
+              marginBottom: 8,
+            }}>
+              Japan Sleeve<br />System
+            </h1>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: "0.75rem",
+              fontWeight: 300,
+              color: "#8a9ab0",
+              letterSpacing: "0.06em",
+            }}>
+              Sign in to continue
+            </p>
+          </div>
+
+          {/* CMYK アクセントライン */}
+          <div style={{ display: "flex", gap: 3, marginBottom: 28, height: 2 }}>
+            <div style={{ flex: 1, background: "#7fd4e0", borderRadius: 2, opacity: 0.7 }} />
+            <div style={{ flex: 1, background: "#e87fb0", borderRadius: 2, opacity: 0.7 }} />
+            <div style={{ flex: 1, background: "#f0d060", borderRadius: 2, opacity: 0.7 }} />
+            <div style={{ flex: 1, background: "#909090", borderRadius: 2, opacity: 0.5 }} />
           </div>
 
           {/* フォーム */}
           <form
             method="POST"
             action="/api/auth/callback/credentials"
-            className="space-y-4"
             onSubmit={() => setLoading(true)}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
           >
             <input type="hidden" name="csrfToken" value={csrfToken} />
             <input type="hidden" name="callbackUrl" value="/dashboard" />
 
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-xs font-medium text-blue-100 tracking-wide uppercase">
-                Email
+            <div>
+              <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: "0.68rem", fontWeight: 500, color: "#7a8a9a", marginBottom: 6, letterSpacing: "0.06em" }}>
+                EMAIL
               </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                autoComplete="email"
-                required
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-white border-opacity-20 bg-white bg-opacity-10 text-white placeholder-blue-300 placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-60 focus:border-transparent backdrop-blur-sm transition-all"
-              />
+              <input type="email" name="email" autoComplete="email" required placeholder="your@email.com" className="input-field" />
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-xs font-medium text-blue-100 tracking-wide uppercase">
-                Password
+            <div>
+              <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: "0.68rem", fontWeight: 500, color: "#7a8a9a", marginBottom: 6, letterSpacing: "0.06em" }}>
+                PASSWORD
               </label>
-              <input
-                id="password"
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                required
-                placeholder="••••••••"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-white border-opacity-20 bg-white bg-opacity-10 text-white placeholder-blue-300 placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-60 focus:border-transparent backdrop-blur-sm transition-all"
-              />
+              <input type="password" name="password" autoComplete="current-password" required placeholder="••••••••" className="input-field" />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 px-4 py-3 bg-red-500 bg-opacity-20 border border-red-400 border-opacity-30 rounded-xl">
-                <svg className="w-4 h-4 text-red-300 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <p className="text-sm text-red-200">{error}</p>
+              <div style={{
+                padding: "9px 12px",
+                background: "#fff5f5",
+                border: "1px solid #fecaca",
+                borderRadius: 8,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: "0.75rem",
+                color: "#ef4444",
+              }}>
+                {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 text-sm font-semibold text-white rounded-xl shadow-lg transition-all mt-2 ${loading ? "login-success" : "hover:opacity-90 active:scale-[0.98]"}`}
-              style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)" }}
-            >
+            <button type="submit" disabled={loading} className="submit-btn" style={{ marginTop: 6 }}>
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -185,8 +294,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* フッター */}
-          <p className="text-center text-blue-300 text-xs mt-8 opacity-50">
+          <p style={{ fontFamily: "'DM Sans', sans-serif", textAlign: "center", fontSize: "0.6rem", color: "#c8d4e0", marginTop: 24, letterSpacing: "0.04em" }}>
             © 2026 Japan Sleeve Co., Ltd.
           </p>
         </div>
