@@ -95,8 +95,8 @@ export default function LoginPage() {
 
     const mouse = { x: 0, y: 0 }
     const handleMouseMove = (e: MouseEvent) => {
-      mouse.x = (e.clientX / window.innerWidth - 0.5) * 0.4
-      mouse.y = (e.clientY / window.innerHeight - 0.5) * 0.4
+      mouse.x = (e.clientX / window.innerWidth - 0.5) * 1.5
+      mouse.y = (e.clientY / window.innerHeight - 0.5) * 1.5
     }
     window.addEventListener("mousemove", handleMouseMove)
 
@@ -118,8 +118,8 @@ export default function LoginPage() {
         p.mesh.position.z = y * sinX - 1
       }
 
-      camera.position.x += (mouse.x - camera.position.x) * 0.025
-      camera.position.y += (-mouse.y - camera.position.y) * 0.025
+      camera.position.x += (mouse.x - camera.position.x) * 0.05
+      camera.position.y += (-mouse.y - camera.position.y) * 0.05
       camera.lookAt(0, 0, 0)
 
       renderer.render(scene, camera)
@@ -200,13 +200,13 @@ export default function LoginPage() {
       {/* カード */}
       <div
         className={`relative ${mounted ? "form-in" : "opacity-0"}`}
-        style={{ zIndex: 10, width: "100%", maxWidth: "340px", padding: "0 16px" }}
+        style={{ zIndex: 10, width: "100%", maxWidth: "400px", padding: "0 16px" }}
       >
         <div style={{
           background: "rgba(255,255,255,0.93)",
           border: "1px solid rgba(200,215,230,0.7)",
           borderRadius: "18px",
-          padding: "44px 36px 36px",
+          padding: "44px 44px 36px",
           boxShadow: "0 8px 40px rgba(80,120,160,0.10), 0 1px 4px rgba(80,120,160,0.06)",
           backdropFilter: "blur(16px)",
         }}>
@@ -215,14 +215,14 @@ export default function LoginPage() {
           <div style={{ marginBottom: 32 }}>
             <h1 style={{
               fontFamily: "'DM Serif Display', serif",
-              fontSize: "1.65rem",
+              fontSize: "1.5rem",
               fontWeight: 400,
               color: "#0f1e35",
               lineHeight: 1.2,
               letterSpacing: "-0.01em",
               marginBottom: 8,
             }}>
-              Japan Sleeve<br />System
+              Japan Sleeve System
             </h1>
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
@@ -235,13 +235,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* CMYK アクセントライン */}
-          <div style={{ display: "flex", gap: 3, marginBottom: 28, height: 2 }}>
-            <div style={{ flex: 1, background: "#7fd4e0", borderRadius: 2, opacity: 0.7 }} />
-            <div style={{ flex: 1, background: "#e87fb0", borderRadius: 2, opacity: 0.7 }} />
-            <div style={{ flex: 1, background: "#f0d060", borderRadius: 2, opacity: 0.7 }} />
-            <div style={{ flex: 1, background: "#909090", borderRadius: 2, opacity: 0.5 }} />
-          </div>
+          {/* アクセントライン */}
+          <div style={{ height: 1, background: "#e8eef4", marginBottom: 28 }} />
 
           {/* フォーム */}
           <form
