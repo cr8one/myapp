@@ -85,6 +85,7 @@ const baseMenuItems = [
     { label: "DXF変換依頼書", href: "/dashboard/cad/dxf-requests" },
     { label: "台紙作成依頼書", href: "/dashboard/cad/daishi-requests" },
     { label: "台紙DB",        href: "/dashboard/cad/daishi-db" },
+    { label: "CAD/台紙マスタ", href: "/dashboard/cad/masters" },
   ]},
   { label: "DLMS", href: "/dashboard/dlms", icon: "dlms", children: [
     { label: "抜き型管理", href: "/dashboard/dlms/dielines" },

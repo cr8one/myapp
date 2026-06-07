@@ -927,3 +927,24 @@ model MBase {
   groups      MGroup[]
   @@map("m_bases")
 }
+
+model MCadClient {
+  id         String   @id @default(cuid())
+  name       String
+  short_name String?  @map("short_name")
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("m_cad_clients")
+}
+
+model MCadPaper {
+  id         String   @id @default(cuid())
+  name       String
+  width      Float?
+  height     Float?
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("m_cad_papers")
+}

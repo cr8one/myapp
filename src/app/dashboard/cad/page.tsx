@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { PenTool, FileText, RefreshCw, Layout, Database } from "lucide-react"
+import { PenTool, FileText, RefreshCw, Layout, Database, Settings } from "lucide-react"
 
 function PenToolIcon({ style }: { style?: React.CSSProperties }) {
   return <PenTool style={style} color="white" />
@@ -47,6 +47,16 @@ const cards = [
     border: "border-emerald-100",
     hover: "hover:border-emerald-300",
     desc: "台紙データベース",
+  },
+  {
+    label: "CAD/台紙マスタ",
+    href: "/dashboard/cad/masters",
+    icon: Settings,
+    bg: "bg-lime-50",
+    text: "text-lime-600",
+    border: "border-lime-100",
+    hover: "hover:border-lime-300",
+    desc: "クライアント・用紙マスタ管理",
   },
 ]
 
