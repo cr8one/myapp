@@ -14,7 +14,8 @@ model User {
   email       String                 @unique
   password    String
   name        String?
-  department  String?
+  departments UserDepartment[]
+  groups      UserGroup[]
   position    String?
   phone       String?
   role        Role                   @default(USER)
@@ -863,4 +864,51 @@ model CadRequest {
   requester       User?     @relation(fields: [requester_id], references: [id])
 
   @@map("t_cad_requests")
+}
+
+model MDepartment {
+  id         String           @id @default(cuid())
+  name       String
+  sort_order Int              @default(0)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+  groups     MGroup[]
+  users      UserDepartment[]
+  @@map("m_departments")
+}
+
+model MGroup {
+  id            String         @id @default(cuid())
+  name          String
+  department_id String
+  sort_order    Int            @default(0)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  department    MDepartment    @relation(fields: [department_id], references: [id])
+  users         UserGroup[]
+  @@map("m_groups")
+}
+
+model UserDepartment {
+  id            String      @id @default(cuid())
+  user_id       String
+  department_id String
+  is_primary    Boolean     @default(false)
+  created_at    DateTime    @default(now())
+  user          User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  department    MDepartment @relation(fields: [department_id], references: [id])
+  @@unique([user_id, department_id])
+  @@map("user_departments")
+}
+
+model UserGroup {
+  id         String   @id @default(cuid())
+  user_id    String
+  group_id   String
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  group      MGroup   @relation(fields: [group_id], references: [id])
+  @@unique([user_id, group_id])
+  @@map("user_groups")
 }

@@ -1,11 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Settings, Users, ShieldCheck } from "lucide-react"
+import { Settings, Users, ShieldCheck, Building2 } from "lucide-react"
 
 type Stats = {
   userCount: number
   adminCount: number
+  deptCount: number
 }
 
 const cards = [
@@ -28,6 +29,16 @@ const cards = [
     text: "text-gray-600",
     border: "border-gray-100",
     hover: "hover:border-gray-300",
+  },
+  {
+    label: "部署・グループ",
+    key: "deptCount" as keyof Stats,
+    href: "/dashboard/masters/departments",
+    icon: Building2,
+    bg: "bg-slate-50",
+    text: "text-slate-600",
+    border: "border-slate-100",
+    hover: "hover:border-slate-300",
   },
 ]
 
