@@ -14,6 +14,7 @@ export async function GET(req: Request) {
     orderBy: { sort_order: "asc" },
     include: {
       department: { select: { id: true, name: true } },
+      base: { select: { id: true, name: true } },
       _count: { select: { users: true } },
     },
   })
@@ -24,12 +25,12 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { name, department_id, sort_order } = await req.json()
+  const { name, department_id, sort_order, base_id } = await req.json()
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 })
   if (!department_id) return NextResponse.json({ error: "department_id is required" }, { status: 400 })
 
   const group = await prisma.mGroup.create({
-    data: { name, department_id, sort_order: sort_order ?? 0 },
+    data: { name, department_id, sort_order: sort_order ?? 0, base_id: base_id || null },
   })
   return NextResponse.json(group)
 }

@@ -9,7 +9,14 @@ export async function GET() {
   const departments = await prisma.mDepartment.findMany({
     orderBy: { sort_order: "asc" },
     include: {
-      groups: { orderBy: { sort_order: "asc" } },
+      base: { select: { id: true, name: true } },
+      groups: {
+        orderBy: { sort_order: "asc" },
+        include: {
+          base: { select: { id: true, name: true } },
+          _count: { select: { users: true } },
+        },
+      },
       _count: { select: { users: true } },
     },
   })
@@ -20,11 +27,11 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { name, sort_order } = await req.json()
+  const { name, sort_order, base_id } = await req.json()
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 })
 
   const dept = await prisma.mDepartment.create({
-    data: { name, sort_order: sort_order ?? 0 },
+    data: { name, sort_order: sort_order ?? 0, base_id: base_id || null },
   })
   return NextResponse.json(dept)
 }

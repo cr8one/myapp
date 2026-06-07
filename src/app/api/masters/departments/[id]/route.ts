@@ -10,7 +10,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const dept = await prisma.mDepartment.findUnique({
     where: { id },
     include: {
-      groups: { orderBy: { sort_order: "asc" } },
+      base: { select: { id: true, name: true } },
+      groups: {
+        orderBy: { sort_order: "asc" },
+        include: { base: { select: { id: true, name: true } } },
+      },
       users: {
         include: {
           user: { select: { id: true, name: true, email: true, position: true } },
@@ -27,11 +31,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
-  const { name, sort_order } = await req.json()
+  const { name, sort_order, base_id } = await req.json()
 
   const dept = await prisma.mDepartment.update({
     where: { id },
-    data: { name, sort_order },
+    data: { name, sort_order, base_id: base_id || null },
   })
   return NextResponse.json(dept)
 }

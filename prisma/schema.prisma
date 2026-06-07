@@ -872,6 +872,8 @@ model MDepartment {
   sort_order Int              @default(0)
   created_at DateTime         @default(now())
   updated_at DateTime         @updatedAt
+  base_id    String?          @map("base_id")
+  base       MBase?           @relation(fields: [base_id], references: [id])
   groups     MGroup[]
   users      UserDepartment[]
   @@map("m_departments")
@@ -884,6 +886,8 @@ model MGroup {
   sort_order    Int            @default(0)
   created_at    DateTime       @default(now())
   updated_at    DateTime       @updatedAt
+  base_id       String?        @map("base_id")
+  base          MBase?         @relation(fields: [base_id], references: [id])
   department    MDepartment    @relation(fields: [department_id], references: [id])
   users         UserGroup[]
   @@map("m_groups")
@@ -911,4 +915,15 @@ model UserGroup {
   group      MGroup   @relation(fields: [group_id], references: [id])
   @@unique([user_id, group_id])
   @@map("user_groups")
+}
+
+model MBase {
+  id          String        @id @default(cuid())
+  name        String
+  sort_order  Int           @default(0)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  departments MDepartment[]
+  groups      MGroup[]
+  @@map("m_bases")
 }
