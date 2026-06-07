@@ -2,10 +2,18 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
+
 const userSelect = {
-  id: true, name: true, email: true, department: true,
+  id: true, name: true, email: true,
   position: true, phone: true, role: true, createdAt: true, permission: true,
+  departments: {
+    include: { department: { select: { id: true, name: true } } },
+  },
+  groups: {
+    include: { group: { select: { id: true, name: true } } },
+  },
 }
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,12 +23,14 @@ export async function PUT(
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const { id } = await params
   const body = await request.json()
-  const { name, department, position, phone, password, role, permission } = body
-  const data: Record<string, unknown> = { name, department, position, phone, role }
+  const { name, position, phone, password, role, permission, departments, groups } = body
+  const data: Record<string, unknown> = { name, position, phone, role }
   if (password) data.password = await bcrypt.hash(password, 10)
+
   const existing = permission
     ? await prisma.userPermission.findUnique({ where: { userId: id } })
     : null
+
   const user = await prisma.user.update({
     where: { id },
     data: {
@@ -100,8 +110,40 @@ export async function PUT(
     },
     select: userSelect,
   })
+
+  // 部署の更新
+  if (departments !== undefined) {
+    await prisma.userDepartment.deleteMany({ where: { user_id: id } })
+    if (departments.length > 0) {
+      await prisma.userDepartment.createMany({
+        data: departments.map((d: { department_id: string; is_primary: boolean }) => ({
+          id: crypto.randomUUID(),
+          user_id: id,
+          department_id: d.department_id,
+          is_primary: d.is_primary,
+        })),
+      })
+    }
+  }
+
+  // グループの更新
+  if (groups !== undefined) {
+    await prisma.userGroup.deleteMany({ where: { user_id: id } })
+    if (groups.length > 0) {
+      await prisma.userGroup.createMany({
+        data: groups.map((g: { group_id: string; is_primary: boolean }) => ({
+          id: crypto.randomUUID(),
+          user_id: id,
+          group_id: g.group_id,
+          is_primary: g.is_primary,
+        })),
+      })
+    }
+  }
+
   return NextResponse.json(user)
 }
+
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

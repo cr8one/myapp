@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Building2, MapPin } from "lucide-react"
 
 type Permission = {
   specView: boolean;     specEdit: boolean
@@ -22,11 +23,31 @@ type Permission = {
   ssssIsIssuer: boolean; ssssIsSupplier: boolean
   ssssIsReceiver: boolean; ssssIsOutsourceReceiver: boolean
 }
+type UserDept = {
+  department_id: string
+  is_primary: boolean
+  department: { id: string; name: string }
+}
+type UserGroup = {
+  group_id: string
+  is_primary: boolean
+  group: { id: string; name: string }
+}
 type User = {
   id: string; name: string; email: string
-  department?: string; position?: string; phone?: string
-  role: "ADMIN" | "USER"; createdAt: string; permission?: Permission
+  position?: string; phone?: string
+  role: "ADMIN" | "USER"; createdAt: string
+  permission?: Permission
+  departments: UserDept[]
+  groups: UserGroup[]
 }
+type Department = {
+  id: string
+  name: string
+  groups: { id: string; name: string; base: { name: string } | null }[]
+  base: { name: string } | null
+}
+
 const defaultPermission: Permission = {
   specView: true,     specEdit: false,
   estimateView: true, estimateEdit: false,
@@ -66,56 +87,76 @@ export default function UsersPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
   const [users, setUsers] = useState<User[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
+
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [department, setDepartment] = useState("")
   const [position, setPosition] = useState("")
   const [phone, setPhone] = useState("")
   const [role, setRole] = useState<"ADMIN" | "USER">("USER")
   const [permission, setPermission] = useState<Permission>(defaultPermission)
+  // 部署・グループ選択: { department_id, is_primary }[]
+  const [selectedDepts, setSelectedDepts] = useState<{ department_id: string; is_primary: boolean }[]>([])
+  const [selectedGroups, setSelectedGroups] = useState<{ group_id: string; is_primary: boolean }[]>([])
 
   const fetchUsers = async () => {
     const res = await fetch("/api/users")
     setUsers(await res.json())
   }
-  useEffect(() => { fetchUsers() }, [])
+  const fetchDepartments = async () => {
+    const res = await fetch("/api/masters/departments")
+    setDepartments(await res.json())
+  }
+  useEffect(() => { fetchUsers(); fetchDepartments() }, [])
 
   const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase()
+    const deptNames = u.departments.map(d => d.department.name.toLowerCase()).join(" ")
+    const groupNames = u.groups.map(g => g.group.name.toLowerCase()).join(" ")
     return u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) ||
-      u.department?.toLowerCase().includes(q) || u.position?.toLowerCase().includes(q)
+      u.position?.toLowerCase().includes(q) || deptNames.includes(q) || groupNames.includes(q)
   })
 
   const resetForm = () => {
     setName(""); setEmail(""); setPassword("")
-    setDepartment(""); setPosition(""); setPhone("")
+    setPosition(""); setPhone("")
     setRole("USER"); setPermission(defaultPermission)
+    setSelectedDepts([]); setSelectedGroups([])
     setError(""); setEditUser(null); setShowForm(false)
   }
+
   const handleEdit = (user: User) => {
     setEditUser(user); setName(user.name ?? ""); setEmail(user.email)
-    setDepartment(user.department ?? ""); setPosition(user.position ?? "")
+    setPosition(user.position ?? "")
     setPhone(user.phone ?? ""); setPassword(""); setRole(user.role)
     setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
+    setSelectedDepts(user.departments.map(d => ({ department_id: d.department_id, is_primary: d.is_primary })))
+    setSelectedGroups(user.groups.map(g => ({ group_id: g.group_id, is_primary: g.is_primary })))
     setShowForm(true)
   }
+
   const handleSubmit = async () => {
     setLoading(true); setError("")
-    const body = { name, email, password: password || undefined, department, position, phone, role,
-      permission: role === "ADMIN" ? undefined : permission }
+    const body = {
+      name, email, password: password || undefined, position, phone, role,
+      permission: role === "ADMIN" ? undefined : permission,
+      departments: selectedDepts,
+      groups: selectedGroups,
+    }
     const res = editUser
       ? await fetch(`/api/users/${editUser.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       : await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
     if (!res.ok) { setError((await res.json()).error ?? "処理に失敗しました"); setLoading(false); return }
     resetForm(); setLoading(false); fetchUsers()
   }
+
   const handleDelete = async (id: string) => {
     if (id === session?.user?.id) { alert("自分自身は削除できません"); return }
     if (!confirm("このユーザーを削除しますか？")) return
@@ -123,6 +164,7 @@ export default function UsersPage() {
     if (!res.ok) { alert(`削除失敗: ${(await res.json().catch(() => ({}))).error ?? res.status}`); return }
     fetchUsers()
   }
+
   const handleExport = () => { window.location.href = "/api/users/export" }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -134,6 +176,39 @@ export default function UsersPage() {
       fetchUsers()
     } else { alert(`エラー：${result.error}`) }
     e.target.value = ""
+  }
+
+  const toggleDept = (deptId: string) => {
+    setSelectedDepts(prev => {
+      const exists = prev.find(d => d.department_id === deptId)
+      if (exists) {
+        const next = prev.filter(d => d.department_id !== deptId)
+        // メインが消えた場合、先頭をメインに
+        if (exists.is_primary && next.length > 0) next[0].is_primary = true
+        return next
+      }
+      return [...prev, { department_id: deptId, is_primary: prev.length === 0 }]
+    })
+  }
+
+  const setPrimaryDept = (deptId: string) => {
+    setSelectedDepts(prev => prev.map(d => ({ ...d, is_primary: d.department_id === deptId })))
+  }
+
+  const toggleGroup = (groupId: string) => {
+    setSelectedGroups(prev => {
+      const exists = prev.find(g => g.group_id === groupId)
+      if (exists) {
+        const next = prev.filter(g => g.group_id !== groupId)
+        if (exists.is_primary && next.length > 0) next[0].is_primary = true
+        return next
+      }
+      return [...prev, { group_id: groupId, is_primary: prev.length === 0 }]
+    })
+  }
+
+  const setPrimaryGroup = (groupId: string) => {
+    setSelectedGroups(prev => prev.map(g => ({ ...g, is_primary: g.group_id === groupId })))
   }
 
   return (
@@ -153,33 +228,100 @@ export default function UsersPage() {
           )}
         </div>
       </div>
+
       {showForm && isAdmin && (
         <Card className="mb-8">
           <CardHeader><CardTitle>{editUser ? "ユーザー編集" : "ユーザー登録"}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>名前</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
-              {!editUser && <div className="space-y-2"><Label>メールアドレス</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>}
+              <div className="space-y-2"><Label>名前</Label><Input autoComplete="off" value={name} onChange={e => setName(e.target.value)} /></div>
+              {!editUser && <div className="space-y-2"><Label>メールアドレス</Label><Input autoComplete="off" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{editUser ? "新しいパスワード（変更する場合のみ）" : "パスワード"}</Label>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+                <Input autoComplete="off" type="password" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
-              <div className="space-y-2"><Label>電話番号</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+              <div className="space-y-2"><Label>電話番号</Label><Input autoComplete="off" value={phone} onChange={e => setPhone(e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>部署</Label><Input value={department} onChange={e => setDepartment(e.target.value)} /></div>
-              <div className="space-y-2"><Label>役職</Label><Input value={position} onChange={e => setPosition(e.target.value)} /></div>
+              <div className="space-y-2"><Label>役職</Label><Input autoComplete="off" value={position} onChange={e => setPosition(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>ロール</Label>
+                <select className="w-full border rounded px-3 py-2 text-sm" value={role} onChange={e => setRole(e.target.value as "ADMIN" | "USER")}>
+                  <option value="USER">一般ユーザー</option>
+                  <option value="ADMIN">管理者（ADMIN）</option>
+                </select>
+              </div>
             </div>
+
+            {/* 部署選択 */}
             <div className="space-y-2">
-              <Label>ロール</Label>
-              <select className="w-full border rounded px-3 py-2 text-sm" value={role}
-                onChange={e => setRole(e.target.value as "ADMIN" | "USER")}>
-                <option value="USER">一般ユーザー</option>
-                <option value="ADMIN">管理者（ADMIN）</option>
-              </select>
+              <Label className="flex items-center gap-1"><Building2 className="w-4 h-4" />部署（複数選択可）</Label>
+              <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
+                {departments.length === 0 ? (
+                  <p className="text-xs text-gray-400">部署が登録されていません</p>
+                ) : departments.map(dept => {
+                  const selected = selectedDepts.find(d => d.department_id === dept.id)
+                  return (
+                    <div key={dept.id} className="flex items-center gap-2">
+                      <input type="checkbox" id={`dept-${dept.id}`} checked={!!selected}
+                        onChange={() => toggleDept(dept.id)} className="rounded" />
+                      <label htmlFor={`dept-${dept.id}`} className="flex-1 text-sm cursor-pointer">
+                        {dept.name}
+                        {dept.base && <span className="ml-1 text-xs text-gray-400">({dept.base.name})</span>}
+                      </label>
+                      {selected && (
+                        <button
+                          onClick={() => setPrimaryDept(dept.id)}
+                          className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${selected.is_primary ? "bg-slate-700 text-white border-slate-700" : "text-slate-500 border-slate-300 hover:border-slate-500"}`}
+                        >
+                          {selected.is_primary ? "メイン" : "メインにする"}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* グループ選択 */}
+            <div className="space-y-2">
+              <Label>グループ（複数選択可）</Label>
+              <div className="border rounded-lg p-3 space-y-3 max-h-48 overflow-y-auto">
+                {departments.filter(d => d.groups.length > 0).length === 0 ? (
+                  <p className="text-xs text-gray-400">グループが登録されていません</p>
+                ) : departments.filter(d => d.groups.length > 0).map(dept => (
+                  <div key={dept.id}>
+                    <p className="text-xs font-medium text-gray-500 mb-1">{dept.name}</p>
+                    <div className="space-y-1 pl-2">
+                      {dept.groups.map(group => {
+                        const selected = selectedGroups.find(g => g.group_id === group.id)
+                        return (
+                          <div key={group.id} className="flex items-center gap-2">
+                            <input type="checkbox" id={`group-${group.id}`} checked={!!selected}
+                              onChange={() => toggleGroup(group.id)} className="rounded" />
+                            <label htmlFor={`group-${group.id}`} className="flex-1 text-sm cursor-pointer">
+                              {group.name}
+                              {group.base && <span className="ml-1 text-xs text-gray-400">({group.base.name})</span>}
+                            </label>
+                            {selected && (
+                              <button
+                                onClick={() => setPrimaryGroup(group.id)}
+                                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${selected.is_primary ? "bg-slate-700 text-white border-slate-700" : "text-slate-500 border-slate-300 hover:border-slate-500"}`}
+                              >
+                                {selected.is_primary ? "メイン" : "メインにする"}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {role === "USER" && (
               <div className="space-y-2">
                 <Label>権限設定</Label>
@@ -208,9 +350,11 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       )}
+
       <div className="mb-4">
-        <Input placeholder="名前・メール・部署・役職で検索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+        <Input placeholder="名前・メール・部署・グループ・役職で検索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
+
       <div className="space-y-4">
         {filteredUsers.map(user => (
           <Card key={user.id}>
@@ -222,11 +366,24 @@ export default function UsersPage() {
                     {user.role === "ADMIN" && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ADMIN</span>}
                   </div>
                   <p className="text-sm text-gray-500">{user.email}</p>
-                  <div className="flex gap-4 mt-0.5">
-                    {user.department && <p className="text-sm text-gray-500">部署: {user.department}</p>}
+                  <div className="flex flex-wrap gap-3 mt-0.5">
                     {user.position && <p className="text-sm text-gray-500">役職: {user.position}</p>}
                     {user.phone && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
                   </div>
+                  {user.departments.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {user.departments.map(d => (
+                        <span key={d.department_id} className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 ${d.is_primary ? "bg-slate-100 text-slate-700 font-medium" : "bg-gray-50 text-gray-500"}`}>
+                          <Building2 className="w-3 h-3" />{d.department.name}{d.is_primary && " ★"}
+                        </span>
+                      ))}
+                      {user.groups.map(g => (
+                        <span key={g.group_id} className={`text-xs px-2 py-0.5 rounded-full ${g.is_primary ? "bg-blue-50 text-blue-700 font-medium" : "bg-gray-50 text-gray-500"}`}>
+                          {g.group.name}{g.is_primary && " ★"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {user.role === "USER" && user.permission && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {permissionGroups.map(({ group, color, items }) => {

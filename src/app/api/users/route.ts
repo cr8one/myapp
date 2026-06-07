@@ -2,27 +2,34 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
+
 const userSelect = {
   id: true, name: true, email: true,
   position: true, phone: true, role: true, createdAt: true, permission: true,
+  departments: {
+    include: { department: { select: { id: true, name: true } } },
+  },
+  groups: {
+    include: { group: { select: { id: true, name: true } } },
+  },
 }
+
 export async function GET(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const { searchParams } = new URL(request.url)
   const users = await prisma.user.findMany({
-    where: undefined,
     select: userSelect,
     orderBy: { name: "asc" },
   })
   return NextResponse.json(users)
 }
+
 export async function POST(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const body = await request.json()
-  const { name, email, password, position, phone, role, permission } = body
+  const { name, email, password, position, phone, role, permission, departments, groups } = body
   const hashedPassword = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: {
@@ -57,6 +64,20 @@ export async function POST(request: Request) {
           cadEdit:      permission?.cadEdit      ?? false,
         },
       },
+      departments: departments?.length > 0 ? {
+        create: departments.map((d: { department_id: string; is_primary: boolean }) => ({
+          id: crypto.randomUUID(),
+          department_id: d.department_id,
+          is_primary: d.is_primary,
+        })),
+      } : undefined,
+      groups: groups?.length > 0 ? {
+        create: groups.map((g: { group_id: string; is_primary: boolean }) => ({
+          id: crypto.randomUUID(),
+          group_id: g.group_id,
+          is_primary: g.is_primary,
+        })),
+      } : undefined,
     },
     select: userSelect,
   })
