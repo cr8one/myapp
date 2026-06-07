@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const record = await prisma.cadRequest.findUnique({
     where: { id },
-    include: { requester: { select: { id: true, name: true, department: true } } },
+    include: { requester: { select: { id: true, name: true } } },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(record)
@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       desired_date: body.desired_date ? new Date(body.desired_date) : null,
       updated_at: new Date(),
     },
-    include: { requester: { select: { id: true, name: true, department: true } } },
+    include: { requester: { select: { id: true, name: true } } },
   })
   return NextResponse.json(record)
 }

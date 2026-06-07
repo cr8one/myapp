@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     prisma.cadRequest.count({ where }),
     prisma.cadRequest.findMany({
       where,
-      include: { requester: { select: { id: true, name: true, department: true } } },
+      include: { requester: { select: { id: true, name: true } } },
       orderBy: { uid: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       request_date: new Date(body.request_date),
       desired_date: body.desired_date ? new Date(body.desired_date) : null,
     },
-    include: { requester: { select: { id: true, name: true, department: true } } },
+    include: { requester: { select: { id: true, name: true } } },
   })
 
   return NextResponse.json(record)

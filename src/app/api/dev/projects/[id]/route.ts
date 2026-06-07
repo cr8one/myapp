@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     include: {
       primaryCompany: true,
       companies: { include: { company: true } },
-      assignees: { include: { user: { select: { id: true, name: true, department: true, position: true } } } },
+      assignees: { include: { user: { select: { id: true, name: true, position: true } } } },
     },
   })
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -41,7 +41,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     include: {
       primaryCompany: true,
       companies: { include: { company: true } },
-      assignees: { include: { user: { select: { id: true, name: true, department: true, position: true } } } },
+      assignees: { include: { user: { select: { id: true, name: true, position: true } } } },
     },
   })
   return NextResponse.json(project)

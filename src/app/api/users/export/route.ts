@@ -6,13 +6,13 @@ export async function GET() {
   if (session.user.role !== "ADMIN") return new Response(JSON.stringify({ error: "権限がありません" }), { status: 403 })
   const users = await prisma.user.findMany({
     select: {
-      id: true, name: true, email: true, department: true,
+      id: true, name: true, email: true,
       position: true, phone: true, role: true, createdAt: true, permission: true,
     },
     orderBy: { createdAt: "desc" },
   })
   const header = [
-    "id","name","email","department","position","phone","role",
+    "id","name","email","position","phone","role",
     "specView","specEdit","estimateView","estimateEdit",
     "eappView","eappEdit","travelView","travelEdit",
     "sopView","sopEdit","reportView","reportEdit",
@@ -22,7 +22,7 @@ export async function GET() {
     "createdAt",
   ]
   const rows = users.map(u => [
-    u.id, u.name ?? "", u.email, u.department ?? "",
+    u.id, u.name ?? "", u.email,
     u.position ?? "", u.phone ?? "", u.role,
     u.permission?.specView     ? "1" : "0",
     u.permission?.specEdit     ? "1" : "0",

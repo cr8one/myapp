@@ -39,7 +39,6 @@ export async function POST(request: Request) {
           name:       row["name"]       || null,
           email,
           password:   hashedPassword,
-          department: row["department"] || null,
           position:   row["position"]   || null,
           phone:      row["phone"]      || null,
           role:       row["role"] === "ADMIN" ? "ADMIN" : "USER",

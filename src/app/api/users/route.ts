@@ -3,16 +3,15 @@ import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 const userSelect = {
-  id: true, name: true, email: true, department: true,
+  id: true, name: true, email: true,
   position: true, phone: true, role: true, createdAt: true, permission: true,
 }
 export async function GET(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(request.url)
-  const department = searchParams.get("department")
   const users = await prisma.user.findMany({
-    where: department ? { department } : undefined,
+    where: undefined,
     select: userSelect,
     orderBy: { name: "asc" },
   })
@@ -23,12 +22,12 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const body = await request.json()
-  const { name, email, password, department, position, phone, role, permission } = body
+  const { name, email, password, position, phone, role, permission } = body
   const hashedPassword = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: {
       name, email, password: hashedPassword,
-      department, position, phone,
+      position, phone,
       role: role ?? "USER",
       permission: {
         create: {
