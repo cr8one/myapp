@@ -112,6 +112,7 @@ const baseMenuItems = [
   ]},
   { label: "マスタ管理", href: "/dashboard/masters", icon: "masters", children: [
     { label: "ユーザーマスタ", href: "/dashboard/users" },
+    { label: "部署・グループ", href: "/dashboard/masters/departments" },
     { label: "PRINSERマスタ", href: "/dashboard/masters/prinser", children: [
       { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
       { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
