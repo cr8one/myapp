@@ -51,8 +51,9 @@ export async function POST(req: NextRequest) {
       managementType: body.managementType || null,
       remark: body.remark || null,
       parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
+      procurementType: body.procurementType || null,
     },
-    include: { ipAddresses: true },
+    include: { ipAddresses: true, lease: true },
   })
   return NextResponse.json(record)
 }
@@ -81,8 +82,30 @@ export async function PUT(req: NextRequest) {
       remark: body.remark || null,
       parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
     },
-    include: { ipAddresses: { where: { flgDel: false } } },
+    include: { ipAddresses: { where: { flgDel: false } }, lease: true },
   })
+  if (body.procurementType === "リース") {
+    await prisma.deviceLease.upsert({
+      where: { device_id: parseInt(body.deviceId) },
+      create: {
+        device_id: parseInt(body.deviceId),
+        lease_company: body.leaseCompany || null,
+        lease_start: body.leaseStart ? new Date(body.leaseStart) : null,
+        lease_end: body.leaseEnd ? new Date(body.leaseEnd) : null,
+        contract_no: body.contractNo || null,
+        lease_item_no: body.leaseItemNo || null,
+      },
+      update: {
+        lease_company: body.leaseCompany || null,
+        lease_start: body.leaseStart ? new Date(body.leaseStart) : null,
+        lease_end: body.leaseEnd ? new Date(body.leaseEnd) : null,
+        contract_no: body.contractNo || null,
+        lease_item_no: body.leaseItemNo || null,
+      },
+    })
+  } else {
+    await prisma.deviceLease.deleteMany({ where: { device_id: parseInt(body.deviceId) } })
+  }
   return NextResponse.json(record)
 }
 

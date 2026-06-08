@@ -675,7 +675,8 @@ model Device {
   storageSize    String?   @map("storage_size")
   location       String?
   userId         String?   @map("user_id")
-  purchaseDate   DateTime? @map("purchase_date")
+  purchaseDate      DateTime? @map("purchase_date")
+  procurementType String?   @map("procurement_type")
   startDate      DateTime? @map("start_date")
   status         String?
   managementType String?   @map("management_type")
@@ -688,6 +689,7 @@ model Device {
   updatedAt      DateTime  @updatedAt @map("updated_at")
   ipAddresses    DeviceIp[]
   softwares      DeviceSoftware[]
+  lease          DeviceLease?
   @@map("t_devices")
 }
 
@@ -947,4 +949,18 @@ model MCadPaper {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   @@map("m_cad_papers")
+}
+
+model DeviceLease {
+  id             Int       @id @default(autoincrement())
+  device_id      Int       @unique
+  lease_company  String?
+  lease_start    DateTime?
+  lease_end      DateTime?
+  contract_no    String?
+  lease_item_no  String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  device         Device    @relation(fields: [device_id], references: [deviceId])
+  @@map("t_device_leases")
 }

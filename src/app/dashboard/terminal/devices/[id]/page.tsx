@@ -21,7 +21,9 @@ type Device = {
   memorySize: string | null; storageSize: string | null; location: string | null
   userId: string | null; purchaseDate: string | null; startDate: string | null
   status: string | null; managementType: string | null; remark: string | null
-  parentDeviceId: number | null; ipAddresses: DeviceIp[]
+  parentDeviceId: number | null; procurementType: string | null
+  lease: { lease_company: string | null; lease_start: string | null; lease_end: string | null; contract_no: string | null; lease_item_no: string | null } | null
+  ipAddresses: DeviceIp[]
 }
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; imagePath: string | null }
 type Master = { id: number; category: string; value: string }
@@ -39,7 +41,7 @@ const emptyDeviceForm = {
   assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
   osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
   purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
-  parentDeviceId: "",
+  parentDeviceId: "", procurementType: "", leaseCompany: "", leaseStart: "", leaseEnd: "", contractNo: "", leaseItemNo: "",
 }
 
 export default function DeviceDetailPage() {
@@ -134,6 +136,12 @@ export default function DeviceDetailPage() {
       location: device.location ?? "", userId: device.userId ?? "",
       purchaseDate: device.purchaseDate ? device.purchaseDate.split("T")[0] : "",
       startDate: device.startDate ? device.startDate.split("T")[0] : "",
+      procurementType: device.procurementType ?? "",
+      leaseCompany: device.lease?.lease_company ?? "",
+      leaseStart: device.lease?.lease_start ? device.lease.lease_start.split("T")[0] : "",
+      leaseEnd: device.lease?.lease_end ? device.lease.lease_end.split("T")[0] : "",
+      contractNo: device.lease?.contract_no ?? "",
+      leaseItemNo: device.lease?.lease_item_no ?? "",
       status: device.status ?? "", managementType: device.managementType ?? "",
       remark: device.remark ?? "", parentDeviceId: device.parentDeviceId?.toString() ?? "",
     })
@@ -295,7 +303,15 @@ export default function DeviceDetailPage() {
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">実容量</span><span>{val(device.storageSize)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">設置場所</span><span>{val(device.location)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用者</span><span>{val(device.userId)}</span></div>
-              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">調達区分</span><span>{val(device.procurementType)}</span></div>
+              {device.procurementType === "購入" && <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>}
+              {device.procurementType === "リース" && device.lease && (<>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">リース会社</span><span>{val(device.lease.lease_company)}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">開始日</span><span>{device.lease.lease_start ? new Date(device.lease.lease_start).toLocaleDateString("ja-JP") : "—"}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">終了日</span><span>{device.lease.lease_end ? new Date(device.lease.lease_end).toLocaleDateString("ja-JP") : "—"}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">契約番号</span><span>{val(device.lease.contract_no)}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">物件No</span><span>{val(device.lease.lease_item_no)}</span></div>
+              </>)}
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用開始日</span><span>{device.startDate ? new Date(device.startDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">管理区分</span><span>{val(device.managementType)}</span></div>
               <div className="flex gap-2 col-span-2"><span className="text-gray-400 w-24 flex-shrink-0">備考</span><span className="whitespace-pre-wrap">{val(device.remark)}</span></div>
@@ -467,8 +483,28 @@ export default function DeviceDetailPage() {
             </div>
             <div className="space-y-1"><Label>利用者</Label>
               <Input value={deviceForm.userId} onChange={e => setDeviceForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>調達区分</Label>
+              <select value={deviceForm.procurementType} onChange={e => setDeviceForm(f => ({ ...f, procurementType: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                <option value="">-- 選択 --</option>
+                <option value="購入">購入</option>
+                <option value="リース">リース</option>
+              </select></div>
+            {deviceForm.procurementType === "購入" && (
             <div className="space-y-1"><Label>購入日</Label>
               <Input type="date" value={deviceForm.purchaseDate} onChange={e => setDeviceForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
+            )}
+            {deviceForm.procurementType === "リース" && (<>
+            <div className="space-y-1"><Label>リース会社</Label>
+              <Input value={deviceForm.leaseCompany} onChange={e => setDeviceForm(f => ({ ...f, leaseCompany: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>レンタル開始日</Label>
+              <Input type="date" value={deviceForm.leaseStart} onChange={e => setDeviceForm(f => ({ ...f, leaseStart: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>レンタル終了日</Label>
+              <Input type="date" value={deviceForm.leaseEnd} onChange={e => setDeviceForm(f => ({ ...f, leaseEnd: e.target.value }))} /></div>
+            <div className="space-y-1"><Label>契約番号</Label>
+              <Input value={deviceForm.contractNo} onChange={e => setDeviceForm(f => ({ ...f, contractNo: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>レンタル物件No</Label>
+              <Input value={deviceForm.leaseItemNo} onChange={e => setDeviceForm(f => ({ ...f, leaseItemNo: e.target.value }))} autoComplete="off" /></div>
+            </>)}
             <div className="space-y-1"><Label>利用開始日</Label>
               <Input type="date" value={deviceForm.startDate} onChange={e => setDeviceForm(f => ({ ...f, startDate: e.target.value }))} /></div>
             <div className="space-y-1"><Label>状態</Label>
