@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 
 type User = { id: string; name: string | null; department: string | null }
+type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
+const CONTENT_OPTIONS = ["校正カット", "有型 白ダミー", "新規型 白ダミー"]
+
 type CadRequest = {
   id: string
   uid: string
@@ -44,6 +47,7 @@ export default function CadRequestDetailPage() {
   const id = params.id as string
   const [record, setRecord] = useState<CadRequest | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
@@ -78,6 +82,7 @@ export default function CadRequestDetailPage() {
       })
     })
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
+    fetch("/api/masters/departments").then(r => r.json()).then(setDepartments)
   }, [id])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -125,7 +130,6 @@ export default function CadRequestDetailPage() {
     return new Date(str).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
   }
 
-  const departments = Array.from(new Set(users.map(u => u.department ?? "")).values()).sort()
   const labelCls = "text-sm font-medium text-gray-700 mb-1 block"
   const inputCls = "h-9 text-sm"
   const valCls = "text-sm text-gray-800"
@@ -170,37 +174,57 @@ export default function CadRequestDetailPage() {
                   <label className={labelCls}>依頼時刻</label>
                   <Input type="time" value={form.request_time} onChange={e => set("request_time", e.target.value)} className={inputCls} autoComplete="off" />
                 </div>
+<div>
+                  <label className={labelCls}>依頼部署</label>
+                  <Input
+                    value={form.department}
+                    onChange={e => set("department", e.target.value)}
+                    className={inputCls}
+                    autoComplete="off"
+                    list="dept-list"
+                    placeholder="部署名を入力または選択"
+                  />
+                  <datalist id="dept-list">
+                    {departments.map(d => (
+                      <option key={d.id} value={d.name} />
+                    ))}
+                    {departments.flatMap(d => d.groups.map(g => (
+                      <option key={g.id} value={`${d.name} ${g.name}`} />
+                    )))}
+                  </datalist>
+                </div>
                 <div>
                   <label className={labelCls}>依頼営業名</label>
                   <select value={form.requester_id} onChange={e => handleUserSelect(e.target.value)}
                     className="w-full h-9 border rounded px-2 text-sm bg-white">
                     <option value="">-- 選択してください --</option>
-                    {departments.map(dept => (
-                      <optgroup key={dept} label={dept || "部署未設定"}>
-                        {users.filter(u => (u.department ?? "") === dept).map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </optgroup>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className={labelCls}>依頼部署</label>
-                  <Input value={form.department} onChange={e => set("department", e.target.value)} className={inputCls} autoComplete="off" />
-                </div>
                 <div className="col-span-2">
                   <label className={labelCls}>依頼内容</label>
-                  <textarea value={form.content} onChange={e => set("content", e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm resize-none" rows={3} autoComplete="off" />
+                  <Input
+                    value={form.content}
+                    onChange={e => set("content", e.target.value)}
+                    className={inputCls}
+                    autoComplete="off"
+                    list="content-list"
+                    placeholder="依頼内容を入力または選択"
+                  />
+                  <datalist id="content-list">
+                    {CONTENT_OPTIONS.map(o => <option key={o} value={o} />)}
+                  </datalist>
                 </div>
               </div>
             ) : (
               <div className={rowCls}>
                 <div><p className="text-xs text-gray-400">依頼日</p><p className={valCls}>{formatDate(record.request_date)}</p></div>
                 <div><p className="text-xs text-gray-400">依頼時刻</p><p className={valCls}>{record.request_time || "—"}</p></div>
-                <div><p className="text-xs text-gray-400">依頼営業名</p><p className={valCls}>{record.requester_name || "—"}</p></div>
                 <div><p className="text-xs text-gray-400">依頼部署</p><p className={valCls}>{record.department || "—"}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">依頼内容</p><p className={valCls + " whitespace-pre-wrap"}>{record.content || "—"}</p></div>
+                <div><p className="text-xs text-gray-400">依頼営業名</p><p className={valCls}>{record.requester_name || "—"}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400">依頼内容</p><p className={valCls}>{record.content || "—"}</p></div>
               </div>
             )}
           </CardContent>
