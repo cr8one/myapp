@@ -964,3 +964,22 @@ model DeviceLease {
   device         Device    @relation(fields: [device_id], references: [deviceId])
   @@map("t_device_leases")
 }
+
+model DxfRequest {
+  id           String    @id @default(cuid())
+  uid          String    @unique
+  id_cad       String?
+  request_date String
+  request_time String
+  desired_date DateTime?
+  desired_time String?
+  purpose      String?
+  remarks      String?
+  history      String?
+  worker       String?
+  status       String?
+  flg_del      Int       @default(0)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  @@map("t_dxf_requests")
+}
