@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     },
     include: {
       ipAddresses: { where: { flgDel: false } },
+      lease: true,
       children: { select: { deviceId: true, deviceName: true, status: true } },
     },
     orderBy: { deviceId: "asc" },
