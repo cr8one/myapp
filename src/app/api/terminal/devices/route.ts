@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
       remark: body.remark || null,
       parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
       procurementType: body.procurementType || null,
-      procurementType: body.procurementType || null,
     },
     include: { ipAddresses: true, lease: true },
   })
