@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       remark: body.remark || null,
       parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
       procurementType: body.procurementType || null,
+      procurementType: body.procurementType || null,
     },
     include: { ipAddresses: true, lease: true },
   })
@@ -82,6 +83,7 @@ export async function PUT(req: NextRequest) {
       managementType: body.managementType || null,
       remark: body.remark || null,
       parentDeviceId: body.parentDeviceId ? parseInt(body.parentDeviceId) : null,
+      procurementType: body.procurementType || null,
     },
     include: { ipAddresses: { where: { flgDel: false } }, lease: true },
   })
