@@ -983,3 +983,27 @@ model DxfRequest {
   updated_at   DateTime  @updatedAt
   @@map("t_dxf_requests")
 }
+
+model DaishiDb {
+  id            String      @id @default(cuid())
+  uid           String      @unique
+  file_ai       String?
+  file_dxf      String?
+  file_pdf      String?
+  preview_image String?
+  remarks       String?
+  flg_del       Int         @default(0)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+  tags          DaishiTag[]
+  @@map("t_daishi_db")
+}
+
+model DaishiTag {
+  id         Int      @id @default(autoincrement())
+  daishi_id  String
+  tag_name   String
+  created_at DateTime @default(now())
+  daishi     DaishiDb @relation(fields: [daishi_id], references: [id], onDelete: Cascade)
+  @@map("t_daishi_tags")
+}
