@@ -408,21 +408,13 @@ model DlmsDielineParent {
   genre         String?
   spec          String?
   hinmoku       String?
-  developy      Float?
-  developx      Float?
-  develop_depth Float?
-  sizey         Float?
-  sizex         Float?
-  widthy        Float?
-  inner_height  Float?
-  inner_width   Float?
-  inner_depth   Float?
   dtindt        DateTime @default(now())
   dtupdt        DateTime @updatedAt
   conditions    DlmsDielineCondition[]
   children      DlmsDielineChild[]
   requests      DlmsDielineRequest[]
   drawings      Drawing[]
+  parts         DlmsDielinePart[]
   @@map("dlms_dieline_parents")
 }
 model DlmsDielineCondition {
@@ -1006,4 +998,24 @@ model DaishiTag {
   created_at DateTime @default(now())
   daishi     DaishiDb @relation(fields: [daishi_id], references: [id], onDelete: Cascade)
   @@map("t_daishi_tags")
+}
+
+model DlmsDielinePart {
+  id            String            @id @default(cuid())
+  parentId      String
+  part_name     String?
+  developy      Float?
+  developx      Float?
+  develop_depth Float?
+  sizey         Float?
+  sizex         Float?
+  widthy        Float?
+  inner_height  Float?
+  inner_width   Float?
+  inner_depth   Float?
+  sort_order    Int               @default(0)
+  dtindt        DateTime          @default(now())
+  dtupdt        DateTime          @updatedAt
+  parent        DlmsDielineParent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  @@map("dlms_dieline_parts")
 }

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const request = await prisma.dlmsDielineRequest.findUnique({
     where: { id },
     include: {
-      parent: { select: { uid_ntemp: true, genre: true, spec: true, hinmoku: true, sizey: true, sizex: true } },
+      parent: { select: { uid_ntemp: true, genre: true, spec: true, hinmoku: true, parts: { orderBy: { sort_order: "asc" } } } },
       child: { select: { edaban: true, han: true, me: true, kiri: true, men: true, sizey: true, sizex: true, 咥え: true } },
     },
   })

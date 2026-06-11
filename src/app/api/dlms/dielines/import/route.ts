@@ -32,8 +32,9 @@ function parseCSVLine(line: string): string[] {
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { key, offset } = await req.json()
+  const { key, offset, type } = await req.json()
+  // type: "parent" | "parts"
+  const importType = type ?? "parent"
   const CHUNK = 100
 
   const s3Res = await s3.send(new GetObjectCommand({
@@ -42,76 +43,70 @@ export async function POST(req: NextRequest) {
   }))
   const raw = await s3Res.Body?.transformToByteArray()
   if (!raw) return NextResponse.json({ error: "ファイル取得失敗" }, { status: 500 })
-
-  const textRaw = new TextDecoder("utf-8").decode(raw)
-  const text = textRaw.replace(/^\uFEFF/, "") // BOM除去
+  const text = new TextDecoder("utf-8").decode(raw).replace(/^\uFEFF/, "")
   const lines = text.split(/\r?\n/).filter(l => l.trim())
-
-  // ヘッダーから条件列数を動的に判定（固定14列以降が条件列）
   const headers = parseCSVLine(lines[0])
-  const condStartIndex = 14
-  const condCount = headers.slice(condStartIndex).filter(h => h.startsWith("条件")).length
-
   const dataLines = lines.slice(1)
   const total = dataLines.length
   const chunk = dataLines.slice(offset, offset + CHUNK)
-
   let count = 0
-  for (const line of chunk) {
-    const clean = parseCSVLine(line)
-    const [
-      uid_ntemp, kyugataban, genre, spec, hinmoku,
-      developy, developx, develop_depth,
-      sizey, sizex, widthy,
-      inner_height, inner_width, inner_depth,
-    ] = clean
 
-    if (!uid_ntemp) continue
-
-    const conditions = clean.slice(condStartIndex, condStartIndex + condCount)
-      .filter(Boolean)
-      .map((value, i) => ({ value, sortOrder: i }))
-
-    await prisma.dlmsDielineParent.upsert({
-      where: { uid_ntemp },
-      create: {
-        uid_ntemp,
-        kyugataban: kyugataban || null,
-        genre: genre || null,
-        spec: spec || null,
-        hinmoku: hinmoku || null,
-        developy: developy ? parseFloat(developy) : null,
-        developx: developx ? parseFloat(developx) : null,
-        develop_depth: develop_depth ? parseFloat(develop_depth) : null,
-        sizey: sizey ? parseFloat(sizey) : null,
-        sizex: sizex ? parseFloat(sizex) : null,
-        widthy: widthy ? parseFloat(widthy) : null,
-        inner_height: inner_height ? parseFloat(inner_height) : null,
-        inner_width: inner_width ? parseFloat(inner_width) : null,
-        inner_depth: inner_depth ? parseFloat(inner_depth) : null,
-        conditions: { create: conditions },
-      },
-      update: {
-        kyugataban: kyugataban || null,
-        genre: genre || null,
-        spec: spec || null,
-        hinmoku: hinmoku || null,
-        developy: developy ? parseFloat(developy) : null,
-        developx: developx ? parseFloat(developx) : null,
-        develop_depth: develop_depth ? parseFloat(develop_depth) : null,
-        sizey: sizey ? parseFloat(sizey) : null,
-        sizex: sizex ? parseFloat(sizex) : null,
-        widthy: widthy ? parseFloat(widthy) : null,
-        inner_height: inner_height ? parseFloat(inner_height) : null,
-        inner_width: inner_width ? parseFloat(inner_width) : null,
-        inner_depth: inner_depth ? parseFloat(inner_depth) : null,
-        conditions: {
-          deleteMany: {},
-          create: conditions,
+  if (importType === "parent") {
+    // 基本情報CSV: uid_ntemp, kyugataban, genre, spec, hinmoku, 条件1, 条件2, ...
+    const condStartIndex = 5
+    const condCount = headers.slice(condStartIndex).filter(h => h.startsWith("条件")).length
+    for (const line of chunk) {
+      const clean = parseCSVLine(line)
+      const [uid_ntemp, kyugataban, genre, spec, hinmoku] = clean
+      if (!uid_ntemp) continue
+      const conditions = clean.slice(condStartIndex, condStartIndex + condCount)
+        .filter(Boolean)
+        .map((value, i) => ({ value, sortOrder: i }))
+      await prisma.dlmsDielineParent.upsert({
+        where: { uid_ntemp },
+        create: {
+          uid_ntemp,
+          kyugataban: kyugataban || null,
+          genre: genre || null,
+          spec: spec || null,
+          hinmoku: hinmoku || null,
+          conditions: { create: conditions },
         },
-      },
-    })
-    count++
+        update: {
+          kyugataban: kyugataban || null,
+          genre: genre || null,
+          spec: spec || null,
+          hinmoku: hinmoku || null,
+          conditions: { deleteMany: {}, create: conditions },
+        },
+      })
+      count++
+    }
+  } else {
+    // パーツCSV: uid_ntemp, part_name, developy, developx, develop_depth, sizey, sizex, widthy, inner_height, inner_width, inner_depth
+    for (const line of chunk) {
+      const clean = parseCSVLine(line)
+      const [uid_ntemp, part_name, developy, developx, develop_depth, sizey, sizex, widthy, inner_height, inner_width, inner_depth] = clean
+      if (!uid_ntemp) continue
+      const parent = await prisma.dlmsDielineParent.findUnique({ where: { uid_ntemp }, select: { id: true } })
+      if (!parent) continue
+      await prisma.dlmsDielinePart.create({
+        data: {
+          parentId: parent.id,
+          part_name: part_name || null,
+          developy: developy ? parseFloat(developy) : null,
+          developx: developx ? parseFloat(developx) : null,
+          develop_depth: develop_depth ? parseFloat(develop_depth) : null,
+          sizey: sizey ? parseFloat(sizey) : null,
+          sizex: sizex ? parseFloat(sizex) : null,
+          widthy: widthy ? parseFloat(widthy) : null,
+          inner_height: inner_height ? parseFloat(inner_height) : null,
+          inner_width: inner_width ? parseFloat(inner_width) : null,
+          inner_depth: inner_depth ? parseFloat(inner_depth) : null,
+        },
+      })
+      count++
+    }
   }
 
   const done = offset + CHUNK >= total

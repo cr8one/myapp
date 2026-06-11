@@ -5,13 +5,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X } from "lucide-react"
+import { X, Plus, Trash2 } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 
 type TypeCondition = { id: number; genre: string | null; spec: string | null; hinmoku: string | null; tag1: string | null; tag2: string | null }
+type PartForm = { part_name: string; developy: string; developx: string; develop_depth: string; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
+
+const emptyPart = (): PartForm => ({
+  part_name: "", developy: "", developx: "", develop_depth: "",
+  sizey: "", sizex: "", widthy: "",
+  inner_height: "", inner_width: "", inner_depth: "",
+})
 
 export default function NewDielinePage() {
   const router = useRouter()
@@ -21,15 +28,7 @@ export default function NewDielinePage() {
   const [spec, setSpec] = useState("")
   const [hinmoku, setHinmoku] = useState("")
   const [kyugataban, setKyugataban] = useState("")
-  const [developy, setDevelopy] = useState("")
-  const [developx, setDevelopx] = useState("")
-  const [developDepth, setDevelopDepth] = useState("")
-  const [sizey, setSizey] = useState("")
-  const [sizex, setSizex] = useState("")
-  const [widthy, setWidthy] = useState("")
-  const [innerHeight, setInnerHeight] = useState("")
-  const [innerWidth, setInnerWidth] = useState("")
-  const [innerDepth, setInnerDepth] = useState("")
+  const [parts, setParts] = useState<PartForm[]>([emptyPart()])
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
   const [typeConditions, setTypeConditions] = useState<TypeCondition[]>([])
   const [showAllConditions, setShowAllConditions] = useState(false)
@@ -44,7 +43,6 @@ export default function NewDielinePage() {
     )
   }
 
-  // ジャンル・仕様・品目に応じて絞り込み
   const filtered = typeConditions.filter(tc =>
     (!genre || tc.genre === genre) &&
     (!spec || tc.spec === spec) &&
@@ -60,6 +58,12 @@ export default function NewDielinePage() {
   ])] as string[]
   const displayTags = showAllConditions ? allTags : filteredTags
 
+  const setPart = (index: number, key: keyof PartForm, value: string) => {
+    setParts(prev => prev.map((p, i) => i === index ? { ...p, [key]: value } : p))
+  }
+  const addPart = () => setParts(prev => [...prev, emptyPart()])
+  const removePart = (index: number) => setParts(prev => prev.filter((_, i) => i !== index))
+
   const handleSubmit = async () => {
     setLoading(true)
     setError("")
@@ -69,16 +73,19 @@ export default function NewDielinePage() {
       body: JSON.stringify({
         genre: genre || null, spec: spec || null, hinmoku: hinmoku || null,
         kyugataban: kyugataban || null,
-        developy: developy ? parseFloat(developy) : null,
-        developx: developx ? parseFloat(developx) : null,
-        develop_depth: developDepth ? parseFloat(developDepth) : null,
-        sizey: sizey ? parseFloat(sizey) : null,
-        sizex: sizex ? parseFloat(sizex) : null,
-        widthy: widthy ? parseFloat(widthy) : null,
-        inner_height: innerHeight ? parseFloat(innerHeight) : null,
-        inner_width: innerWidth ? parseFloat(innerWidth) : null,
-        inner_depth: innerDepth ? parseFloat(innerDepth) : null,
         conditions: selectedConditions,
+        parts: parts.map(p => ({
+          part_name: p.part_name || null,
+          developy: p.developy || null,
+          developx: p.developx || null,
+          develop_depth: p.develop_depth || null,
+          sizey: p.sizey || null,
+          sizex: p.sizex || null,
+          widthy: p.widthy || null,
+          inner_height: p.inner_height || null,
+          inner_width: p.inner_width || null,
+          inner_depth: p.inner_depth || null,
+        })),
       }),
     })
     if (!res.ok) { setError("登録に失敗しました"); setLoading(false); return }
@@ -93,6 +100,7 @@ export default function NewDielinePage() {
         <h1 className="text-2xl font-bold">型台帳 新規登録</h1>
       </div>
       <div className="space-y-6">
+        {/* 基本情報 */}
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -126,42 +134,80 @@ export default function NewDielinePage() {
               <Label>旧型番号</Label>
               <Input value={kyugataban} onChange={e => setKyugataban(e.target.value)} autoComplete="off" className="max-w-xs" />
             </div>
-            <div>
-              <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label className="text-xs">天地</Label>
-                  <Input type="number" value={developy} onChange={e => setDevelopy(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">左右</Label>
-                  <Input type="number" value={developx} onChange={e => setDevelopx(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">背</Label>
-                  <Input type="number" value={developDepth} onChange={e => setDevelopDepth(e.target.value)} autoComplete="off" /></div>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label className="text-xs">背</Label>
-                  <Input type="number" value={sizey} onChange={e => setSizey(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">高さ</Label>
-                  <Input type="number" value={sizex} onChange={e => setSizex(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">奥行き</Label>
-                  <Input type="number" value={widthy} onChange={e => setWidthy(e.target.value)} autoComplete="off" /></div>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-500 mb-2 block">内寸（mm）</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label className="text-xs">背</Label>
-                  <Input type="number" value={innerHeight} onChange={e => setInnerHeight(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">高さ</Label>
-                  <Input type="number" value={innerWidth} onChange={e => setInnerWidth(e.target.value)} autoComplete="off" /></div>
-                <div className="space-y-2"><Label className="text-xs">奥行き</Label>
-                  <Input type="number" value={innerDepth} onChange={e => setInnerDepth(e.target.value)} autoComplete="off" /></div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
+        {/* パーツ情報 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>パーツ情報</CardTitle>
+              <Button variant="outline" size="sm" onClick={addPart}>
+                <Plus className="w-4 h-4 mr-1" /> パーツ追加
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {parts.map((part, index) => (
+              <div key={index} className={`space-y-4 ${parts.length > 1 ? "p-4 border rounded-xl" : ""}`}>
+                {parts.length > 1 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-600">パーツ {index + 1}</span>
+                      <Input
+                        value={part.part_name}
+                        onChange={e => setPart(index, "part_name", e.target.value)}
+                        placeholder="パーツ名（例：身、蓋）"
+                        autoComplete="off"
+                        className="h-8 text-sm w-40"
+                      />
+                    </div>
+                    {parts.length > 1 && (
+                      <button onClick={() => removePart(index)} className="text-gray-400 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm text-gray-500 mb-2 block">展開サイズ（mm）</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label className="text-xs">天地</Label>
+                      <Input type="number" value={part.developy} onChange={e => setPart(index, "developy", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">左右</Label>
+                      <Input type="number" value={part.developx} onChange={e => setPart(index, "developx", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">背</Label>
+                      <Input type="number" value={part.develop_depth} onChange={e => setPart(index, "develop_depth", e.target.value)} autoComplete="off" /></div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500 mb-2 block">仕上サイズ（外寸）（mm）</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label className="text-xs">背</Label>
+                      <Input type="number" value={part.sizey} onChange={e => setPart(index, "sizey", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">高さ</Label>
+                      <Input type="number" value={part.sizex} onChange={e => setPart(index, "sizex", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">奥行き</Label>
+                      <Input type="number" value={part.widthy} onChange={e => setPart(index, "widthy", e.target.value)} autoComplete="off" /></div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500 mb-2 block">内寸（mm）</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label className="text-xs">背</Label>
+                      <Input type="number" value={part.inner_height} onChange={e => setPart(index, "inner_height", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">高さ</Label>
+                      <Input type="number" value={part.inner_width} onChange={e => setPart(index, "inner_width", e.target.value)} autoComplete="off" /></div>
+                    <div className="space-y-2"><Label className="text-xs">奥行き</Label>
+                      <Input type="number" value={part.inner_depth} onChange={e => setPart(index, "inner_depth", e.target.value)} autoComplete="off" /></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* 条件 */}
         <Card>
           <CardHeader><CardTitle>条件</CardTitle></CardHeader>
           <CardContent>
@@ -176,7 +222,7 @@ export default function NewDielinePage() {
                 </button>
               </div>
               {displayTags.length === 0 ? (
-                <p className="text-sm text-gray-400">条件候補がありません。ジャンル・仕様・品目を選択するか、全件表示してください。</p>
+                <p className="text-sm text-gray-400">条件候補がありません。</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {displayTags.map(tag => (
@@ -191,12 +237,8 @@ export default function NewDielinePage() {
                   ))}
                 </div>
               )}
-              {/* 手入力 */}
               <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="text"
-                  placeholder="手入力で追加"
-                  autoComplete="off"
+                <input type="text" placeholder="手入力で追加" autoComplete="off"
                   className="px-2 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
                   onKeyDown={e => {
                     if (e.key === "Enter") {
@@ -213,9 +255,7 @@ export default function NewDielinePage() {
                   {selectedConditions.map(c => (
                     <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                       {c}
-                      <button onClick={() => toggleCondition(c)} className="hover:text-blue-900">
-                        <X className="w-3 h-3" />
-                      </button>
+                      <button onClick={() => toggleCondition(c)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
                     </span>
                   ))}
                 </div>

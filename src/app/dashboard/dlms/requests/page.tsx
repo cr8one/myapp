@@ -12,7 +12,8 @@ const LOCATION_OPTIONS = ["J 1", "島田PC", "島田ダイマト", "本社", "�
 const TIME_OPTIONS = ["AM", "PM"]
 
 type Child = { edaban: string; han: string | null; me: string | null; kiri: string | null; men: string | null; sizey: number | null; sizex: number | null; 咥え: number | null }
-type Parent = { uid_ntemp: string; genre: string | null; spec: string | null; hinmoku: string | null; sizey?: number | null; sizex?: number | null }
+type Part = { id: string; part_name: string | null; sizey: number | null; sizex: number | null; developy: number | null; developx: number | null }
+type Parent = { uid_ntemp: string; genre: string | null; spec: string | null; hinmoku: string | null; parts: Part[] }
 type DielineRequest = {
   id: string; request_no: string; parentId: string; childId: string | null
   shohin_no: string | null; location: string | null; seisan_tanto: string | null
