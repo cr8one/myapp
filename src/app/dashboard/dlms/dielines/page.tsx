@@ -13,13 +13,11 @@ const PAGE_SIZE = 50
 
 type Condition = { id: string; value: string }
 type Child = { id: string; edaban: string; han: string | null; me: string | null; kiri: string | null; men: string | null; sizey: number | null; sizex: number | null; location: string | null }
+type Part = { id: string; part_name: string | null; sizey: number | null; sizex: number | null; widthy: number | null; developy: number | null; developx: number | null; develop_depth: number | null; inner_height: number | null; inner_width: number | null; inner_depth: number | null }
 type Parent = {
   id: string; uid_ntemp: string; kyugataban: string | null
   genre: string | null; spec: string | null; hinmoku: string | null
-  developy: number | null; developx: number | null; develop_depth: number | null
-  sizey: number | null; sizex: number | null; widthy: number | null
-  inner_height: number | null; inner_width: number | null; inner_depth: number | null
-  conditions: Condition[]; children: Child[]
+  conditions: Condition[]; children: Child[]; parts: Part[]
 }
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 
@@ -80,18 +78,15 @@ export default function DielinesPage() {
     fetchParents(page)
   }
 
-  const handleExport = () => {
+    const handleExport = () => {
     const maxConds = Math.max(1, ...parents.map(p => p.conditions.length))
     const condHeaders = Array.from({ length: maxConds }, (_, i) => `条件${i + 1}`)
-    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", "展開天地", "展開左右", "展開背", "仕上げ背", "仕上げ高さ", "仕上げ奥行き", "内寸背", "内寸高さ", "内寸奥行き", ...condHeaders]]
+    const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", ...condHeaders]]
     parents.forEach(p => {
       const conds = p.conditions.map(c => c.value)
       while (conds.length < maxConds) conds.push("")
       rows.push([
         p.uid_ntemp, p.kyugataban ?? "", p.genre ?? "", p.spec ?? "", p.hinmoku ?? "",
-        p.developy?.toString() ?? "", p.developx?.toString() ?? "", p.develop_depth?.toString() ?? "",
-        p.sizey?.toString() ?? "", p.sizex?.toString() ?? "", p.widthy?.toString() ?? "",
-        p.inner_height?.toString() ?? "", p.inner_width?.toString() ?? "", p.inner_depth?.toString() ?? "",
         ...conds,
       ])
     })
@@ -199,6 +194,53 @@ export default function DielinesPage() {
     setShowImport(false)
   }
 
+  const [showPartsImport, setShowPartsImport] = useState(false)
+  const [partsImportFile, setPartsImportFile] = useState<File | null>(null)
+  const [partsImportStatus, setPartsImportStatus] = useState<ImportStatus>("idle")
+  const [partsImportProgress, setPartsImportProgress] = useState({ count: 0, total: 0 })
+  const [partsImportError, setPartsImportError] = useState("")
+  const partsImportRef = useRef<HTMLInputElement>(null)
+  const handlePartsExport = () => { window.location.href = "/api/dlms/dielines/parts-export" }
+  const handlePartsImport = async () => {
+    if (!partsImportFile) return
+    setPartsImportStatus("uploading")
+    setPartsImportError("")
+    setPartsImportProgress({ count: 0, total: 0 })
+    try {
+      const presignRes = await fetch("/api/dlms/dielines/presign", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: partsImportFile.name }),
+      })
+      const { url, key } = await presignRes.json()
+      await fetch(url, { method: "PUT", body: partsImportFile, headers: { "Content-Type": "text/csv" } })
+      setPartsImportStatus("importing")
+      let offset = 0; let total = 0; let totalCount = 0
+      while (true) {
+        const res = await fetch("/api/dlms/dielines/import", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, offset, type: "parts" }),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error ?? "インポートエラー")
+        total = data.total; totalCount += data.count; offset = data.offset
+        setPartsImportProgress({ count: totalCount, total })
+        if (data.done) break
+      }
+      setPartsImportStatus("done")
+      fetchParents(1)
+    } catch (e) {
+      setPartsImportError(e instanceof Error ? e.message : "エラーが発生しました")
+      setPartsImportStatus("error")
+    }
+  }
+  const resetPartsImport = () => {
+    setPartsImportStatus("idle")
+    setPartsImportFile(null)
+    setPartsImportProgress({ count: 0, total: 0 })
+    setPartsImportError("")
+    setShowPartsImport(false)
+  }
+
   const Pagination = () => (
     <div className="flex items-center justify-between py-3 px-1">
       <p className="text-sm text-gray-500">
@@ -232,6 +274,12 @@ export default function DielinesPage() {
           </Button>
           <Button variant="outline" onClick={handleChildrenExport} className="flex items-center gap-1">
             <Download className="w-4 h-4" />枝番エクスポート
+          </Button>
+          <Button variant="outline" onClick={() => setShowPartsImport(v => !v)} className="flex items-center gap-1">
+            <Upload className="w-4 h-4" />パーツインポート
+          </Button>
+          <Button variant="outline" onClick={handlePartsExport} className="flex items-center gap-1">
+            <Download className="w-4 h-4" />パーツエクスポート
           </Button>
           <Button onClick={() => router.push("/dashboard/dlms/dielines/new")}>新規登録</Button>
         </div>
@@ -364,6 +412,67 @@ export default function DielinesPage() {
         </div>
       )}
 
+      {/* パーツインポートパネル */}
+      {showPartsImport && (
+        <div className="bg-white border rounded-lg p-5 mb-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">パーツCSVインポート</h2>
+            <button onClick={resetPartsImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+          </div>
+          <p className="text-xs text-gray-500">
+            列順：型番号・パーツ名・展開天地・展開左右・展開背・仕上げ背・仕上げ高さ・仕上げ奥行き・内寸背・内寸高さ・内寸奥行き
+          </p>
+          {partsImportStatus === "idle" && (
+            <div className="space-y-3">
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${partsImportFile ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                onClick={() => partsImportRef.current?.click()}>
+                {partsImportFile ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-gray-700 font-medium">{partsImportFile.name}</span>
+                    <button onClick={e => { e.stopPropagation(); setPartsImportFile(null) }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">CSVファイルを選択</p>
+                  </>
+                )}
+              </div>
+              <input ref={partsImportRef} type="file" accept=".csv" className="hidden"
+                onChange={e => setPartsImportFile(e.target.files?.[0] ?? null)} />
+              <div className="flex justify-end">
+                <Button onClick={handlePartsImport} disabled={!partsImportFile} size="sm">インポート開始</Button>
+              </div>
+            </div>
+          )}
+          {(partsImportStatus === "uploading" || partsImportStatus === "importing") && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">{partsImportStatus === "uploading" ? "S3にアップロード中..." : `インポート中... ${partsImportProgress.count} / ${partsImportProgress.total} 件`}</p>
+              {partsImportProgress.total > 0 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round(partsImportProgress.count / partsImportProgress.total * 100)}%` }} />
+                </div>
+              )}
+            </div>
+          )}
+          {partsImportStatus === "done" && (
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm">{partsImportProgress.count}件のインポートが完了しました</span>
+              <button onClick={resetPartsImport} className="ml-auto text-xs text-green-600 hover:text-green-800">閉じる</button>
+            </div>
+          )}
+          {partsImportStatus === "error" && (
+            <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{partsImportError}</span>
+              <button onClick={() => setPartsImportStatus("idle")} className="ml-auto text-xs text-red-600 hover:text-red-800">再試行</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 検索 */}
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mb-3">
@@ -419,8 +528,9 @@ export default function DielinesPage() {
                         ))}
                       </div>
                       <div className="flex gap-4 text-sm text-gray-500 flex-wrap">
-                        {p.sizey && p.sizex && <span>天地×左右：{p.sizey}×{p.sizex}mm</span>}
-                        {p.widthy && <span>背幅：{p.widthy}mm</span>}
+                        {p.parts.length > 0 && p.parts[0].sizey && p.parts[0].sizex && <span>天地×左右：{p.parts[0].sizey}×{p.parts[0].sizex}mm</span>}
+                        {p.parts.length > 0 && p.parts[0].widthy && <span>背幅：{p.parts[0].widthy}mm</span>}
+                        {p.parts.length > 1 && <span className="text-orange-600 font-medium">パーツ{p.parts.length}件</span>}
                         <span>枝番：{p.children.length}件</span>
                       </div>
                       {p.conditions.length > 0 && (
