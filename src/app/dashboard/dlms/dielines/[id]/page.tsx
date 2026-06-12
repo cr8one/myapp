@@ -44,6 +44,46 @@ const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.t
 const emptyChildForm: ChildForm = { edaban: "", han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
 const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depth: "", sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "" })
 
+function PartSizeEdit({ part, index, partsLength, setPart, removePart }: { part: PartForm; index: number; partsLength: number; setPart: (index: number, key: keyof PartForm, value: string) => void; removePart: (index: number) => void }) {
+  return (
+    <div className="space-y-3">
+      {partsLength > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">パーツ {index + 1}</span>
+            <Input value={part.part_name} onChange={e => setPart(index, "part_name", e.target.value)} placeholder="パーツ名（例：身、蓋）" autoComplete="off" className="h-8 text-sm w-40" />
+          </div>
+          <button onClick={() => removePart(index)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+        </div>
+      )}
+      <div>
+        <Label className="text-xs text-gray-500 mb-1 block">展開サイズ（mm）</Label>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label className="text-xs">天地</Label><Input type="number" value={part.developy} onChange={e => setPart(index, "developy", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">左右</Label><Input type="number" value={part.developx} onChange={e => setPart(index, "developx", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">背</Label><Input type="number" value={part.develop_depth} onChange={e => setPart(index, "develop_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs text-gray-500 mb-1 block">仕上サイズ（外寸）（mm）</Label>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label className="text-xs">背</Label><Input type="number" value={part.sizey} onChange={e => setPart(index, "sizey", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">高さ</Label><Input type="number" value={part.sizex} onChange={e => setPart(index, "sizex", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">奥行き</Label><Input type="number" value={part.widthy} onChange={e => setPart(index, "widthy", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs text-gray-500 mb-1 block">内寸（mm）</Label>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label className="text-xs">背</Label><Input type="number" value={part.inner_height} onChange={e => setPart(index, "inner_height", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">高さ</Label><Input type="number" value={part.inner_width} onChange={e => setPart(index, "inner_width", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">奥行き</Label><Input type="number" value={part.inner_depth} onChange={e => setPart(index, "inner_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DielineDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -186,44 +226,6 @@ export default function DielineDetailPage() {
     </div>
   )
 
-  const PartSizeEdit = ({ part, index }: { part: PartForm; index: number }) => (
-    <div className="space-y-3">
-      {editParts.length > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">パーツ {index + 1}</span>
-            <Input value={part.part_name} onChange={e => setPart(index, "part_name", e.target.value)} placeholder="パーツ名（例：身、蓋）" autoComplete="off" className="h-8 text-sm w-40" />
-          </div>
-          <button onClick={() => setEditParts(prev => prev.filter((_, i) => i !== index))} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-        </div>
-      )}
-      <div>
-        <Label className="text-xs text-gray-500 mb-1 block">展開サイズ（mm）</Label>
-        <div className="grid grid-cols-3 gap-3">
-          <div><Label className="text-xs">天地</Label><Input type="number" value={part.developy} onChange={e => setPart(index, "developy", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">左右</Label><Input type="number" value={part.developx} onChange={e => setPart(index, "developx", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">背</Label><Input type="number" value={part.develop_depth} onChange={e => setPart(index, "develop_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-        </div>
-      </div>
-      <div>
-        <Label className="text-xs text-gray-500 mb-1 block">仕上サイズ（外寸）（mm）</Label>
-        <div className="grid grid-cols-3 gap-3">
-          <div><Label className="text-xs">背</Label><Input type="number" value={part.sizey} onChange={e => setPart(index, "sizey", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">高さ</Label><Input type="number" value={part.sizex} onChange={e => setPart(index, "sizex", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">奥行き</Label><Input type="number" value={part.widthy} onChange={e => setPart(index, "widthy", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-        </div>
-      </div>
-      <div>
-        <Label className="text-xs text-gray-500 mb-1 block">内寸（mm）</Label>
-        <div className="grid grid-cols-3 gap-3">
-          <div><Label className="text-xs">背</Label><Input type="number" value={part.inner_height} onChange={e => setPart(index, "inner_height", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">高さ</Label><Input type="number" value={part.inner_width} onChange={e => setPart(index, "inner_width", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">奥行き</Label><Input type="number" value={part.inner_depth} onChange={e => setPart(index, "inner_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -308,7 +310,7 @@ export default function DielineDetailPage() {
                   </div>
                   {editParts.map((part, index) => (
                     <div key={index} className={editParts.length > 1 ? "border border-orange-200 rounded-lg p-3 bg-orange-50" : ""}>
-                      <PartSizeEdit part={part} index={index} />
+                      <PartSizeEdit part={part} index={index} partsLength={editParts.length} setPart={setPart} removePart={(i) => setEditParts(prev => prev.filter((_, idx) => idx !== i))} />
                     </div>
                   ))}
                 </div>
