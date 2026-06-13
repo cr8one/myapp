@@ -35,7 +35,7 @@ type UserGroup = {
 }
 type User = {
   id: string; name: string; email: string
-  position?: string; phone?: string
+  position?: string; phone?: string; employeeNo?: string; gender?: string; employmentType?: string
   role: "ADMIN" | "USER"; createdAt: string
   permission?: Permission
   departments: UserDept[]
@@ -99,6 +99,9 @@ export default function UsersPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [position, setPosition] = useState("")
+  const [employeeNo, setEmployeeNo] = useState("")
+  const [gender, setGender] = useState("")
+  const [employmentType, setEmploymentType] = useState("")
   const [phone, setPhone] = useState("")
   const [role, setRole] = useState<"ADMIN" | "USER">("USER")
   const [permission, setPermission] = useState<Permission>(defaultPermission)
@@ -126,7 +129,7 @@ export default function UsersPage() {
 
   const resetForm = () => {
     setName(""); setEmail(""); setPassword("")
-    setPosition(""); setPhone("")
+    setPosition(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
     setError(""); setEditUser(null); setShowForm(false)
@@ -135,6 +138,9 @@ export default function UsersPage() {
   const handleEdit = (user: User) => {
     setEditUser(user); setName(user.name ?? ""); setEmail(user.email)
     setPosition(user.position ?? "")
+    setEmployeeNo(user.employeeNo ?? "")
+    setGender(user.gender ?? "")
+    setEmploymentType(user.employmentType ?? "")
     setPhone(user.phone ?? ""); setPassword(""); setRole(user.role)
     setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
     setSelectedDepts(user.departments.map(d => ({ department_id: d.department_id, is_primary: d.is_primary })))
@@ -145,7 +151,7 @@ export default function UsersPage() {
   const handleSubmit = async () => {
     setLoading(true); setError("")
     const body = {
-      name, email, password: password || undefined, position, phone, role,
+      name, email, password: password || undefined, position, phone, employeeNo, gender, employmentType, role,
       permission: role === "ADMIN" ? undefined : permission,
       departments: selectedDepts,
       groups: selectedGroups,
@@ -247,6 +253,30 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>役職</Label><Input autoComplete="off" value={position} onChange={e => setPosition(e.target.value)} /></div>
               <div className="space-y-2">
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2"><Label>社員番号</Label><Input autoComplete="off" value={employeeNo} onChange={e => setEmployeeNo(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>性別</Label>
+                <select className="w-full border rounded px-3 py-2 text-sm bg-white" value={gender} onChange={e => setGender(e.target.value)}>
+                  <option value="">未選択</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>雇用形態</Label>
+                <select className="w-full border rounded px-3 py-2 text-sm bg-white" value={employmentType} onChange={e => setEmploymentType(e.target.value)}>
+                  <option value="">未選択</option>
+                  <option value="正社員">正社員</option>
+                  <option value="契約社員">契約社員</option>
+                  <option value="嘱託社員">嘱託社員</option>
+                  <option value="パート">パート</option>
+                  <option value="アルバイト">アルバイト</option>
+                  <option value="派遣社員">派遣社員</option>
+                  <option value="業務委託">業務委託</option>
+                </select>
+              </div>
                 <Label>ロール</Label>
                 <select className="w-full border rounded px-3 py-2 text-sm" value={role} onChange={e => setRole(e.target.value as "ADMIN" | "USER")}>
                   <option value="USER">一般ユーザー</option>
@@ -369,6 +399,9 @@ export default function UsersPage() {
                   <div className="flex flex-wrap gap-3 mt-0.5">
                     {user.position && <p className="text-sm text-gray-500">役職: {user.position}</p>}
                     {user.phone && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
+                    {user.employeeNo && <p className="text-sm text-gray-500">社員番号: {user.employeeNo}</p>}
+                    {user.gender && <p className="text-sm text-gray-500">性別: {user.gender}</p>}
+                    {user.employmentType && <p className="text-sm text-gray-500">雇用形態: {user.employmentType}</p>}
                   </div>
                   {user.departments.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">

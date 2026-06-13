@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs"
 
 const userSelect = {
   id: true, name: true, email: true,
-  position: true, phone: true, role: true, createdAt: true, permission: true,
+  position: true, phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, permission: true,
   departments: {
     include: { department: { select: { id: true, name: true } } },
   },
@@ -23,8 +23,8 @@ export async function PUT(
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const { id } = await params
   const body = await request.json()
-  const { name, position, phone, password, role, permission, departments, groups } = body
-  const data: Record<string, unknown> = { name, position, phone, role }
+  const { name, position, phone, employeeNo, gender, employmentType, password, role, permission, departments, groups } = body
+  const data: Record<string, unknown> = { name, position, phone, role, employeeNo: employeeNo || null, gender: gender || null, employmentType: employmentType || null }
   if (password) data.password = await bcrypt.hash(password, 10)
 
   const existing = permission

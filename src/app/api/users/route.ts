@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs"
 
 const userSelect = {
   id: true, name: true, email: true,
-  position: true, phone: true, role: true, createdAt: true, permission: true,
+  position: true, phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, permission: true,
   departments: {
     include: { department: { select: { id: true, name: true } } },
   },
@@ -29,12 +29,12 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const body = await request.json()
-  const { name, email, password, position, phone, role, permission, departments, groups } = body
+  const { name, email, password, position, phone, employeeNo, gender, employmentType, role, permission, departments, groups } = body
   const hashedPassword = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
     data: {
       name, email, password: hashedPassword,
-      position, phone,
+      position, phone, employeeNo: employeeNo || null, gender: gender || null, employmentType: employmentType || null,
       role: role ?? "USER",
       permission: {
         create: {
