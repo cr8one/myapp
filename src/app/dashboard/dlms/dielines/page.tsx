@@ -78,7 +78,7 @@ export default function DielinesPage() {
     fetchParents(page)
   }
 
-  const handleExport = () => {
+    const handleExport = () => {
     const maxConds = Math.max(1, ...parents.map(p => p.conditions.length))
     const condHeaders = Array.from({ length: maxConds }, (_, i) => `条件${i + 1}`)
     const rows = [["型番号", "旧型番号", "ジャンル", "仕様", "品目", ...condHeaders]]
@@ -193,6 +193,7 @@ export default function DielinesPage() {
     setImportError("")
     setShowImport(false)
   }
+
   const [showPartsImport, setShowPartsImport] = useState(false)
   const [partsImportFile, setPartsImportFile] = useState<File | null>(null)
   const [partsImportStatus, setPartsImportStatus] = useState<ImportStatus>("idle")
