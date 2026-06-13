@@ -10,20 +10,26 @@ export async function GET() {
     orderBy: [{ parent: { uid_ntemp: "asc" } }, { sort_order: "asc" }],
   })
   const filtered = parts.filter(p => p.parent.flg_del === 0)
-  const header = ["型番号", "パーツ名", "展開天地", "展開左右", "展開背", "仕上げ背", "仕上げ高さ", "仕上げ奥行き", "内寸背", "内寸高さ", "内寸奥行き"]
-  const rows = filtered.map(p => [
-    p.parent.uid_ntemp,
-    p.part_name ?? "",
-    p.developy?.toString() ?? "",
-    p.developx?.toString() ?? "",
-    p.develop_depth?.toString() ?? "",
-    p.sizey?.toString() ?? "",
-    p.sizex?.toString() ?? "",
-    p.widthy?.toString() ?? "",
-    p.inner_height?.toString() ?? "",
-    p.inner_width?.toString() ?? "",
-    p.inner_depth?.toString() ?? "",
-  ])
+  const maxDepths = Math.max(1, ...filtered.map(p => p.develop_depths.length))
+  const depthHeaders = Array.from({ length: maxDepths }, (_, i) => `展開背${i + 1}`)
+  const header = ["型番号", "パーツ名", "展開天地", "展開左右", ...depthHeaders, "仕上げ背", "仕上げ高さ", "仕上げ奥行き", "内寸背", "内寸高さ", "内寸奥行き"]
+  const rows = filtered.map(p => {
+    const depths = [...p.develop_depths.map(v => v.toString())]
+    while (depths.length < maxDepths) depths.push("")
+    return [
+      p.parent.uid_ntemp,
+      p.part_name ?? "",
+      p.developy?.toString() ?? "",
+      p.developx?.toString() ?? "",
+      ...depths,
+      p.sizey?.toString() ?? "",
+      p.sizex?.toString() ?? "",
+      p.widthy?.toString() ?? "",
+      p.inner_height?.toString() ?? "",
+      p.inner_width?.toString() ?? "",
+      p.inner_depth?.toString() ?? "",
+    ]
+  })
   const csv = [header, ...rows]
     .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
     .join("\r\n")

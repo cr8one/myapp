@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           part_name: p.part_name || null,
           developy: p.developy ? parseFloat(p.developy as string) : null,
           developx: p.developx ? parseFloat(p.developx as string) : null,
-          develop_depth: p.develop_depth ? parseFloat(p.develop_depth as string) : null,
+          develop_depths: Array.isArray(p.develop_depths) ? (p.develop_depths as string[]).map(v => parseFloat(v)).filter(v => !isNaN(v)) : [],
           sizey: p.sizey ? parseFloat(p.sizey as string) : null,
           sizex: p.sizex ? parseFloat(p.sizex as string) : null,
           widthy: p.widthy ? parseFloat(p.widthy as string) : null,

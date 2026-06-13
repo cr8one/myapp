@@ -27,7 +27,7 @@ type Child = {
 }
 type Part = {
   id: string; part_name: string | null
-  developy: number | null; developx: number | null; develop_depth: number | null
+  developy: number | null; developx: number | null; develop_depths: number[]
   sizey: number | null; sizex: number | null; widthy: number | null
   inner_height: number | null; inner_width: number | null; inner_depth: number | null
   sort_order: number
@@ -38,13 +38,13 @@ type Parent = {
   conditions: Condition[]; children: Child[]; parts: Part[]
 }
 type ChildForm = { edaban: string; han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
-type PartForm = { part_name: string; developy: string; developx: string; develop_depth: string; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
+type PartForm = { part_name: string; developy: string; developx: string; develop_depths: string[]; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
 
 const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.toFixed(1) : String(v)
 const emptyChildForm: ChildForm = { edaban: "", han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
-const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depth: "", sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "" })
+const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depths: [], sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "" })
 
-function PartSizeEdit({ part, index, partsLength, setPart, removePart }: { part: PartForm; index: number; partsLength: number; setPart: (index: number, key: keyof PartForm, value: string) => void; removePart: (index: number) => void }) {
+function PartSizeEdit({ part, index, partsLength, setPart, removePart, addDepth, setDepth, removeDepth }: { part: PartForm; index: number; partsLength: number; setPart: (index: number, key: keyof PartForm, value: string) => void; removePart: (index: number) => void; addDepth: (index: number) => void; setDepth: (index: number, depthIndex: number, value: string) => void; removeDepth: (index: number, depthIndex: number) => void }) {
   return (
     <div className="space-y-3">
       {partsLength > 1 && (
@@ -61,7 +61,29 @@ function PartSizeEdit({ part, index, partsLength, setPart, removePart }: { part:
         <div className="grid grid-cols-3 gap-3">
           <div><Label className="text-xs">天地</Label><Input type="number" value={part.developy} onChange={e => setPart(index, "developy", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
           <div><Label className="text-xs">左右</Label><Input type="number" value={part.developx} onChange={e => setPart(index, "developx", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
-          <div><Label className="text-xs">背</Label><Input type="number" value={part.develop_depth} onChange={e => setPart(index, "develop_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+        </div>
+        <div className="mt-2">
+          <div className="flex items-center justify-between mb-1">
+            <Label className="text-xs">背</Label>
+            <Button type="button" variant="outline" size="sm" onClick={() => addDepth(index)} className="h-6 px-2 text-xs">
+              <Plus className="w-3 h-3 mr-1" />背を追加
+            </Button>
+          </div>
+          {part.develop_depths.length > 0 && (
+            <p className="text-xs text-orange-600 mb-2">※表 見開き 左側から</p>
+          )}
+          {part.develop_depths.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {part.develop_depths.map((d, di) => (
+                <div key={di} className="flex items-center gap-1">
+                  <Input type="number" value={d} onChange={e => setDepth(index, di, e.target.value)} autoComplete="off" placeholder={`背${di + 1}`} className="mt-1 h-8 text-sm" />
+                  <button type="button" onClick={() => removeDepth(index, di)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <div>
@@ -134,7 +156,7 @@ export default function DielineDetailPage() {
       part_name: p.part_name ?? "",
       developy: p.developy?.toString() ?? "",
       developx: p.developx?.toString() ?? "",
-      develop_depth: p.develop_depth?.toString() ?? "",
+      develop_depths: p.develop_depths.map(d => d.toString()),
       sizey: p.sizey?.toString() ?? "",
       sizex: p.sizex?.toString() ?? "",
       widthy: p.widthy?.toString() ?? "",
@@ -148,6 +170,9 @@ export default function DielineDetailPage() {
   const setPart = (index: number, key: keyof PartForm, value: string) => {
     setEditParts(prev => prev.map((p, i) => i === index ? { ...p, [key]: value } : p))
   }
+  const addDepth = (index: number) => setEditParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: [...p.develop_depths, ""] } : p))
+  const setDepth = (index: number, depthIndex: number, value: string) => setEditParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: p.develop_depths.map((d, di) => di === depthIndex ? value : d) } : p))
+  const removeDepth = (index: number, depthIndex: number) => setEditParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: p.develop_depths.filter((_, di) => di !== depthIndex) } : p))
 
   const handleSaveParent = async () => {
     setSaving(true)
@@ -160,7 +185,7 @@ export default function DielineDetailPage() {
         conditions: selectedConditions,
         parts: editParts.map(p => ({
           part_name: p.part_name || null,
-          developy: p.developy || null, developx: p.developx || null, develop_depth: p.develop_depth || null,
+          developy: p.developy || null, developx: p.developx || null, develop_depths: p.develop_depths.filter(d => d && !isNaN(parseFloat(d))),
           sizey: p.sizey || null, sizex: p.sizex || null, widthy: p.widthy || null,
           inner_height: p.inner_height || null, inner_width: p.inner_width || null, inner_depth: p.inner_depth || null,
         })),
@@ -220,7 +245,7 @@ export default function DielineDetailPage() {
 
   const PartSizeDisplay = ({ part }: { part: Part }) => (
     <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mt-2">
-      <div><span className="text-gray-400 text-xs">展開サイズ</span><p className="mt-0.5">天地 {fmt(part.developy)} / 左右 {fmt(part.developx)} / 背 {fmt(part.develop_depth)}</p></div>
+      <div><span className="text-gray-400 text-xs">展開サイズ</span><p className="mt-0.5">天地 {fmt(part.developy)} / 左右 {fmt(part.developx)} / 背 {part.develop_depths.length > 0 ? part.develop_depths.map(d => fmt(d)).join(", ") : "—"}</p></div>
       <div><span className="text-gray-400 text-xs">仕上サイズ 外寸</span><p className="mt-0.5">背 {fmt(part.sizey)} / 高さ {fmt(part.sizex)} / 奥行き {fmt(part.widthy)}</p></div>
       <div><span className="text-gray-400 text-xs">内寸</span><p className="mt-0.5">背 {fmt(part.inner_height)} / 高さ {fmt(part.inner_width)} / 奥行き {fmt(part.inner_depth)}</p></div>
     </div>
@@ -310,7 +335,7 @@ export default function DielineDetailPage() {
                   </div>
                   {editParts.map((part, index) => (
                     <div key={index} className={editParts.length > 1 ? "border border-orange-200 rounded-lg p-3 bg-orange-50" : ""}>
-                      <PartSizeEdit part={part} index={index} partsLength={editParts.length} setPart={setPart} removePart={(i) => setEditParts(prev => prev.filter((_, idx) => idx !== i))} />
+                      <PartSizeEdit part={part} index={index} partsLength={editParts.length} setPart={setPart} removePart={(i) => setEditParts(prev => prev.filter((_, idx) => idx !== i))} addDepth={addDepth} setDepth={setDepth} removeDepth={removeDepth} />
                     </div>
                   ))}
                 </div>

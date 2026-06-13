@@ -83,11 +83,18 @@ export async function POST(req: NextRequest) {
       count++
     }
   } else {
-    // パーツCSV: uid_ntemp, part_name, developy, developx, develop_depth, sizey, sizex, widthy, inner_height, inner_width, inner_depth
+    // パーツCSV: uid_ntemp, part_name, developy, developx, 展開背1, 展開背2, ..., sizey, sizex, widthy, inner_height, inner_width, inner_depth
+    const depthStartIndex = 4
+    const depthCount = headers.slice(depthStartIndex).filter(h => h.startsWith("展開背")).length
     for (const line of chunk) {
       const clean = parseCSVLine(line)
-      const [uid_ntemp, part_name, developy, developx, develop_depth, sizey, sizex, widthy, inner_height, inner_width, inner_depth] = clean
+      const [uid_ntemp, part_name, developy, developx] = clean
       if (!uid_ntemp) continue
+      const depths = clean.slice(depthStartIndex, depthStartIndex + depthCount)
+        .map(v => parseFloat(v))
+        .filter(v => !isNaN(v))
+      const rest = clean.slice(depthStartIndex + depthCount)
+      const [sizey, sizex, widthy, inner_height, inner_width, inner_depth] = rest
       const parent = await prisma.dlmsDielineParent.findUnique({ where: { uid_ntemp }, select: { id: true } })
       if (!parent) continue
       await prisma.dlmsDielinePart.create({
@@ -96,7 +103,7 @@ export async function POST(req: NextRequest) {
           part_name: part_name || null,
           developy: developy ? parseFloat(developy) : null,
           developx: developx ? parseFloat(developx) : null,
-          develop_depth: develop_depth ? parseFloat(develop_depth) : null,
+          develop_depths: depths,
           sizey: sizey ? parseFloat(sizey) : null,
           sizex: sizex ? parseFloat(sizex) : null,
           widthy: widthy ? parseFloat(widthy) : null,

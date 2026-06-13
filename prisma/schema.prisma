@@ -1006,7 +1006,7 @@ model DlmsDielinePart {
   part_name     String?
   developy      Float?
   developx      Float?
-  develop_depth Float?
+  develop_depths Float[] @default([])
   sizey         Float?
   sizex         Float?
   widthy        Float?

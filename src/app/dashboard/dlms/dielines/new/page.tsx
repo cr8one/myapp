@@ -12,10 +12,10 @@ const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", 
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 
 type TypeCondition = { id: number; genre: string | null; spec: string | null; hinmoku: string | null; tag1: string | null; tag2: string | null }
-type PartForm = { part_name: string; developy: string; developx: string; develop_depth: string; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
+type PartForm = { part_name: string; developy: string; developx: string; develop_depths: string[]; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
 
 const emptyPart = (): PartForm => ({
-  part_name: "", developy: "", developx: "", develop_depth: "",
+  part_name: "", developy: "", developx: "", develop_depths: [],
   sizey: "", sizex: "", widthy: "",
   inner_height: "", inner_width: "", inner_depth: "",
 })
@@ -61,6 +61,9 @@ export default function NewDielinePage() {
   const setPart = (index: number, key: keyof PartForm, value: string) => {
     setParts(prev => prev.map((p, i) => i === index ? { ...p, [key]: value } : p))
   }
+  const addDepth = (index: number) => setParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: [...p.develop_depths, ""] } : p))
+  const setDepth = (index: number, depthIndex: number, value: string) => setParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: p.develop_depths.map((d, di) => di === depthIndex ? value : d) } : p))
+  const removeDepth = (index: number, depthIndex: number) => setParts(prev => prev.map((p, i) => i === index ? { ...p, develop_depths: p.develop_depths.filter((_, di) => di !== depthIndex) } : p))
   const addPart = () => setParts(prev => [...prev, emptyPart()])
   const removePart = (index: number) => setParts(prev => prev.filter((_, i) => i !== index))
 
@@ -78,7 +81,7 @@ export default function NewDielinePage() {
           part_name: p.part_name || null,
           developy: p.developy || null,
           developx: p.developx || null,
-          develop_depth: p.develop_depth || null,
+          develop_depths: p.develop_depths.filter(d => d && !isNaN(parseFloat(d))),
           sizey: p.sizey || null,
           sizex: p.sizex || null,
           widthy: p.widthy || null,
@@ -176,8 +179,29 @@ export default function NewDielinePage() {
                       <Input type="number" value={part.developy} onChange={e => setPart(index, "developy", e.target.value)} autoComplete="off" /></div>
                     <div className="space-y-2"><Label className="text-xs">左右</Label>
                       <Input type="number" value={part.developx} onChange={e => setPart(index, "developx", e.target.value)} autoComplete="off" /></div>
-                    <div className="space-y-2"><Label className="text-xs">背</Label>
-                      <Input type="number" value={part.develop_depth} onChange={e => setPart(index, "develop_depth", e.target.value)} autoComplete="off" /></div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <Label className="text-xs">背</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={() => addDepth(index)} className="h-6 px-2 text-xs">
+                        <Plus className="w-3 h-3 mr-1" />背を追加
+                      </Button>
+                    </div>
+                    {part.develop_depths.length > 0 && (
+                      <p className="text-xs text-orange-600 mb-2">※表 見開き 左側から</p>
+                    )}
+                    {part.develop_depths.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {part.develop_depths.map((d, di) => (
+                          <div key={di} className="flex items-center gap-1">
+                            <Input type="number" value={d} onChange={e => setDepth(index, di, e.target.value)} autoComplete="off" placeholder={`背${di + 1}`} className="text-sm" />
+                            <button type="button" onClick={() => removeDepth(index, di)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
