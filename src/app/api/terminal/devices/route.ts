@@ -56,6 +56,18 @@ export async function POST(req: NextRequest) {
     },
     include: { ipAddresses: true, lease: true },
   })
+  if (body.procurementType === "リース") {
+    await prisma.deviceLease.create({
+      data: {
+        device_id: record.deviceId,
+        lease_company: body.leaseCompany || null,
+        lease_start: body.leaseStart ? new Date(body.leaseStart) : null,
+        lease_end: body.leaseEnd ? new Date(body.leaseEnd) : null,
+        contract_no: body.contractNo || null,
+        lease_item_no: body.leaseItemNo || null,
+      },
+    })
+  }
   return NextResponse.json(record)
 }
 

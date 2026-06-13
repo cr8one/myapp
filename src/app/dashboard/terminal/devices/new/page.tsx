@@ -13,7 +13,7 @@ const emptyForm = {
   assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
   osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
   purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
-  parentDeviceId: "",
+  parentDeviceId: "", procurementType: "", leaseCompany: "", leaseStart: "", leaseEnd: "", contractNo: "", leaseItemNo: "",
 }
 export default function DeviceNewPage() {
   const router = useRouter()
@@ -110,9 +110,41 @@ export default function DeviceNewPage() {
             <Input value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" />
           </div>
           <div className="space-y-1">
-            <Label>購入日</Label>
-            <Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} />
+            <Label>調達区分</Label>
+            <select value={form.procurementType} onChange={e => setForm(f => ({ ...f, procurementType: e.target.value }))} className="w-full h-10 border rounded px-3 text-sm bg-white">
+              <option value="">未選択</option>
+              <option value="購入">購入</option>
+              <option value="リース">リース</option>
+            </select>
           </div>
+          {form.procurementType === "購入" && (
+            <div className="space-y-1">
+              <Label>購入日</Label>
+              <Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} />
+            </div>
+          )}
+          {form.procurementType === "リース" && (<>
+            <div className="space-y-1">
+              <Label>リース会社</Label>
+              <Input value={form.leaseCompany} onChange={e => setForm(f => ({ ...f, leaseCompany: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1">
+              <Label>レンタル開始日</Label>
+              <Input type="date" value={form.leaseStart} onChange={e => setForm(f => ({ ...f, leaseStart: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>レンタル終了日</Label>
+              <Input type="date" value={form.leaseEnd} onChange={e => setForm(f => ({ ...f, leaseEnd: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>契約番号</Label>
+              <Input value={form.contractNo} onChange={e => setForm(f => ({ ...f, contractNo: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1">
+              <Label>レンタル物件No</Label>
+              <Input value={form.leaseItemNo} onChange={e => setForm(f => ({ ...f, leaseItemNo: e.target.value }))} autoComplete="off" />
+            </div>
+          </>)}
           <div className="space-y-1">
             <Label>利用開始日</Label>
             <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
