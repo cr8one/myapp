@@ -184,7 +184,7 @@ export default function NewDielinePage() {
                     <div className="flex items-center justify-between mb-1">
                       <Label className="text-xs">背</Label>
                       <Button type="button" variant="outline" size="sm" onClick={() => addDepth(index)} className="h-6 px-2 text-xs">
-                        <Plus className="w-3 h-3 mr-1" />背を追加
+                        <Plus className="w-3 h-3 mr-1" />展開背を追加
                       </Button>
                     </div>
                     {part.develop_depths.length > 0 && (
@@ -193,10 +193,10 @@ export default function NewDielinePage() {
                     {part.develop_depths.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
                         {part.develop_depths.map((d, di) => (
-                          <div key={di} className="flex items-center gap-1">
+                          <div key={di} className="flex items-center gap-2">
                             <Input type="number" value={d} onChange={e => setDepth(index, di, e.target.value)} autoComplete="off" placeholder={`背${di + 1}`} className="text-sm" />
                             <button type="button" onClick={() => removeDepth(index, di)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
-                              <X className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         ))}
