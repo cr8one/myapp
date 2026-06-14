@@ -44,8 +44,9 @@ export async function POST(req: Request) {
   let previewKey: string | null = null
   if (fileType === "pdf") {
     try {
-      const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs")
-      const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise
+      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
+      pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise
       const page = await pdf.getPage(1)
       const viewport = page.getViewport({ scale: 2.0 })
       const { createCanvas } = await import("canvas")
