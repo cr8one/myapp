@@ -40,7 +40,7 @@ export default function DaishiDbNewPage() {
     <div className="p-8 max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="sm" onClick={() => router.back()}>← 戻る</Button>
-        <h1 className="text-2xl font-bold">台紙DB 新規登録</h1>
+        <h1 className="text-2xl font-bold">DXF・台紙DB 新規登録</h1>
       </div>
       <Card>
         <CardContent className="pt-6 space-y-4">

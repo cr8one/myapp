@@ -39,7 +39,7 @@ const cards = [
     desc: "台紙作成依頼の管理",
   },
   {
-    label: "台紙DB",
+    label: "DXF・台紙DB",
     href: "/dashboard/cad/daishi-db",
     icon: Database,
     bg: "bg-emerald-50",
