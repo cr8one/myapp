@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         }
       }
       const canvasFactory = new NodeCanvasFactory()
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), CanvasFactory: canvasFactory }).promise
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), CanvasFactory: NodeCanvasFactory }).promise
       const page = await pdf.getPage(1)
       const viewport = page.getViewport({ scale: 2.0 })
       const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
