@@ -4,28 +4,26 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, X } from "lucide-react"
-
+import { RemoteSearchSelectModal } from "@/components/ui/searchable-select-modal"
 export default function DaishiDbNewPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [remarks, setRemarks] = useState("")
+  const [cadRequestUid, setCadRequestUid] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
-
   const addTag = () => {
     const t = tagInput.trim()
     if (t && !tags.includes(t)) setTags(prev => [...prev, t])
     setTagInput("")
   }
-
   const removeTag = (t: string) => setTags(prev => prev.filter(x => x !== t))
-
   const handleSubmit = async () => {
     setSaving(true)
     const res = await fetch("/api/cad/daishi-db", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remarks, tags }),
+      body: JSON.stringify({ remarks, tags, cad_request_uid: cadRequestUid }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -35,7 +33,6 @@ export default function DaishiDbNewPage() {
       setSaving(false)
     }
   }
-
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -44,6 +41,16 @@ export default function DaishiDbNewPage() {
       </div>
       <Card>
         <CardContent className="pt-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">CAD依頼No（任意）</label>
+            <RemoteSearchSelectModal
+              label="CAD依頼書"
+              value={cadRequestUid}
+              onChange={(id) => setCadRequestUid(id)}
+              searchUrl="/api/cad/requests/search"
+              placeholder="CAD依頼書を選択（未選択可）"
+            />
+          </div>
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">備考</label>
             <textarea

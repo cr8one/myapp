@@ -987,6 +987,7 @@ model DaishiDb {
   file_pdf      String?
   preview_image String?
   remarks       String?
+  cad_request_uid String?
   flg_del       Int         @default(0)
   created_at    DateTime    @default(now())
   updated_at    DateTime    @updatedAt

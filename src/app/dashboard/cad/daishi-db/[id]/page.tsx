@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, X, Upload, Download, Trash2 } from "lucide-react"
+import { RemoteSearchSelectModal } from "@/components/ui/searchable-select-modal"
 type DaishiRecord = {
   id: string
   uid: string
@@ -12,6 +13,7 @@ type DaishiRecord = {
   file_pdf: string | null
   preview_image: string | null
   remarks: string | null
+  cad_request_uid: string | null
   created_at: string
   tags: { id: number; tag_name: string }[]
 }
@@ -23,6 +25,7 @@ export default function DaishiDbDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [remarks, setRemarks] = useState("")
+  const [cadRequestUid, setCadRequestUid] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
   const [uploading, setUploading] = useState<string | null>(null)
@@ -37,6 +40,7 @@ export default function DaishiDbDetailPage() {
     const data: DaishiRecord = await res.json()
     setRecord(data)
     setRemarks(data.remarks ?? "")
+    setCadRequestUid(data.cad_request_uid ?? "")
     setTags(data.tags.map(t => t.tag_name))
     // 署名付きURL取得
     const urls: Record<string, string> = {}
@@ -89,7 +93,7 @@ export default function DaishiDbDetailPage() {
     await fetch(`/api/cad/daishi-db/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ remarks, tags }),
+      body: JSON.stringify({ remarks, tags, cad_request_uid: cadRequestUid }),
     })
     setEditing(false)
     setSaving(false)
@@ -175,7 +179,7 @@ export default function DaishiDbDetailPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/cad/daishi-db")}>← 一覧</Button>
-          <h1 className="text-2xl font-bold">台紙DB No.{record.uid}</h1>
+          <h1 className="text-2xl font-bold">DXF・台紙DB No.{record.uid}</h1>
         </div>
         <div className="flex gap-2">
           {editing ? (
@@ -200,6 +204,22 @@ export default function DaishiDbDetailPage() {
               <FileRow label="AI" fileKey="ai" inputRef={aiRef} fileType=".ai" onDelete={handleDeleteFile} />
               <FileRow label="DXF" fileKey="dxf" inputRef={dxfRef} fileType=".dxf" onDelete={handleDeleteFile} />
               <FileRow label="PDF" fileKey="pdf" inputRef={pdfRef} fileType=".pdf" onDelete={handleDeleteFile} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-base font-semibold text-gray-700 mb-3">CAD依頼No</h2>
+              {editing ? (
+                <RemoteSearchSelectModal
+                  label="CAD依頼書"
+                  value={cadRequestUid}
+                  onChange={(id) => setCadRequestUid(id)}
+                  searchUrl="/api/cad/requests/search"
+                  placeholder="CAD依頼書を選択（未選択可）"
+                />
+              ) : (
+                <p className="text-sm text-gray-800">{record.cad_request_uid || <span className="text-gray-300">—</span>}</p>
+              )}
             </CardContent>
           </Card>
           <Card>

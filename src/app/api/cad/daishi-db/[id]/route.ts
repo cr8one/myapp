@@ -27,6 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     data: {
       remarks: body.remarks || null,
+      cad_request_uid: body.cad_request_uid || null,
       file_ai: body.file_ai !== undefined ? body.file_ai || null : undefined,
       file_dxf: body.file_dxf !== undefined ? body.file_dxf || null : undefined,
       file_pdf: body.file_pdf !== undefined ? body.file_pdf || null : undefined,

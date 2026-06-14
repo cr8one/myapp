@@ -52,6 +52,7 @@ export async function POST(req: Request) {
     data: {
       uid,
       remarks: body.remarks || null,
+      cad_request_uid: body.cad_request_uid || null,
       tags: body.tags?.length > 0 ? {
         create: body.tags.map((t: string) => ({ tag_name: t })),
       } : undefined,

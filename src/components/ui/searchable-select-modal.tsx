@@ -214,3 +214,93 @@ export function MultiSelectModal({
     </>
   )
 }
+// ============================================================
+// リモート検索選択モーダル（大量データ向け：APIキーワード検索）
+// ============================================================
+type RemoteSearchSelectModalProps = {
+  label: string
+  value: string
+  onChange: (id: string, label: string) => void
+  searchUrl: string
+  placeholder?: string
+  nullable?: boolean
+}
+export function RemoteSearchSelectModal({
+  label, value, onChange, searchUrl, placeholder = "選択してください", nullable = true,
+}: RemoteSearchSelectModalProps) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [options, setOptions] = useState<SelectOption[]>([])
+  const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (open) { setQuery(""); setTimeout(() => inputRef.current?.focus(), 50) }
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    setLoading(true)
+    const timer = setTimeout(async () => {
+      const res = await fetch(`${searchUrl}?keyword=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      setOptions(data.options ?? [])
+      setLoading(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query, open, searchUrl])
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-between border rounded-md px-3 py-2 text-sm bg-white hover:bg-gray-50 transition-colors text-left">
+        {value ? <span className="font-medium text-gray-800">{value}</span>
+          : <span className="text-gray-400">{placeholder}</span>}
+        <span className="text-gray-400 ml-2 text-xs">▼</span>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[70vh]">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+              <h2 className="font-semibold text-gray-800">{label}を選択</h2>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <div className="px-4 py-3 border-b">
+              <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="No・品名・取引先などで検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {nullable && (
+                <button type="button" onClick={() => { onChange("", ""); setOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 border-b ${value === "" ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-400 italic"}`}>
+                  — 選択なし
+                </button>
+              )}
+              {loading ? (
+                <p className="text-center text-sm text-gray-400 py-8">検索中...</p>
+              ) : options.length === 0 ? (
+                <p className="text-center text-sm text-gray-400 py-8">該当なし</p>
+              ) : options.map((o) => (
+                <button key={o.id} type="button" onClick={() => { onChange(o.id, o.label); setOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${o.id === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-800"}`}>
+                  <span className="flex flex-col">
+                    <span>{o.label}</span>
+                    {o.sublabel && <span className="text-xs text-gray-400">{o.sublabel}</span>}
+                  </span>
+                  {o.id === value && <span className="text-blue-500">✓</span>}
+                </button>
+              ))}
+            </div>
+            <div className="px-4 py-3 border-t bg-gray-50 rounded-b-xl flex justify-end items-center">
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>閉じる</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
