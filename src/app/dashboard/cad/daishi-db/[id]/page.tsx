@@ -4,7 +4,6 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, X, Upload, Download, Trash2 } from "lucide-react"
-
 type DaishiRecord = {
   id: string
   uid: string
@@ -16,7 +15,6 @@ type DaishiRecord = {
   created_at: string
   tags: { id: number; tag_name: string }[]
 }
-
 export default function DaishiDbDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -34,14 +32,12 @@ export default function DaishiDbDetailPage() {
   const aiRef = useRef<HTMLInputElement>(null)
   const dxfRef = useRef<HTMLInputElement>(null)
   const pdfRef = useRef<HTMLInputElement>(null)
-
   const fetchRecord = async () => {
     const res = await fetch(`/api/cad/daishi-db/${id}`)
     const data: DaishiRecord = await res.json()
     setRecord(data)
     setRemarks(data.remarks ?? "")
     setTags(data.tags.map(t => t.tag_name))
-
     // 署名付きURL取得
     const urls: Record<string, string> = {}
     await Promise.all([
@@ -52,9 +48,7 @@ export default function DaishiDbDetailPage() {
     ].filter(Boolean))
     setSignedUrls(urls)
   }
-
   useEffect(() => { fetchRecord() }, [id])
-
   // DXFプレビュー
   useEffect(() => {
     if (!signedUrls["dxf"] || !dxfContainerRef.current) return
@@ -69,7 +63,6 @@ export default function DaishiDbDetailPage() {
     }
     loadDxf()
   }, [signedUrls])
-
   useEffect(() => {
     if (!dxfContent || !dxfContainerRef.current) return
     const renderDxf = async () => {
@@ -91,7 +84,6 @@ export default function DaishiDbDetailPage() {
     }
     renderDxf()
   }, [dxfContent])
-
   const handleSave = async () => {
     setSaving(true)
     await fetch(`/api/cad/daishi-db/${id}`, {
@@ -103,7 +95,6 @@ export default function DaishiDbDetailPage() {
     setSaving(false)
     fetchRecord()
   }
-
   const handleUpload = async (fileType: "ai" | "dxf" | "pdf", file: File) => {
     setUploading(fileType)
     const formData = new FormData()
@@ -118,41 +109,47 @@ export default function DaishiDbDetailPage() {
     }
     setUploading(null)
   }
-
+  const handleDeleteFile = async (fileKey: "ai" | "dxf" | "pdf") => {
+    if (!confirm(`${fileKey.toUpperCase()}ファイルを削除しますか？`)) return
+    await fetch(`/api/cad/daishi-db/${id}/delete-file`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileType: fileKey }),
+    })
+    fetchRecord()
+  }
   const addTag = () => {
     const t = tagInput.trim()
     if (t && !tags.includes(t)) setTags(prev => [...prev, t])
     setTagInput("")
   }
   const removeTag = (t: string) => setTags(prev => prev.filter(x => x !== t))
-
   const handleDelete = async () => {
     if (!confirm("この台紙データを削除しますか？")) return
     await fetch(`/api/cad/daishi-db/${id}`, { method: "DELETE" })
     router.push("/dashboard/cad/daishi-db")
   }
-
   if (!record) return <p className="p-8 text-gray-400 animate-pulse">読み込み中...</p>
-
-  const FileRow = ({ label, fileKey, inputRef, fileType }: {
+  const FileRow = ({ label, fileKey, inputRef, fileType, onDelete }: {
     label: string
     fileKey: "ai" | "dxf" | "pdf"
     inputRef: React.RefObject<HTMLInputElement | null>
     fileType: string
+    onDelete: (fileKey: "ai" | "dxf" | "pdf") => void
   }) => (
     <div className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
       <span className="text-sm text-gray-500 w-16">{label}</span>
       {record[`file_${fileKey}` as keyof DaishiRecord] ? (
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">アップロード済み</span>
-          <a href={signedUrls[fileKey]} download className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
-            <Download className="w-3 h-3" /> ダウンロード
+        <div className="flex items-center gap-1 flex-1 flex-wrap">
+          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded mr-1">済</span>
+          <a href={signedUrls[fileKey]} download title="ダウンロード" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+            <Download className="w-4 h-4" />
           </a>
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-          >
-            <Upload className="w-3 h-3" /> 更新
+          <button onClick={() => inputRef.current?.click()} title="更新" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded">
+            <Upload className="w-4 h-4" />
+          </button>
+          <button onClick={() => onDelete(fileKey)} title="削除" className="p-1.5 text-red-500 hover:bg-red-50 rounded">
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       ) : (
@@ -173,7 +170,6 @@ export default function DaishiDbDetailPage() {
       />
     </div>
   )
-
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -195,19 +191,17 @@ export default function DaishiDbDetailPage() {
           )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 左：情報 */}
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-base font-semibold text-gray-700 mb-4">ファイル</h2>
-              <FileRow label="AI" fileKey="ai" inputRef={aiRef} fileType=".ai" />
-              <FileRow label="DXF" fileKey="dxf" inputRef={dxfRef} fileType=".dxf" />
-              <FileRow label="PDF" fileKey="pdf" inputRef={pdfRef} fileType=".pdf" />
+              <FileRow label="AI" fileKey="ai" inputRef={aiRef} fileType=".ai" onDelete={handleDeleteFile} />
+              <FileRow label="DXF" fileKey="dxf" inputRef={dxfRef} fileType=".dxf" onDelete={handleDeleteFile} />
+              <FileRow label="PDF" fileKey="pdf" inputRef={pdfRef} fileType=".pdf" onDelete={handleDeleteFile} />
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-base font-semibold text-gray-700 mb-3">備考</h2>
@@ -224,7 +218,6 @@ export default function DaishiDbDetailPage() {
               )}
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-base font-semibold text-gray-700 mb-3">タグ</h2>
@@ -261,7 +254,6 @@ export default function DaishiDbDetailPage() {
             </CardContent>
           </Card>
         </div>
-
         {/* 右：プレビュー */}
         <div className="space-y-4">
           {/* PDFプレビュー */}
