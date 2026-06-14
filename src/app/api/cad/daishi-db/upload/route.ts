@@ -46,14 +46,31 @@ export async function POST(req: Request) {
     try {
       const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
       pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise
+      const { createCanvas } = await import("canvas")
+      class NodeCanvasFactory {
+        create(width: number, height: number) {
+          const canvas = createCanvas(width, height)
+          const context = canvas.getContext("2d")
+          return { canvas, context }
+        }
+        reset(canvasAndContext: { canvas: import("canvas").Canvas; context: unknown }, width: number, height: number) {
+          canvasAndContext.canvas.width = width
+          canvasAndContext.canvas.height = height
+        }
+        destroy(canvasAndContext: { canvas: import("canvas").Canvas | null; context: unknown }) {
+          canvasAndContext.canvas!.width = 0
+          canvasAndContext.canvas!.height = 0
+          canvasAndContext.canvas = null
+          canvasAndContext.context = null
+        }
+      }
+      const canvasFactory = new NodeCanvasFactory()
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), canvasFactory }).promise
       const page = await pdf.getPage(1)
       const viewport = page.getViewport({ scale: 2.0 })
-      const { createCanvas } = await import("canvas")
-      const canvas = createCanvas(viewport.width, viewport.height)
-      const ctx = canvas.getContext("2d")
-      await page.render({ canvasContext: ctx as unknown as CanvasRenderingContext2D, viewport, canvas: canvas as unknown as HTMLCanvasElement }).promise
-      const pngBuffer = canvas.toBuffer("image/png")
+      const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
+      await page.render({ canvasContext: canvasAndContext.context as unknown as CanvasRenderingContext2D, viewport, canvasFactory }).promise
+      const pngBuffer = canvasAndContext.canvas.toBuffer("image/png")
       const resized = await sharp(pngBuffer).resize(800, null, { withoutEnlargement: true }).toBuffer()
       previewKey = `daishi/${record.uid}/preview.png`
       await s3.send(new PutObjectCommand({
@@ -62,6 +79,7 @@ export async function POST(req: Request) {
         Body: resized,
         ContentType: "image/png",
       }))
+      canvasFactory.destroy(canvasAndContext)
     } catch (e) {
       console.error("PDF preview generation failed:", e)
     }
