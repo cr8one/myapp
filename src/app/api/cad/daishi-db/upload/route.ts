@@ -65,11 +65,11 @@ export async function POST(req: Request) {
         }
       }
       const canvasFactory = new NodeCanvasFactory()
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), canvasFactory }).promise
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), CanvasFactory: canvasFactory }).promise
       const page = await pdf.getPage(1)
       const viewport = page.getViewport({ scale: 2.0 })
       const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
-      await page.render({ canvasContext: canvasAndContext.context as unknown as CanvasRenderingContext2D, viewport, canvasFactory }).promise
+      await page.render({ canvasContext: canvasAndContext.context as unknown as CanvasRenderingContext2D, canvas: canvasAndContext.canvas as unknown as HTMLCanvasElement, viewport }).promise
       const pngBuffer = canvasAndContext.canvas.toBuffer("image/png")
       const resized = await sharp(pngBuffer).resize(800, null, { withoutEnlargement: true }).toBuffer()
       previewKey = `daishi/${record.uid}/preview.png`
