@@ -1023,3 +1023,22 @@ model DlmsDielinePart {
   parent        DlmsDielineParent @relation(fields: [parentId], references: [id], onDelete: Cascade)
   @@map("dlms_dieline_parts")
 }
+
+model AddressBook {
+  id                String   @id @default(cuid())
+  uid               String   @unique
+  company_name      String?
+  company_name_kana String?
+  department        String?
+  position          String?
+  name              String?
+  honorific         String?
+  postal_code       String?
+  address1          String?
+  address2          String?
+  remarks           String?
+  flg_del           Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  @@map("t_address_book")
+}
