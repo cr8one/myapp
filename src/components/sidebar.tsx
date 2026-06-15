@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -74,6 +74,9 @@ const baseMenuItems = [
   { label: "業務報告書", href: "/dashboard/report", icon: "report", children: [
     { label: "報告書一覧", href: "/dashboard/report" },
   ]},
+  { label: "住所録", href: "/dashboard/address-book", icon: "addressbook", children: [
+    { label: "住所録一覧", href: "/dashboard/address-book" },
+  ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
     { label: "案件管理", href: "/dashboard/dev/projects" },
@@ -139,6 +142,7 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "sop")       return <BookOpen className={className} />
   if (icon === "report")    return <FileText className={className} />
   if (icon === "bpms")      return <Handshake className={className} />
+  if (icon === "addressbook") return <BookUser className={className} />
   if (icon === "cad")       return <PenTool className={className} />
   if (icon === "dlms")      return <DlmsIcon className={className} />
   if (icon === "dpp")       return <CalendarDays className={className} />
@@ -167,6 +171,7 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
+    if (label === "住所録")     return pathname.startsWith("/dashboard/address-book")
     if (label === "BPMS")       return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "CAD/台紙")   return pathname.startsWith("/dashboard/cad")
     if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
