@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Search } from "lucide-react"
 
 export type SelectOption = {
   id: string
@@ -255,12 +256,19 @@ export function RemoteSearchSelectModal({
   }, [query, open, searchUrl])
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between border rounded-md px-3 py-2 text-sm bg-white hover:bg-gray-50 transition-colors text-left">
-        {value ? <span className="font-medium text-gray-800">{value}</span>
-          : <span className="text-gray-400">{placeholder}</span>}
-        <span className="text-gray-400 ml-2 text-xs">▼</span>
-      </button>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value, "")}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <Search className="w-4 h-4" />
+        </Button>
+      </div>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
