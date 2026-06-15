@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
   Plus, Pencil, Trash2, Megaphone, Wrench, Tag,
-  Train, BookOpen, FileText, CalendarDays, PenTool, Monitor
+  Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser
 } from "lucide-react"
 
 type Announcement = {
@@ -80,6 +80,7 @@ const SERVICE_CARDS = [
   { label: "交通費精算",  href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",              color: "text-teal-600 bg-teal-50" },
   { label: "作業標準書",  href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",            color: "text-cyan-600 bg-cyan-50" },
   { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",              color: "text-purple-600 bg-purple-50" },
+  { label: "住所録",      href: "/dashboard/address-book", icon: "addressbook", desc: "取引先・連絡先管理",          color: "text-amber-600 bg-amber-50" },
   { label: "BPMS",        href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",          color: "text-violet-600 bg-violet-50" },
   { label: "CAD/台紙",    href: "/dashboard/cad",       icon: "cad",      desc: "CAD・DXF・台紙データ管理",        color: "text-lime-600 bg-lime-50" },
   { label: "DLMS",        href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",                color: "text-orange-600 bg-orange-50" },
@@ -98,6 +99,7 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   if (icon === "sop")      return <BookOpen className={className} />
   if (icon === "report")   return <FileText className={className} />
   if (icon === "bpms")     return <Handshake className={className} />
+  if (icon === "addressbook") return <BookUser className={className} />
   if (icon === "cad")      return <PenTool className={className} />
   if (icon === "dlms")     return <DlmsIcon className={className} />
   if (icon === "dpp")      return <CalendarDays className={className} />
