@@ -1,7 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Download, Upload } from "lucide-react"
 type AddressBookRecord = {
   id: string
   uid: string
@@ -25,6 +25,9 @@ export default function AddressBookPage() {
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState("")
   const [loading, setLoading] = useState(true)
+  const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const fetchRecords = async (p = page) => {
     setLoading(true)
     const params = new URLSearchParams({ page: String(p), keyword })
@@ -36,16 +39,63 @@ export default function AddressBookPage() {
   }
   useEffect(() => { fetchRecords(1); setPage(1) }, [keyword])
   const totalPages = Math.ceil(total / 50)
+  const handleExport = () => {
+    const params = new URLSearchParams({ keyword })
+    window.location.href = `/api/address-book/export?${params}`
+  }
+  const handleImport = async (file: File) => {
+    setImporting(true)
+    setImportProgress("アップロード中...")
+    // S3 presigned URL取得
+    const presignRes = await fetch("/api/address-book/presign")
+    const { url, key } = await presignRes.json()
+    // S3にPUT
+    await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": "text/csv" } })
+    // チャンク処理
+    let offset = 0
+    while (true) {
+      const res = await fetch("/api/address-book/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, offset }),
+      })
+      const data = await res.json()
+      offset = data.offset
+      setImportProgress(`処理中... ${offset} / ${data.total} 件`)
+      if (data.done) break
+    }
+    setImportProgress(null)
+    setImporting(false)
+    fetchRecords(1)
+    setPage(1)
+  }
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">住所録</h1>
-        <button
-          onClick={() => router.push("/dashboard/address-book/new")}
-          className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700"
-        >
-          <Plus className="w-4 h-4" /> 新規登録
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
+          >
+            <Download className="w-4 h-4" /> エクスポート
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+          >
+            <Upload className="w-4 h-4" /> {importing ? importProgress : "インポート"}
+          </button>
+          <input ref={fileRef} type="file" accept=".csv" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = "" }} />
+          <button
+            onClick={() => router.push("/dashboard/address-book/new")}
+            className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700"
+          >
+            <Plus className="w-4 h-4" /> 新規登録
+          </button>
+        </div>
       </div>
       <div className="relative mb-4 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
