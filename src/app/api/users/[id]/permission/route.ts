@@ -35,6 +35,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ssssIsSupplier:          body.ssssIsSupplier          ?? false,
       ssssIsReceiver:          body.ssssIsReceiver          ?? false,
       ssssIsOutsourceReceiver: body.ssssIsOutsourceReceiver ?? false,
+      addressBookView: body.addressBookView ?? true,
+      addressBookEdit: body.addressBookEdit ?? false,
+      addressBookChangeRequestTarget: body.addressBookChangeRequestTarget ?? false,
     },
     update: {
       ...(body.specView     !== undefined && { specView:     body.specView }),
@@ -65,6 +68,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(body.ssssIsSupplier          !== undefined && { ssssIsSupplier:          body.ssssIsSupplier }),
       ...(body.ssssIsReceiver          !== undefined && { ssssIsReceiver:          body.ssssIsReceiver }),
       ...(body.ssssIsOutsourceReceiver !== undefined && { ssssIsOutsourceReceiver: body.ssssIsOutsourceReceiver }),
+      ...(body.addressBookView !== undefined && { addressBookView: body.addressBookView }),
+      ...(body.addressBookEdit !== undefined && { addressBookEdit: body.addressBookEdit }),
+      ...(body.addressBookChangeRequestTarget !== undefined && { addressBookChangeRequestTarget: body.addressBookChangeRequestTarget }),
     },
   })
   return NextResponse.json(permission)
