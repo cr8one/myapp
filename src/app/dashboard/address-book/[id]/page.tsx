@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Trash2 } from "lucide-react"
+import { Trash2, ExternalLink, Map } from "lucide-react"
 const HONORIFICS = ["様", "御中", "殿", "先生"]
 type AddressBookRecord = {
   id: string; uid: string
@@ -141,7 +141,16 @@ export default function AddressBookDetailPage() {
                       className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
                   )
                 ) : (
-                  <p className="text-sm text-gray-800">{record[f.key] || <span className="text-gray-300">—</span>}</p>
+                  <p className="text-sm text-gray-800 flex items-center gap-2">
+                    <span>{record[f.key] || <span className="text-gray-300">—</span>}</span>
+                    {f.key === "company_name" && record.company_name && (
+                      <a href={`https://www.google.com/search?q=${encodeURIComponent(record.company_name)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-blue-600">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </p>
                 )}
               </div>
             ))}
@@ -155,6 +164,17 @@ export default function AddressBookDetailPage() {
               <p className="text-sm text-gray-800 whitespace-pre-wrap">{record.remarks || <span className="text-gray-300">—</span>}</p>
             )}
           </div>
+          {(record.address1 || record.postal_code) && !editing && (
+            <div>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}`}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+              >
+                <Map className="w-4 h-4" /> Googleマップで表示
+              </a>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
