@@ -6,21 +6,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Trash2 } from "lucide-react"
 const HONORIFICS = ["様", "御中", "殿", "先生"]
 type AddressBookRecord = {
-  id: string
-  uid: string
-  company_name: string | null
-  company_name_kana: string | null
-  department: string | null
-  position: string | null
-  name: string | null
-  honorific: string | null
-  postal_code: string | null
-  address1: string | null
-  address2: string | null
-  remarks: string | null
-  created_at: string
-  updated_at: string
+  id: string; uid: string
+  company_name: string | null; company_name_kana: string | null
+  department: string | null; position: string | null
+  name: string | null; honorific: string | null
+  postal_code: string | null; address1: string | null
+  address2: string | null; remarks: string | null
+  created_at: string; updated_at: string
 }
+type Permission = {
+  addressBookEdit: boolean
+} | null
 const FIELDS: { key: keyof AddressBookRecord; label: string; span?: number }[] = [
   { key: "company_name", label: "会社名" },
   { key: "company_name_kana", label: "会社名フリガナ" },
@@ -40,6 +36,9 @@ export default function AddressBookDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [permission, setPermission] = useState<Permission>(null)
+  const [permLoaded, setPermLoaded] = useState(false)
   const fetchRecord = async () => {
     const res = await fetch(`/api/address-book/${id}`)
     const data: AddressBookRecord = await res.json()
@@ -57,7 +56,15 @@ export default function AddressBookDetailPage() {
       remarks: data.remarks ?? "",
     })
   }
-  useEffect(() => { fetchRecord() }, [id])
+  useEffect(() => {
+    fetchRecord()
+    fetch("/api/users/me").then(r => r.json()).then(data => {
+      setIsAdmin(data.isAdmin)
+      setPermission(data.permission)
+      setPermLoaded(true)
+    })
+  }, [id])
+  const canEdit = isAdmin || permission?.addressBookEdit === true
   const update = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }))
   const handleSave = async () => {
     setSaving(true)
@@ -75,7 +82,7 @@ export default function AddressBookDetailPage() {
     await fetch(`/api/address-book/${id}`, { method: "DELETE" })
     router.push("/dashboard/address-book")
   }
-  if (!record) return <p className="p-8 text-gray-400 animate-pulse">読み込み中...</p>
+  if (!record || !permLoaded) return <p className="p-8 text-gray-400 animate-pulse">読み込み中...</p>
   const fmtDate = (s: string) => new Date(s).toLocaleDateString("ja-JP")
   const fmtTime = (s: string) => new Date(s).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })
   return (
@@ -86,22 +93,29 @@ export default function AddressBookDetailPage() {
           <h1 className="text-2xl font-bold">住所録 No.{record.uid}</h1>
         </div>
         <div className="flex gap-2">
-          {editing ? (
-            <>
-              <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
-            </>
+          {canEdit ? (
+            editing ? (
+              <>
+                <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
+                <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                <Button onClick={() => setEditing(true)}>編集</Button>
+              </>
+            )
           ) : (
-            <>
-              <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
-              <Button onClick={() => setEditing(true)}>編集</Button>
-            </>
+            <Button onClick={() => router.push(`/dashboard/address-book/${id}/change-request`)}
+              className="bg-amber-600 hover:bg-amber-700 text-white">
+              変更依頼
+            </Button>
           )}
         </div>
       </div>
       <Card className="mb-4">
         <CardContent className="pt-6">
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+          <div className="grid grid-cols-2 gap-3 text-sm text-gray-500">
             <div>作成日時：{fmtDate(record.created_at)} {fmtTime(record.created_at)}</div>
             <div>修正日時：{fmtDate(record.updated_at)} {fmtTime(record.updated_at)}</div>
           </div>

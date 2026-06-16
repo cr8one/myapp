@@ -40,6 +40,7 @@ model User {
   loginLogs                   LoginLog[]
   auditLogs                   AuditLog[]
   cadRequests                 CadRequest[]
+  addressBookChangeRequests    AddressBookChangeRequest[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -78,6 +79,9 @@ model UserPermission {
   ssssSupplierOrder          Int @default(0) @map("ssss_supplier_order")
   ssssReceiverOrder          Int @default(0) @map("ssss_receiver_order")
   ssssOutsourceReceiverOrder Int @default(0) @map("ssss_outsource_receiver_order")
+  addressBookView              Boolean @default(true)  @map("address_book_view")
+  addressBookEdit              Boolean @default(false) @map("address_book_edit")
+  addressBookChangeRequestTarget Boolean @default(false) @map("address_book_change_request_target")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
   @@map("user_permissions")
@@ -1040,5 +1044,33 @@ model AddressBook {
   flg_del           Int      @default(0)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+  change_requests   AddressBookChangeRequest[]
   @@map("t_address_book")
+}
+
+model AddressBookChangeRequest {
+  id               String                          @id @default(cuid())
+  uid              String                          @unique
+  address_book_id  String
+  address_book     AddressBook                     @relation(fields: [address_book_id], references: [id], onDelete: Cascade)
+  requester_id     String?
+  requester        User?                           @relation(fields: [requester_id], references: [id])
+  status           String                          @default("依頼中")
+  remarks          String?
+  created_at       DateTime                        @default(now())
+  updated_at       DateTime                        @updatedAt
+  items            AddressBookChangeRequestItem[]
+  @@map("t_address_book_change_requests")
+}
+
+model AddressBookChangeRequestItem {
+  id                String                     @id @default(cuid())
+  change_request_id String
+  change_request    AddressBookChangeRequest    @relation(fields: [change_request_id], references: [id], onDelete: Cascade)
+  field_name        String
+  field_label       String
+  before_value      String?
+  after_value       String?
+  created_at        DateTime                   @default(now())
+  @@map("t_address_book_change_request_items")
 }
