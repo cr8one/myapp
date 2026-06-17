@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       address1: body.address1 || null,
       address2: body.address2 || null,
       remarks: body.remarks || null,
+      department_in_charge: body.department_in_charge || null,
     },
   })
   return NextResponse.json(record)

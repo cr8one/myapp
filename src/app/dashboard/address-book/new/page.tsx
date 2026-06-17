@@ -7,9 +7,10 @@ const HONORIFICS = ["様", "御中", "殿", "先生"]
 export default function AddressBookNewPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const DEPT_IN_CHARGE = ["社長", "相談役", "総務", "SP", "MP1", "MP2", "開発G", "PP", "DPP", "静岡"]
   const [form, setForm] = useState({
     company_name: "", company_name_kana: "", department: "", position: "",
-    name: "", honorific: "", postal_code: "", address1: "", address2: "", remarks: "",
+    name: "", honorific: "", postal_code: "", address1: "", address2: "", department_in_charge: "", remarks: "",
   })
   const update = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }))
   const handleSubmit = async () => {
@@ -83,6 +84,14 @@ export default function AddressBookNewPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">住所2</label>
               <input value={form.address2} onChange={e => update("address2", e.target.value)}
                 className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">担当部署</label>
+              <input value={form.department_in_charge} onChange={e => update("department_in_charge", e.target.value)}
+                list="dept-in-charge-options" className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+              <datalist id="dept-in-charge-options">
+                {DEPT_IN_CHARGE.map(d => <option key={d} value={d} />)}
+              </datalist>
             </div>
           </div>
           <div>

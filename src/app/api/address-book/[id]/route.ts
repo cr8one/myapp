@@ -27,6 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       address1: body.address1 || null,
       address2: body.address2 || null,
       remarks: body.remarks || null,
+      department_in_charge: body.department_in_charge || null,
     },
   })
   return NextResponse.json(record)

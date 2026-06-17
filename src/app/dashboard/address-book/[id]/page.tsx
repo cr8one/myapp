@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Trash2, ExternalLink, Map } from "lucide-react"
 const HONORIFICS = ["様", "御中", "殿", "先生"]
+const DEPT_IN_CHARGE = ["社長", "相談役", "総務", "SP", "MP1", "MP2", "開発G", "PP", "DPP", "静岡"]
 type AddressBookRecord = {
   id: string; uid: string
   company_name: string | null; company_name_kana: string | null
   department: string | null; position: string | null
   name: string | null; honorific: string | null
   postal_code: string | null; address1: string | null
-  address2: string | null; remarks: string | null
+  address2: string | null; department_in_charge: string | null; remarks: string | null
   created_at: string; updated_at: string
 }
 type Permission = {
@@ -27,6 +28,7 @@ const FIELDS: { key: keyof AddressBookRecord; label: string; span?: number }[] =
   { key: "postal_code", label: "郵便番号" },
   { key: "address1", label: "住所1", span: 2 },
   { key: "address2", label: "住所2", span: 2 },
+  { key: "department_in_charge", label: "担当部署" },
 ]
 export default function AddressBookDetailPage() {
   const router = useRouter()
@@ -53,6 +55,7 @@ export default function AddressBookDetailPage() {
       postal_code: data.postal_code ?? "",
       address1: data.address1 ?? "",
       address2: data.address2 ?? "",
+      department_in_charge: data.department_in_charge ?? "",
       remarks: data.remarks ?? "",
     })
   }
@@ -134,6 +137,14 @@ export default function AddressBookDetailPage() {
                         list="honorific-options" className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
                       <datalist id="honorific-options">
                         {HONORIFICS.map(h => <option key={h} value={h} />)}
+                      </datalist>
+                    </>
+                  ) : f.key === "department_in_charge" ? (
+                    <>
+                      <input value={form[f.key]} onChange={e => update(f.key, e.target.value)}
+                        list="dept-in-charge-options" className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+                      <datalist id="dept-in-charge-options">
+                        {DEPT_IN_CHARGE.map(d => <option key={d} value={d} />)}
                       </datalist>
                     </>
                   ) : (

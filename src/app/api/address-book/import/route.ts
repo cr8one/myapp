@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   for (const line of chunk) {
     const cols = line.match(/("([^"]*)"|([^,]*))(,|$)/g)
       ?.map(c => c.replace(/^"|"$|,$/g, "").trim()) ?? []
-    const [uid, company_name, company_name_kana, department, position, name, honorific, postal_code, address1, address2, remarks] = cols
+    const [uid, company_name, company_name_kana, department, position, name, honorific, postal_code, address1, address2, department_in_charge, remarks] = cols
     const data = {
       company_name: company_name || null,
       company_name_kana: company_name_kana || null,
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       postal_code: postal_code || null,
       address1: address1 || null,
       address2: address2 || null,
+      department_in_charge: department_in_charge || null,
       remarks: remarks || null,
       flg_del: 0,
       updated_at: new Date(),

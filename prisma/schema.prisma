@@ -990,7 +990,8 @@ model DaishiDb {
   file_dxf      String?
   file_pdf      String?
   preview_image String?
-  remarks       String?
+  remarks                String?
+  department_in_charge   String?
   cad_request_uid String?
   flg_del       Int         @default(0)
   created_at    DateTime    @default(now())
@@ -1040,6 +1041,7 @@ model AddressBook {
   postal_code       String?
   address1          String?
   address2          String?
+  department_in_charge String?
   remarks           String?
   flg_del           Int      @default(0)
   created_at        DateTime @default(now())

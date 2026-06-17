@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     where,
     orderBy: { uid: "asc" },
   })
-  const headers = ["No", "会社名", "会社名フリガナ", "部門名", "役職名", "氏名", "敬称", "郵便番号", "住所1", "住所2", "備考"]
+  const headers = ["No", "会社名", "会社名フリガナ", "部門名", "役職名", "氏名", "敬称", "郵便番号", "住所1", "住所2", "担当部署", "備考"]
   const rows = records.map(r => [
     r.uid,
     r.company_name ?? "",
@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     r.postal_code ?? "",
     r.address1 ?? "",
     r.address2 ?? "",
+    r.department_in_charge ?? "",
     r.remarks ?? "",
   ])
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n")
