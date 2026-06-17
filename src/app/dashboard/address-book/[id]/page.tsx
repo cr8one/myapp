@@ -166,13 +166,21 @@ export default function AddressBookDetailPage() {
           </div>
           {(record.address1 || record.postal_code) && !editing && (
             <div>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}`}
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
-              >
-                <Map className="w-4 h-4" /> Googleマップで表示
-              </a>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-gray-700">地図</span>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                >
+                  <Map className="w-3 h-3" /> 大きな地図で見る
+                </a>
+              </div>
+              <iframe
+                src={`https://maps.google.com/maps?q=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}&output=embed&hl=ja`}
+                className="w-full h-64 rounded border border-gray-200"
+                loading="lazy"
+              />
             </div>
           )}
         </CardContent>
