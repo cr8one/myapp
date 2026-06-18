@@ -2,21 +2,27 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Search, Download, Upload } from "lucide-react"
+type AddressBookContact = {
+  id: string
+  department: string | null
+  position: string | null
+  name: string | null
+  honorific: string | null
+  sort_order: number
+}
 type AddressBookRecord = {
   id: string
   uid: string
   company_name: string | null
   company_name_kana: string | null
-  department: string | null
-  position: string | null
-  name: string | null
-  honorific: string | null
   postal_code: string | null
   address1: string | null
   address2: string | null
+  department_in_charge: string | null
   remarks: string | null
   created_at: string
   updated_at: string
+  contacts: AddressBookContact[]
 }
 export default function AddressBookPage() {
   const router = useRouter()
@@ -138,10 +144,11 @@ export default function AddressBookPage() {
                     {r.company_name_kana && <p className="text-xs text-gray-400">{r.company_name_kana}</p>}
                   </td>
                   <td className="px-4 py-2 text-gray-600">
-                    {[r.department, r.position].filter(Boolean).join(" / ") || "—"}
+                    {r.contacts.length > 0 ? [r.contacts[0].department, r.contacts[0].position].filter(Boolean).join(" / ") : "—"}
                   </td>
                   <td className="px-4 py-2 text-gray-800">
-                    {r.name ? `${r.name}${r.honorific ? ` ${r.honorific}` : ""}` : "—"}
+                    {r.contacts.length > 0 && r.contacts[0].name ? `${r.contacts[0].name}${r.contacts[0].honorific ? ` ${r.contacts[0].honorific}` : ""}` : "—"}
+                    {r.contacts.length > 1 && <span className="text-xs text-gray-400 ml-1">+{r.contacts.length - 1}</span>}
                   </td>
                   <td className="px-4 py-2 text-gray-500">
                     {r.postal_code && <span className="text-xs">〒{r.postal_code} </span>}

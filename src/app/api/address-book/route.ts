@@ -15,11 +15,10 @@ export async function GET(req: Request) {
       { uid: { contains: keyword, mode: "insensitive" } },
       { company_name: { contains: keyword, mode: "insensitive" } },
       { company_name_kana: { contains: keyword, mode: "insensitive" } },
-      { name: { contains: keyword, mode: "insensitive" } },
-      { department: { contains: keyword, mode: "insensitive" } },
-      { position: { contains: keyword, mode: "insensitive" } },
       { address1: { contains: keyword, mode: "insensitive" } },
       { address2: { contains: keyword, mode: "insensitive" } },
+      { contacts: { some: { name: { contains: keyword, mode: "insensitive" } } } },
+      { contacts: { some: { department: { contains: keyword, mode: "insensitive" } } } },
     ]
   }
   const [records, total] = await Promise.all([
@@ -28,6 +27,7 @@ export async function GET(req: Request) {
       orderBy: { created_at: "desc" },
       skip: offset,
       take: limit,
+      include: { contacts: { orderBy: { sort_order: "asc" } } },
     }),
     prisma.addressBook.count({ where }),
   ])
@@ -48,16 +48,22 @@ export async function POST(req: Request) {
       uid,
       company_name: body.company_name || null,
       company_name_kana: body.company_name_kana || null,
-      department: body.department || null,
-      position: body.position || null,
-      name: body.name || null,
-      honorific: body.honorific || null,
       postal_code: body.postal_code || null,
       address1: body.address1 || null,
       address2: body.address2 || null,
-      remarks: body.remarks || null,
       department_in_charge: body.department_in_charge || null,
+      remarks: body.remarks || null,
+      contacts: body.contacts?.length > 0 ? {
+        create: body.contacts.map((c: { department?: string; position?: string; name?: string; honorific?: string }, i: number) => ({
+          department: c.department || null,
+          position: c.position || null,
+          name: c.name || null,
+          honorific: c.honorific || null,
+          sort_order: i,
+        })),
+      } : undefined,
     },
+    include: { contacts: { orderBy: { sort_order: "asc" } } },
   })
   return NextResponse.json(record)
 }

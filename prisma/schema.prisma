@@ -1034,10 +1034,6 @@ model AddressBook {
   uid               String   @unique
   company_name      String?
   company_name_kana String?
-  department        String?
-  position          String?
-  name              String?
-  honorific         String?
   postal_code       String?
   address1          String?
   address2          String?
@@ -1046,8 +1042,23 @@ model AddressBook {
   flg_del           Int      @default(0)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+  contacts          AddressBookContact[]
   change_requests   AddressBookChangeRequest[]
   @@map("t_address_book")
+}
+
+model AddressBookContact {
+  id           String      @id @default(cuid())
+  address_book_id String
+  address_book AddressBook @relation(fields: [address_book_id], references: [id], onDelete: Cascade)
+  department   String?
+  position     String?
+  name         String?
+  honorific    String?
+  sort_order   Int         @default(0)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  @@map("t_address_book_contacts")
 }
 
 model AddressBookChangeRequest {

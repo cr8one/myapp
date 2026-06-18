@@ -3,33 +3,19 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Trash2, ExternalLink, Map } from "lucide-react"
+import { Trash2, ExternalLink, Map, Plus } from "lucide-react"
 const HONORIFICS = ["様", "御中", "殿", "先生"]
 const DEPT_IN_CHARGE = ["社長", "相談役", "総務", "SP", "MP1", "MP2", "開発G", "PP", "DPP", "静岡"]
+type Contact = { id?: string; department: string; position: string; name: string; honorific: string; sort_order?: number }
 type AddressBookRecord = {
   id: string; uid: string
   company_name: string | null; company_name_kana: string | null
-  department: string | null; position: string | null
-  name: string | null; honorific: string | null
-  postal_code: string | null; address1: string | null
-  address2: string | null; department_in_charge: string | null; remarks: string | null
+  postal_code: string | null; address1: string | null; address2: string | null
+  department_in_charge: string | null; remarks: string | null
   created_at: string; updated_at: string
+  contacts: Contact[]
 }
-type Permission = {
-  addressBookEdit: boolean
-} | null
-const FIELDS: { key: keyof AddressBookRecord; label: string; span?: number }[] = [
-  { key: "company_name", label: "会社名" },
-  { key: "company_name_kana", label: "会社名フリガナ" },
-  { key: "department", label: "部門名" },
-  { key: "position", label: "役職名" },
-  { key: "name", label: "氏名" },
-  { key: "honorific", label: "敬称" },
-  { key: "postal_code", label: "郵便番号" },
-  { key: "address1", label: "住所1", span: 2 },
-  { key: "address2", label: "住所2", span: 2 },
-  { key: "department_in_charge", label: "担当部署" },
-]
+type Permission = { addressBookEdit: boolean } | null
 export default function AddressBookDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -38,6 +24,7 @@ export default function AddressBookDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [permission, setPermission] = useState<Permission>(null)
   const [permLoaded, setPermLoaded] = useState(false)
@@ -48,16 +35,16 @@ export default function AddressBookDetailPage() {
     setForm({
       company_name: data.company_name ?? "",
       company_name_kana: data.company_name_kana ?? "",
-      department: data.department ?? "",
-      position: data.position ?? "",
-      name: data.name ?? "",
-      honorific: data.honorific ?? "",
       postal_code: data.postal_code ?? "",
       address1: data.address1 ?? "",
       address2: data.address2 ?? "",
       department_in_charge: data.department_in_charge ?? "",
       remarks: data.remarks ?? "",
     })
+    setContacts(data.contacts.map(c => ({
+      id: c.id, department: c.department ?? "", position: c.position ?? "",
+      name: c.name ?? "", honorific: c.honorific ?? "",
+    })))
   }
   useEffect(() => {
     fetchRecord()
@@ -69,12 +56,16 @@ export default function AddressBookDetailPage() {
   }, [id])
   const canEdit = isAdmin || permission?.addressBookEdit === true
   const update = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }))
+  const updateContact = (i: number, key: keyof Contact, value: string) =>
+    setContacts(prev => prev.map((c, idx) => idx === i ? { ...c, [key]: value } : c))
+  const addContact = () => setContacts(prev => [...prev, { department: "", position: "", name: "", honorific: "" }])
+  const removeContact = (i: number) => setContacts(prev => prev.filter((_, idx) => idx !== i))
   const handleSave = async () => {
     setSaving(true)
     await fetch(`/api/address-book/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, contacts }),
     })
     setEditing(false)
     setSaving(false)
@@ -99,7 +90,7 @@ export default function AddressBookDetailPage() {
           {canEdit ? (
             editing ? (
               <>
-                <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
+                <Button variant="outline" onClick={() => { setEditing(false); fetchRecord() }}>キャンセル</Button>
                 <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
               </>
             ) : (
@@ -124,78 +115,163 @@ export default function AddressBookDetailPage() {
           </div>
         </CardContent>
       </Card>
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {FIELDS.map(f => (
-              <div key={f.key} className={f.span === 2 ? "col-span-2" : ""}>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{f.label}</label>
-                {editing ? (
-                  f.key === "honorific" ? (
-                    <>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-700">会社・住所情報</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { key: "company_name", label: "会社名", withLink: true },
+                { key: "company_name_kana", label: "会社名フリガナ" },
+                { key: "postal_code", label: "郵便番号" },
+                { key: "department_in_charge", label: "担当部署", datalist: "dept-in-charge" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">{f.label}</label>
+                  {editing ? (
+                    f.datalist ? (
+                      <>
+                        <input value={form[f.key]} onChange={e => update(f.key, e.target.value)}
+                          list={`${f.datalist}-options`} className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+                        <datalist id={`${f.datalist}-options`}>
+                          {DEPT_IN_CHARGE.map(d => <option key={d} value={d} />)}
+                        </datalist>
+                      </>
+                    ) : (
                       <input value={form[f.key]} onChange={e => update(f.key, e.target.value)}
-                        list="honorific-options" className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
-                      <datalist id="honorific-options">
-                        {HONORIFICS.map(h => <option key={h} value={h} />)}
-                      </datalist>
-                    </>
-                  ) : f.key === "department_in_charge" ? (
-                    <>
-                      <input value={form[f.key]} onChange={e => update(f.key, e.target.value)}
-                        list="dept-in-charge-options" className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
-                      <datalist id="dept-in-charge-options">
-                        {DEPT_IN_CHARGE.map(d => <option key={d} value={d} />)}
-                      </datalist>
-                    </>
+                        className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+                    )
                   ) : (
-                    <input value={form[f.key]} onChange={e => update(f.key, e.target.value)}
-                      className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
-                  )
+                    <p className="text-sm text-gray-800 flex items-center gap-2">
+                      <span>{record[f.key as keyof AddressBookRecord] as string || <span className="text-gray-300">—</span>}</span>
+                      {f.withLink && record.company_name && (
+                        <a href={`https://www.google.com/search?q=${encodeURIComponent(record.company_name)}`}
+                          target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </p>
+                  )}
+                </div>
+              ))}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">住所1</label>
+                {editing ? (
+                  <input value={form.address1} onChange={e => update("address1", e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
                 ) : (
-                  <p className="text-sm text-gray-800 flex items-center gap-2">
-                    <span>{record[f.key] || <span className="text-gray-300">—</span>}</span>
-                    {f.key === "company_name" && record.company_name && (
-                      <a href={`https://www.google.com/search?q=${encodeURIComponent(record.company_name)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-blue-600">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </p>
+                  <p className="text-sm text-gray-800">{record.address1 || <span className="text-gray-300">—</span>}</p>
                 )}
               </div>
-            ))}
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">備考</label>
-            {editing ? (
-              <textarea value={form.remarks} onChange={e => update("remarks", e.target.value)}
-                className="w-full border rounded px-3 py-2 text-sm resize-none" rows={3} autoComplete="off" />
-            ) : (
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{record.remarks || <span className="text-gray-300">—</span>}</p>
-            )}
-          </div>
-          {(record.address1 || record.postal_code) && !editing && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">地図</span>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                >
-                  <Map className="w-3 h-3" /> 大きな地図で見る
-                </a>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">住所2</label>
+                {editing ? (
+                  <input value={form.address2} onChange={e => update("address2", e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm" autoComplete="off" />
+                ) : (
+                  <p className="text-sm text-gray-800">{record.address2 || <span className="text-gray-300">—</span>}</p>
+                )}
               </div>
-              <iframe
-                src={`https://maps.google.com/maps?q=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}&output=embed&hl=ja`}
-                className="w-full h-64 rounded border border-gray-200"
-                loading="lazy"
-              />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">備考</label>
+              {editing ? (
+                <textarea value={form.remarks} onChange={e => update("remarks", e.target.value)}
+                  className="w-full border rounded px-3 py-2 text-sm resize-none" rows={3} autoComplete="off" />
+              ) : (
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{record.remarks || <span className="text-gray-300">—</span>}</p>
+              )}
+            </div>
+            {(record.address1 || record.postal_code) && !editing && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-700">地図</span>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                  >
+                    <Map className="w-3 h-3" /> 大きな地図で見る
+                  </a>
+                </div>
+                <iframe
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent([record.postal_code, record.address1, record.address2].filter(Boolean).join(" "))}&output=embed&hl=ja`}
+                  className="w-full h-64 rounded border border-gray-200"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-gray-700">担当者</h2>
+              {editing && (
+                <Button variant="outline" size="sm" onClick={addContact}>
+                  <Plus className="w-4 h-4 mr-1" /> 追加
+                </Button>
+              )}
+            </div>
+            {editing ? (
+              <div className="space-y-4">
+                {contacts.map((c, i) => (
+                  <div key={i} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-600">担当者 {i + 1}</span>
+                      <button onClick={() => removeContact(i)} className="text-red-400 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">部門名</label>
+                        <input value={c.department} onChange={e => updateContact(i, "department", e.target.value)}
+                          className="w-full border rounded px-3 py-1.5 text-sm" autoComplete="off" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">役職名</label>
+                        <input value={c.position} onChange={e => updateContact(i, "position", e.target.value)}
+                          className="w-full border rounded px-3 py-1.5 text-sm" autoComplete="off" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">氏名</label>
+                        <input value={c.name} onChange={e => updateContact(i, "name", e.target.value)}
+                          className="w-full border rounded px-3 py-1.5 text-sm" autoComplete="off" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 mb-1 block">敬称</label>
+                        <input value={c.honorific} onChange={e => updateContact(i, "honorific", e.target.value)}
+                          list="honorific-options" className="w-full border rounded px-3 py-1.5 text-sm" autoComplete="off" />
+                        <datalist id="honorific-options">
+                          {HONORIFICS.map(h => <option key={h} value={h} />)}
+                        </datalist>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {contacts.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-4">担当者がいません。追加ボタンから追加してください。</p>
+                )}
+              </div>
+            ) : (
+              record.contacts.length === 0 ? (
+                <p className="text-sm text-gray-300">—</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {record.contacts.map((c, i) => (
+                    <div key={i} className="py-3 grid grid-cols-2 gap-4 text-sm">
+                      <div><span className="text-gray-500 text-xs">部門</span><p className="text-gray-800">{c.department || "—"}</p></div>
+                      <div><span className="text-gray-500 text-xs">役職</span><p className="text-gray-800">{c.position || "—"}</p></div>
+                      <div><span className="text-gray-500 text-xs">氏名</span><p className="text-gray-800">{c.name ? `${c.name}${c.honorific ? ` ${c.honorific}` : ""}` : "—"}</p></div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

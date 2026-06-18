@@ -20,19 +20,14 @@ export async function POST(req: NextRequest) {
   const dataLines = lines.slice(1)
   const total = dataLines.length
   const chunk = dataLines.slice(offset, offset + CHUNK)
-  const last = await prisma.addressBook.findFirst({ orderBy: { uid: "desc" }, select: { uid: true } })
-  let nextNum = last ? parseInt(last.uid) + 1 : 1
   for (const line of chunk) {
     const cols = line.match(/("([^"]*)"|([^,]*))(,|$)/g)
       ?.map(c => c.replace(/^"|"$|,$/g, "").trim()) ?? []
-    const [uid, company_name, company_name_kana, department, position, name, honorific, postal_code, address1, address2, department_in_charge, remarks] = cols
-    const data = {
+    const [uid, company_name, company_name_kana, postal_code, address1, address2, department_in_charge, remarks, department, position, name, honorific] = cols
+    if (!uid) continue
+    const addressData = {
       company_name: company_name || null,
       company_name_kana: company_name_kana || null,
-      department: department || null,
-      position: position || null,
-      name: name || null,
-      honorific: honorific || null,
       postal_code: postal_code || null,
       address1: address1 || null,
       address2: address2 || null,
@@ -41,13 +36,41 @@ export async function POST(req: NextRequest) {
       flg_del: 0,
       updated_at: new Date(),
     }
-    const targetUid = uid || String(nextNum).padStart(6, "0")
-    if (!uid) nextNum++
-    await prisma.addressBook.upsert({
-      where: { uid: targetUid },
-      update: data,
-      create: { ...data, uid: targetUid },
-    })
+    const existing = await prisma.addressBook.findUnique({ where: { uid } })
+    if (existing) {
+      // 既存レコードの場合：会社情報を更新し、担当者を追加（既存担当者は保持）
+      await prisma.addressBook.update({ where: { uid }, data: addressData })
+      if (name || department || position) {
+        const contactCount = await prisma.addressBookContact.count({ where: { address_book_id: existing.id } })
+        await prisma.addressBookContact.create({
+          data: {
+            address_book_id: existing.id,
+            department: department || null,
+            position: position || null,
+            name: name || null,
+            honorific: honorific || null,
+            sort_order: contactCount,
+          },
+        })
+      }
+    } else {
+      // 新規レコードの場合
+      const newRecord = await prisma.addressBook.create({
+        data: { ...addressData, uid },
+      })
+      if (name || department || position) {
+        await prisma.addressBookContact.create({
+          data: {
+            address_book_id: newRecord.id,
+            department: department || null,
+            position: position || null,
+            name: name || null,
+            honorific: honorific || null,
+            sort_order: 0,
+          },
+        })
+      }
+    }
   }
   const newOffset = offset + chunk.length
   const done = newOffset >= total
