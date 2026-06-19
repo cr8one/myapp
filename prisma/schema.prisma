@@ -1087,3 +1087,35 @@ model AddressBookChangeRequestItem {
   created_at        DateTime                   @default(now())
   @@map("t_address_book_change_request_items")
 }
+
+model OutputList {
+  id         String           @id @default(cuid())
+  uid        String           @unique
+  name       String
+  remarks    String?
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+  items      OutputListItem[]
+  @@map("t_output_lists")
+}
+
+model OutputListItem {
+  id                   String     @id @default(cuid())
+  list_id              String
+  list                 OutputList @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  sort_order           Int        @default(0)
+  company_name         String?
+  company_name_kana    String?
+  postal_code          String?
+  address1             String?
+  address2             String?
+  department_in_charge String?
+  department           String?
+  position             String?
+  name                 String?
+  honorific            String?
+  remarks              String?
+  created_at           DateTime   @default(now())
+  updated_at           DateTime   @updatedAt
+  @@map("t_output_list_items")
+}

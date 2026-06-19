@@ -77,6 +77,7 @@ const baseMenuItems = [
   { label: "住所録", href: "/dashboard/address-book", icon: "addressbook", children: [
     { label: "住所録一覧", href: "/dashboard/address-book" },
     { label: "変更依頼一覧", href: "/dashboard/address-book/change-requests" },
+    { label: "出力リスト", href: "/dashboard/address-book/output-lists" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
