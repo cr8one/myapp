@@ -2,36 +2,48 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 
+const PAGE_SIZE = 50
+function buildWhere(searchParams: URLSearchParams) {
+  const keyword = searchParams.get("keyword")
+  const progress = searchParams.get("progress")
+  return {
+    flg_del: 0,
+    ...(progress ? { progress } : {}),
+    ...(keyword ? {
+      OR: [
+        { hinban: { contains: keyword } },
+        { hinmei: { contains: keyword } },
+        { artist_name: { contains: keyword } },
+        { eigyo_tanto: { contains: keyword } },
+        { seihan_tanto: { contains: keyword } },
+        { biko: { contains: keyword } },
+      ],
+    } : {}),
+  }
+}
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const keyword = searchParams.get("keyword")
-  const progress = searchParams.get("progress")
+  const where = buildWhere(searchParams)
+  const page = parseInt(searchParams.get("page") ?? "1")
 
-  const records = await prisma.dppSchedule.findMany({
-    where: {
-      flg_del: 0,
-      ...(progress ? { progress } : {}),
-      ...(keyword ? {
-        OR: [
-          { hinban: { contains: keyword } },
-          { hinmei: { contains: keyword } },
-          { artist_name: { contains: keyword } },
-          { eigyo_tanto: { contains: keyword } },
-          { seihan_tanto: { contains: keyword } },
-          { biko: { contains: keyword } },
-        ],
-      } : {}),
-    },
-    orderBy: [
-      { nouki_date: "asc" },
-      { nouki_time: "asc" },
-      { created_at: "desc" },
-    ],
-  })
-  return NextResponse.json(records)
+  const [total, records] = await Promise.all([
+    prisma.dppSchedule.count({ where }),
+    prisma.dppSchedule.findMany({
+      where,
+      orderBy: [
+        { nouki_date: "asc" },
+        { nouki_time: "asc" },
+        { created_at: "desc" },
+      ],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ])
+  return NextResponse.json({ records, total })
 }
 
 export async function POST(req: NextRequest) {

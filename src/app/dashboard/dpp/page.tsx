@@ -1,10 +1,11 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Search, Pencil, Trash2 } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Download, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
 const PROGRESS_OPTIONS = ["保留", "入稿待ち", "入稿済", "製版中", "製版済", "出力中", "出力済", "印刷中", "印刷済", "完了"]
 const KOSEI_OPTIONS = ["初校", "再校", "三校", "四校", "五校", "六校", "七校", "八校", "九校"]
@@ -30,6 +31,8 @@ type DppSchedule = {
 }
 type DppMaster = { id: number; name: string; is_active: boolean }
 
+const PAGE_SIZE = 50
+type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 const DIRECT_INPUT = "__direct__"
 
 const emptyForm = {
@@ -83,33 +86,130 @@ function TantoSelect({ label, value, onChange, suggestions }: {
 }
 
 export default function DppPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [records, setRecords] = useState<DppSchedule[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(parseInt(searchParams.get("page") ?? "1"))
   const [eigyoMasters, setEigyoMasters] = useState<DppMaster[]>([])
   const [seihanMasters, setSeihanMasters] = useState<DppMaster[]>([])
   const [loading, setLoading] = useState(true)
-  const [keyword, setKeyword] = useState("")
-  const [progressFilter, setProgressFilter] = useState("")
+  const [keyword, setKeyword] = useState(searchParams.get("keyword") ?? "")
+  const [progressFilter, setProgressFilter] = useState(searchParams.get("progress") ?? "")
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<DppSchedule | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<DppSchedule | null>(null)
+  const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importProgress, setImportProgress] = useState({ count: 0, total: 0 })
+  const [importError, setImportError] = useState("")
+  const [showImport, setShowImport] = useState(false)
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const fetchRecords = async () => {
-    setLoading(true)
+  const buildQuery = (p: number, kw = keyword, pf = progressFilter) => {
     const params = new URLSearchParams()
-    if (keyword) params.set("keyword", keyword)
-    if (progressFilter) params.set("progress", progressFilter)
+    if (kw) params.set("keyword", kw)
+    if (pf) params.set("progress", pf)
+    params.set("page", String(p))
+    return params
+  }
+  const fetchRecords = async (p = page, kw = keyword, pf = progressFilter, syncUrl = true) => {
+    setLoading(true)
+    const params = buildQuery(p, kw, pf)
+    if (syncUrl) router.replace(`/dashboard/dpp?${params.toString()}`)
     const res = await fetch(`/api/dpp/schedules?${params.toString()}`)
-    setRecords(await res.json())
+    const data = await res.json()
+    setRecords(data.records)
+    setTotal(data.total)
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchRecords()
+    const p = parseInt(searchParams.get("page") ?? "1")
+    const kw = searchParams.get("keyword") ?? ""
+    const pf = searchParams.get("progress") ?? ""
+    setPage(p); setKeyword(kw); setProgressFilter(pf)
+    fetchRecords(p, kw, pf, false)
     fetch("/api/dpp/masters?type=eigyo").then(r => r.json()).then(setEigyoMasters)
     fetch("/api/dpp/masters?type=seihan").then(r => r.json()).then(setSeihanMasters)
-  }, [])
+  }, [searchParams])
+
+  const handleSearch = () => {
+    setPage(1)
+    fetchRecords(1)
+  }
+  const handlePage = (next: number) => {
+    setPage(next)
+    fetchRecords(next)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+  const handleExport = () => {
+    const params = buildQuery(1)
+    params.delete("page")
+    window.open(`/api/dpp/schedules/export?${params.toString()}`, "_blank")
+  }
+  const handleImport = async () => {
+    if (!importFile) return
+    setImportStatus("uploading")
+    setImportError("")
+    setImportProgress({ count: 0, total: 0 })
+    try {
+      const presignRes = await fetch("/api/dpp/schedules/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: importFile.name }),
+      })
+      const { url, key } = await presignRes.json()
+      await fetch(url, { method: "PUT", body: importFile, headers: { "Content-Type": "text/csv" } })
+      setImportStatus("importing")
+      let offset = 0
+      let total = 0
+      while (true) {
+        const res = await fetch("/api/dpp/schedules/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, offset }),
+        })
+        const data = await res.json()
+        total = data.total
+        offset = data.offset
+        setImportProgress({ count: offset, total })
+        if (data.done) break
+      }
+      setImportStatus("done")
+      fetchRecords(1)
+    } catch {
+      setImportStatus("error")
+      setImportError("インポート中にエラーが発生しました")
+    }
+  }
+  const resetImport = () => {
+    setImportStatus("idle")
+    setImportFile(null)
+    setImportProgress({ count: 0, total: 0 })
+    setImportError("")
+    setShowImport(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+  const Pagination = () => (
+    <div className="flex items-center justify-between mb-3 px-1">
+      <span className="text-xs text-gray-400">{total}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, total)}件</span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => handlePage(page - 1)} disabled={page <= 1}
+          className="p-1.5 rounded border text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-xs text-gray-500 px-2">{page} / {totalPages || 1}</span>
+        <button onClick={() => handlePage(page + 1)} disabled={page >= totalPages}
+          className="p-1.5 rounded border text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  )
 
   const eigyoSuggestions = eigyoMasters.filter(m => m.is_active).map(m => m.name)
   const seihanSuggestions = seihanMasters.filter(m => m.is_active).map(m => m.name)
@@ -167,12 +267,54 @@ export default function DppPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">DPP予定表</h1>
-          <p className="text-sm text-gray-500 mt-1">{records.length}件</p>
+          <p className="text-sm text-gray-500 mt-1">{total}件</p>
         </div>
-        <Button onClick={openCreate} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />新規登録
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} className="flex items-center gap-1.5">
+            <Download className="w-4 h-4" />CSV出力
+          </Button>
+          <Button variant="outline" onClick={() => setShowImport(s => !s)} className="flex items-center gap-1.5">
+            <Upload className="w-4 h-4" />CSV取込
+          </Button>
+          <Button onClick={openCreate} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />新規登録
+          </Button>
+        </div>
       </div>
+      {showImport && (
+        <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm space-y-3">
+          {importStatus === "idle" && (
+            <div className="flex items-center gap-3">
+              <input ref={fileInputRef} type="file" accept=".csv"
+                onChange={e => setImportFile(e.target.files?.[0] ?? null)}
+                className="text-sm flex-1" />
+              <Button size="sm" onClick={handleImport} disabled={!importFile}>取込開始</Button>
+              <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+          )}
+          {(importStatus === "uploading" || importStatus === "importing") && (
+            <div className="flex items-center gap-2 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+              <span className="text-sm animate-pulse">
+                {importStatus === "uploading" ? "アップロード中..." : `インポート中... ${importProgress.count}/${importProgress.total}件`}
+              </span>
+            </div>
+          )}
+          {importStatus === "done" && (
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm">{importProgress.count}件のインポートが完了しました</span>
+              <button onClick={resetImport} className="ml-auto text-xs text-green-600 hover:text-green-800">閉じる</button>
+            </div>
+          )}
+          {importStatus === "error" && (
+            <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{importError}</span>
+              <button onClick={() => setImportStatus("idle")} className="ml-auto text-xs text-red-600 hover:text-red-800">再試行</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
         <div className="flex gap-3 items-end flex-wrap">
@@ -187,7 +329,7 @@ export default function DppPage() {
             <option value="">進捗：すべて</option>
             {PROGRESS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
-          <Button onClick={fetchRecords} className="flex items-center gap-1">
+          <Button onClick={handleSearch} className="flex items-center gap-1">
             <Search className="w-4 h-4" />検索
           </Button>
         </div>
@@ -198,7 +340,9 @@ export default function DppPage() {
       ) : records.length === 0 ? (
         <p className="text-center text-gray-500 py-8">データがありません。</p>
       ) : (
-        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <>
+          <Pagination />
+          <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -255,7 +399,8 @@ export default function DppPage() {
               </tbody>
             </table>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {modalOpen && (
