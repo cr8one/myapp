@@ -5,13 +5,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Pencil, Plus, Trash2, X, FileText } from "lucide-react"
+import { Pencil, Plus, Trash2, X, FileText, Info } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 const LOCATION_OPTIONS = ["J 1", "島田PC", "島田ダイマト", "本社", "東京ユニオン", "イシイ埼玉", "パックウェル"]
 const HAN_OPTIONS = ["4/6", "菊", "A", "B", "特", "K", "L", "ハトロン"]
+const EDABAN_OPTIONS = ["01", "02", "03", "04", "11", "21"]
+const EDABAN_NOTES: Record<string, string> = {
+  "01": "四六半以上",
+  "02": "A/菊/K半",
+  "03": "3切・4切",
+  "04": "くるみ中芯",
+  "11": "ダイマト専用型（現在ほぼ使用してません）",
+  "21": "UVクリア反転用型",
+}
 const ME_OPTIONS = ["Y", "T"]
 const KIRI_OPTIONS = ["1", "2", "3", "4", "長6", "角6", "8"]
 const MEN_OPTIONS = Array.from({ length: 18 }, (_, i) => String(i + 1))
@@ -451,8 +460,28 @@ export default function DielineDetailPage() {
               <button onClick={() => setChildModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-4 space-y-4">
-              <div><Label className="text-xs">枝番（2桁）</Label>
-                <Input type="number" value={childForm.edaban} onChange={e => setChildForm(f => ({ ...f, edaban: e.target.value }))} autoComplete="off" className="mt-1 h-8 text-sm w-24" placeholder="自動" />
+              <div>
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs">枝番</Label>
+                  <div className="relative group">
+                    <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
+                    <div className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block w-64 bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 space-y-0.5">
+                      <p>-01…四六半以上</p>
+                      <p>-02…A/菊/K半</p>
+                      <p>-03…3切・4切</p>
+                      <p>-04…くるみ中芯</p>
+                      <p>-11…ダイマト専用型（現在ほぼ使用してません）</p>
+                      <p>-21…UVクリア反転用型</p>
+                    </div>
+                  </div>
+                </div>
+                <select value={childForm.edaban} onChange={e => setChildForm(f => ({ ...f, edaban: e.target.value }))} className="mt-1 w-full border rounded px-2 py-1.5 text-sm bg-white">
+                  <option value="">—</option>
+                  {EDABAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                {childForm.edaban && EDABAN_NOTES[childForm.edaban] && (
+                  <p className="text-xs text-gray-400 mt-1">{EDABAN_NOTES[childForm.edaban]}</p>
+                )}
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {[{ label: "判", key: "han", options: HAN_OPTIONS }, { label: "目", key: "me", options: ME_OPTIONS }, { label: "切", key: "kiri", options: KIRI_OPTIONS }, { label: "面", key: "men", options: MEN_OPTIONS }].map(({ label, key, options }) => (
