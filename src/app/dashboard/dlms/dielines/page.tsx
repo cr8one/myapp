@@ -42,15 +42,21 @@ export default function DielinesPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const fetchParents = async (p = page) => {
-    setLoading(true)
+  const buildQuery = (p: number, kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition) => {
     const params = new URLSearchParams()
-    if (genre) params.set("genre", genre)
-    if (spec) params.set("spec", spec)
-    if (hinmoku) params.set("hinmoku", hinmoku)
-    if (condition) params.set("condition", condition)
-    if (keyword) params.set("keyword", keyword)
+    if (gn) params.set("genre", gn)
+    if (sp) params.set("spec", sp)
+    if (hn) params.set("hinmoku", hn)
+    if (cd) params.set("condition", cd)
+    if (kw) params.set("keyword", kw)
     params.set("page", String(p))
+    return params
+  }
+
+  const fetchParents = async (p: number, kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition, syncUrl = true) => {
+    setLoading(true)
+    const params = buildQuery(p, kw, gn, sp, hn, cd)
+    if (syncUrl) router.replace(`/dashboard/dlms/dielines?${params.toString()}`)
     const res = await fetch(`/api/dlms/dielines?${params.toString()}`)
     const data = await res.json()
     setParents(data.records)
@@ -58,7 +64,12 @@ export default function DielinesPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchParents(1) }, [])
+  useEffect(() => { fetchParents(page, keyword, genre, spec, hinmoku, condition, false) }, [])
+
+  const handleClear = () => {
+    setKeyword(""); setGenre(""); setSpec(""); setHinmoku(""); setCondition(""); setPage(1)
+    fetchParents(1, "", "", "", "", "")
+  }
 
   const handleSearch = () => {
     setPage(1)
@@ -497,7 +508,10 @@ export default function DielinesPage() {
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             placeholder="条件" className="h-8 text-sm" autoComplete="off" />
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={handleClear} className="flex items-center gap-1">
+            <X className="w-3 h-3" />クリア
+          </Button>
           <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
             <Search className="w-3 h-3" />検索
           </Button>
@@ -515,7 +529,7 @@ export default function DielinesPage() {
           <div className="space-y-3">
             {parents.map(p => (
               <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}`)}>
+                onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>
                 <CardContent className="pt-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -552,7 +566,7 @@ export default function DielinesPage() {
                     </div>
                     <div className="flex gap-2 ml-4" onClick={e => e.stopPropagation()}>
                       <Button variant="outline" size="sm"
-                        onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}`)}>詳細</Button>
+                        onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>詳細</Button>
                       <Button variant="destructive" size="sm"
                         onClick={e => handleDelete(p.id, e)}>削除</Button>
                     </div>

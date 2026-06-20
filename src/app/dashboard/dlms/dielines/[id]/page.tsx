@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -118,7 +118,10 @@ function PartSizeEdit({ part, index, partsLength, setPart, removePart, addDepth,
 export default function DielineDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
+  const listQuery = searchParams.toString()
+  const [navIds, setNavIds] = useState<string[]>([])
   const [parent, setParent] = useState<Parent | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -147,6 +150,15 @@ export default function DielineDetailPage() {
     fetchParent()
     fetch("/api/dlms/type-conditions?all=true").then(r => r.json()).then(d => setTypeConditions(d.records ?? []))
   }, [id])
+  useEffect(() => {
+    fetch(`/api/dlms/dielines/ids?${listQuery}`).then(r => r.json()).then(d => setNavIds(d.ids ?? []))
+  }, [listQuery])
+  const currentIndex = navIds.indexOf(id)
+  const prevId = currentIndex > 0 ? navIds[currentIndex - 1] : null
+  const nextId = currentIndex >= 0 && currentIndex < navIds.length - 1 ? navIds[currentIndex + 1] : null
+  const goToId = (targetId: string) => {
+    router.push(`/dashboard/dlms/dielines/${targetId}${listQuery ? `?${listQuery}` : ""}`)
+  }
 
   const toggleCondition = (name: string) => {
     setSelectedConditions(prev =>
@@ -263,8 +275,15 @@ export default function DielineDetailPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => router.push("/dashboard/dlms/dielines")}>← 戻る</Button>
+        <Button variant="outline" onClick={() => router.push(`/dashboard/dlms/dielines${listQuery ? `?${listQuery}` : ""}`)}>← 戻る</Button>
         <h1 className="text-2xl font-bold">{parent.uid_ntemp}</h1>
+        {navIds.length > 0 && (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" disabled={!prevId} onClick={() => prevId && goToId(prevId)}>← 前</Button>
+            <span className="text-xs text-gray-400 px-1">{currentIndex + 1} / {navIds.length}</span>
+            <Button variant="outline" size="sm" disabled={!nextId} onClick={() => nextId && goToId(nextId)}>次 →</Button>
+          </div>
+        )}
         {!editing && (
           <div className="ml-auto flex gap-2">
             <Button variant="outline" onClick={startEdit} className="flex items-center gap-1"><Pencil className="w-4 h-4" />編集</Button>
