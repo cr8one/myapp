@@ -64,7 +64,16 @@ export default function DielinesPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchParents(page, keyword, genre, spec, hinmoku, condition, false) }, [])
+  useEffect(() => {
+    const p = parseInt(searchParams.get("page") ?? "1")
+    const kw = searchParams.get("keyword") ?? ""
+    const gn = searchParams.get("genre") ?? ""
+    const sp = searchParams.get("spec") ?? ""
+    const hn = searchParams.get("hinmoku") ?? ""
+    const cd = searchParams.get("condition") ?? ""
+    setPage(p); setKeyword(kw); setGenre(gn); setSpec(sp); setHinmoku(hn); setCondition(cd)
+    fetchParents(p, kw, gn, sp, hn, cd, false)
+  }, [searchParams])
 
   const handleClear = () => {
     setKeyword(""); setGenre(""); setSpec(""); setHinmoku(""); setCondition(""); setPage(1)
