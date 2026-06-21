@@ -808,7 +808,59 @@ model DppSchedule {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
 
+  kikanSnapshotId String?
+  kikanSnapshot   DppKikanTemplateSnapshot? @relation(fields: [kikanSnapshotId], references: [id])
+
   @@map("t_dpp_schedules")
+}
+
+model DppKikanTemplateSnapshot {
+  id                  String    @id @default(cuid())
+  kno                 String
+  case_segment_id     Int?
+  dtindt              String?
+  dtinman             String?
+  dtintm              String?
+  dtupdt              String?
+  dtupman             String?
+  dtuptm              String?
+  gyokai_cd           Int?
+  hinsyu_grp_cd       String?
+  hondenkbn           Int?
+  jt_date             String?
+  media_cd            Int?
+  pp_jtflg            Int?
+  seihin_edano        String?
+  seihin_oyano        String?
+  seihin_syu_cd       Int?
+  seihin_syu_detail_cd Int?
+  shikyuhin_cdrom     Int?
+  shikyuhin_color_film Int?
+  shikyuhin_color_hansya_genko Int?
+  shikyuhin_mail      String?
+  shikyuhin_mail_nm   String?
+  shikyuhin_mo        Int?
+  shikyuhin_monoclo_hansya_genko String?
+  shikyuhin_server    String?
+  tokuicd             String?
+  ttl_hinmei3         String?
+  ttl_hinmeicode      String?
+  ttl_m_hinsyucd      String?
+  ttl_m_tantocd       String?
+  ttl_m_tantoname     String?
+  ttl_nonyudate       String?
+  ttl_note            String?
+  ttl_tokuname1       String?
+  u_id                Int?
+  uri_yotei_date      String?
+
+  imported_at         DateTime  @default(now())
+  imported_by         String?
+
+  dppSchedules        DppSchedule[]
+
+  @@index([kno])
+  @@map("t_dpp_kikan_template_snapshots")
 }
 
 model DppEigyoMaster {
