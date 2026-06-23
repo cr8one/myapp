@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Search, Pencil, Trash2, Download, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Download, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Database } from "lucide-react"
 
 const PROGRESS_OPTIONS = ["保留", "入稿待ち", "入稿済", "製版中", "製版済", "出力中", "出力済", "印刷中", "印刷済", "完了"]
 const KOSEI_OPTIONS = ["初校", "再校", "三校", "四校", "五校", "六校", "七校", "八校", "九校"]
@@ -194,6 +194,49 @@ export default function DppPage() {
     setShowImport(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
+  const [showKikan, setShowKikan] = useState(false)
+  const [kikanFrom, setKikanFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 7)
+    return d.toLocaleDateString("sv-SE")
+  })
+  const [kikanTo, setKikanTo] = useState(() => new Date().toLocaleDateString("sv-SE"))
+  const [kikanResults, setKikanResults] = useState<Record<string, string>[]>([])
+  const [kikanSelected, setKikanSelected] = useState<string[]>([])
+  const [kikanLoading, setKikanLoading] = useState(false)
+  const [kikanImporting, setKikanImporting] = useState(false)
+  const [kikanMessage, setKikanMessage] = useState("")
+
+  const handleKikanSearch = async () => {
+    setKikanLoading(true)
+    setKikanMessage("")
+    setKikanResults([])
+    setKikanSelected([])
+    const from = kikanFrom.replace(/-/g, "/")
+    const to = kikanTo.replace(/-/g, "/")
+    const res = await fetch(`/api/dpp/kikan/search?from=${from}&to=${to}`)
+    if (!res.ok) { setKikanMessage("取得エラー"); setKikanLoading(false); return }
+    const data = await res.json()
+    setKikanResults(data)
+    setKikanMessage(`${data.length}件取得しました`)
+    setKikanLoading(false)
+  }
+
+  const handleKikanImport = async () => {
+    if (kikanSelected.length === 0) return
+    setKikanImporting(true)
+    setKikanMessage("")
+    const res = await fetch("/api/dpp/kikan/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ knoList: kikanSelected }),
+    })
+    const data = await res.json()
+    const ok = data.results?.filter((r: Record<string, string>) => r.status === "ok").length ?? 0
+    setKikanMessage(`${ok}件取り込みました`)
+    setKikanSelected([])
+    setKikanImporting(false)
+  }
+
   const Pagination = () => (
     <div className="flex items-center justify-between mb-3 px-1">
       <span className="text-xs text-gray-400">{total}件中 {(page - 1) * PAGE_SIZE + 1}〜{Math.min(page * PAGE_SIZE, total)}件</span>
@@ -276,11 +319,78 @@ export default function DppPage() {
           <Button variant="outline" onClick={() => setShowImport(s => !s)} className="flex items-center gap-1.5">
             <Upload className="w-4 h-4" />CSV取込
           </Button>
+          <Button variant="outline" onClick={() => { setShowKikan(s => !s); setShowImport(false) }} className="flex items-center gap-1.5">
+            <Database className="w-4 h-4" />基幹取込
+          </Button>
           <Button onClick={openCreate} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />新規登録
           </Button>
         </div>
       </div>
+      {showKikan && (
+        <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm space-y-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">更新日付</label>
+              <input type="date" value={kikanFrom} onChange={e => setKikanFrom(e.target.value)}
+                className="h-8 border rounded px-2 text-sm" />
+              <span className="text-xs text-gray-400">〜</span>
+              <input type="date" value={kikanTo} onChange={e => setKikanTo(e.target.value)}
+                className="h-8 border rounded px-2 text-sm" />
+            </div>
+            <Button size="sm" onClick={handleKikanSearch} disabled={kikanLoading}>
+              {kikanLoading ? "検索中..." : "検索"}
+            </Button>
+            {kikanSelected.length > 0 && (
+              <Button size="sm" onClick={handleKikanImport} disabled={kikanImporting} className="bg-green-600 hover:bg-green-700">
+                {kikanImporting ? "取込中..." : `${kikanSelected.length}件を取込`}
+              </Button>
+            )}
+            <button onClick={() => setShowKikan(false)} className="ml-auto text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+          </div>
+          {kikanMessage && <p className="text-xs text-gray-500">{kikanMessage}</p>}
+          {kikanResults.length > 0 && (
+            <div className="overflow-x-auto max-h-80 overflow-y-auto border rounded">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left">
+                      <input type="checkbox"
+                        checked={kikanSelected.length === kikanResults.length}
+                        onChange={e => setKikanSelected(e.target.checked ? kikanResults.map(r => r.kno) : [])} />
+                    </th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">受注No</th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">品名</th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">得意先</th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">担当者</th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">納期</th>
+                    <th className="px-2 py-1.5 text-left text-gray-600">更新日</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {kikanResults.map(r => (
+                    <tr key={r.kno} className="hover:bg-blue-50">
+                      <td className="px-2 py-1.5">
+                        <input type="checkbox"
+                          checked={kikanSelected.includes(r.kno)}
+                          onChange={e => setKikanSelected(prev =>
+                            e.target.checked ? [...prev, r.kno] : prev.filter(k => k !== r.kno)
+                          )} />
+                      </td>
+                      <td className="px-2 py-1.5 font-mono text-gray-700">{r.kno}</td>
+                      <td className="px-2 py-1.5 text-gray-600 max-w-[160px] truncate">{r.ttl_hinmei3 ?? "—"}</td>
+                      <td className="px-2 py-1.5 text-gray-600">{r.ttl_tokuname1 ?? "—"}</td>
+                      <td className="px-2 py-1.5 text-gray-600">{r.ttl_m_tantoname ?? "—"}</td>
+                      <td className="px-2 py-1.5 text-gray-600">{r.ttl_nonyudate ?? "—"}</td>
+                      <td className="px-2 py-1.5 text-gray-400">{r.dtupdt ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
       {showImport && (
         <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm space-y-3">
           {importStatus === "idle" && (
