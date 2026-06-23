@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const bridgeKey = process.env.PRINSER_BRIDGE_API_KEY
   if (!bridgeUrl || !bridgeKey) return NextResponse.json({ error: "Bridge not configured" }, { status: 500 })
 
-  const results: { kno: string; status: string; snapshotId?: string }[] = []
+  const results: { kno: string; status: string; snapshotId?: string; scheduleId?: string }[] = []
 
   for (const kno of knoList) {
     try {
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
 
       const d = await res.json()
 
+      // スナップショット保存
       const snapshot = await prisma.dppKikanTemplateSnapshot.create({
         data: {
           kno: d.kno ?? kno,
@@ -76,8 +77,32 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      results.push({ kno, status: "ok", snapshotId: snapshot.id })
-    } catch {
+      // schedule_no採番
+      const last = await prisma.dppSchedule.findFirst({
+        orderBy: { schedule_no: "desc" },
+      })
+      const nextNo = last
+        ? String(parseInt(last.schedule_no) + 1).padStart(5, "0")
+        : "00001"
+
+      // DppSchedule自動作成（基幹由来の情報を初期値として設定）
+      const schedule = await prisma.dppSchedule.create({
+        data: {
+          schedule_no: nextNo,
+          hinban: d.seihin_oyano ? `${d.seihin_oyano}${d.seihin_edano ? `-${d.seihin_edano}` : ""}` : null,
+          hinmei: d.ttl_hinmei3 ?? null,
+          artist_name: d.ttl_tokuname1 ?? null,
+          kosei_stage: "初校",
+          nouki_date: d.ttl_nonyudate ? new Date(d.ttl_nonyudate.replace(/\//g, "-")) : null,
+          progress: "入稿待ち",
+          eigyo_tanto: d.ttl_m_tantoname ?? null,
+          kikanSnapshotId: snapshot.id,
+        },
+      })
+
+      results.push({ kno, status: "ok", snapshotId: snapshot.id, scheduleId: schedule.id })
+    } catch (e) {
+      console.error(e)
       results.push({ kno, status: "error" })
     }
   }
