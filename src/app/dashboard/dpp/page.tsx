@@ -22,12 +22,23 @@ const PROGRESS_COLORS: Record<string, string> = {
   "完了":    "bg-gray-200 text-gray-600",
 }
 
+type KikanSnapshot = {
+  kno: string
+  ttl_hinmei3: string | null
+  ttl_tokuname1: string | null
+  ttl_m_tantoname: string | null
+  ttl_nonyudate: string | null
+  seihin_oyano: string | null
+  seihin_edano: string | null
+  imported_at: string | null
+}
 type DppSchedule = {
   id: string; schedule_no: string; hinban: string | null; hinmei: string | null
   artist_name: string | null; kosei_stage: string | null
   nouki_date: string | null; nouki_time: string | null
   progress: string | null; eigyo_tanto: string | null; seihan_tanto: string | null
   biko: string | null; shuukei_daisuu: number | null
+  kikanSnapshot: KikanSnapshot | null
 }
 type DppMaster = { id: number; name: string; is_active: boolean }
 
@@ -520,6 +531,18 @@ export default function DppPage() {
               <h2 className="text-lg font-bold text-gray-800">{editTarget ? "予定を編集" : "予定を新規登録"}</h2>
             </div>
             <div className="overflow-y-auto flex-1 px-6 py-4">
+              {editTarget?.kikanSnapshot && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-gray-600 space-y-1">
+                  <p className="font-medium text-blue-700 mb-1.5">基幹情報（参照）受注No: {editTarget.kikanSnapshot.kno}</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div><span className="text-gray-400">品名：</span>{editTarget.kikanSnapshot.ttl_hinmei3 ?? "—"}</div>
+                    <div><span className="text-gray-400">得意先：</span>{editTarget.kikanSnapshot.ttl_tokuname1 ?? "—"}</div>
+                    <div><span className="text-gray-400">営業担当：</span>{editTarget.kikanSnapshot.ttl_m_tantoname ?? "—"}</div>
+                    <div><span className="text-gray-400">基幹納期：</span>{editTarget.kikanSnapshot.ttl_nonyudate ?? "—"}</div>
+                    <div><span className="text-gray-400">取込日時：</span>{editTarget.kikanSnapshot.imported_at ? new Date(editTarget.kikanSnapshot.imported_at).toLocaleString("ja-JP") : "—"}</div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">品番</Label>

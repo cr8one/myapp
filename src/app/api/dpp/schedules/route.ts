@@ -34,6 +34,20 @@ export async function GET(req: NextRequest) {
     prisma.dppSchedule.count({ where }),
     prisma.dppSchedule.findMany({
       where,
+      include: {
+        kikanSnapshot: {
+          select: {
+            kno: true,
+            ttl_hinmei3: true,
+            ttl_tokuname1: true,
+            ttl_m_tantoname: true,
+            ttl_nonyudate: true,
+            seihin_oyano: true,
+            seihin_edano: true,
+            imported_at: true,
+          },
+        },
+      },
       orderBy: [
         { nouki_date: "asc" },
         { nouki_time: "asc" },
