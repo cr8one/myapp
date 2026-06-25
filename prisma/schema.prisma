@@ -810,8 +810,54 @@ model DppSchedule {
 
   kikanSnapshotId String?
   kikanSnapshot   DppKikanTemplateSnapshot? @relation(fields: [kikanSnapshotId], references: [id])
+  parts           DppSchedulePart[]
 
   @@map("t_dpp_schedules")
+}
+
+model DppSchedulePart {
+  id                        String    @id @default(cuid())
+  schedule_id               String
+  schedule                  DppSchedule @relation(fields: [schedule_id], references: [id])
+  siyou_u_id                String?
+  part_name                 String?
+  kosei_shu                 String?
+  kosei_dankai              String?
+  yoshi_name                String?
+  yoshi_renryo              String?
+  iro_omote                 String?
+  iro_ura                   String?
+  maisu                     String?
+  mentuke_daisuu            Int?
+  page                      String?
+  nyuko_date                DateTime?
+  nyuko_time                String?
+  shiagari_date             DateTime?
+  shiagari_time             String?
+  biko                      String?
+  biko_shiyosho             String?
+  flg_dgs                   Int       @default(0)
+  dgs_sensuu                String?
+  dgs_seikei_teishutsu      Int?
+  dgs_kako_ari_teishutsu    Int?
+  dgs_kako_nashi_teishutsu  Int?
+  dgs_kako_ari_hikae        Int?
+  dgs_kako_nashi_hikae      Int?
+  dgs_kako_ari_sosuu        Int?
+  dgs_kako_nashi_sosuu      Int?
+  dgs_sosuu                 Int?
+  dgs_yohaku_ari_maisu      Int?
+  dgs_taira_ari_maisu       Int?
+  dgs_yohaku_nashi_maisu    Int?
+  dgs_taira_nashi_maisu     Int?
+  dgs_hikae_goukei          Int?
+  sort_order                Int       @default(0)
+  flg_del                   Int       @default(0)
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+
+  @@index([schedule_id])
+  @@map("t_dpp_schedule_parts")
 }
 
 model DppKikanTemplateSnapshot {
