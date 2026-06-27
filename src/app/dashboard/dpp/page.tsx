@@ -285,6 +285,84 @@ export default function DppPage() {
       biko: r.biko ?? "", shuukei_daisuu: r.shuukei_daisuu?.toString() ?? "",
     })
     setModalOpen(true)
+    fetchParts(r.id)
+  }
+
+  // パーツ管理
+  type DppPart = {
+    id: string; part_name: string | null; kosei_shu: string | null; kosei_dankai: string | null
+    yoshi_name: string | null; yoshi_renryo: string | null; iro_omote: string | null; iro_ura: string | null
+    maisu: string | null; mentuke_daisuu: number | null; page: string | null
+    nyuko_date: string | null; nyuko_time: string | null; shiagari_date: string | null; shiagari_time: string | null
+    biko: string | null; biko_shiyosho: string | null; flg_dgs: number; sort_order: number
+  }
+  const emptyPartForm = {
+    part_name: "", kosei_shu: "", kosei_dankai: "初校", yoshi_name: "", yoshi_renryo: "",
+    iro_omote: "", iro_ura: "", maisu: "", mentuke_daisuu: "", page: "",
+    nyuko_date: "", nyuko_time: "", shiagari_date: "", shiagari_time: "",
+    biko: "", biko_shiyosho: "", flg_dgs: "0",
+  }
+  const [parts, setParts] = useState<DppPart[]>([])
+  const [partModalOpen, setPartModalOpen] = useState(false)
+  const [editPart, setEditPart] = useState<DppPart | null>(null)
+  const [partForm, setPartForm] = useState(emptyPartForm)
+  const [partSaving, setPartSaving] = useState(false)
+
+  const fetchParts = async (scheduleId: string) => {
+    const res = await fetch(`/api/dpp/schedules/${scheduleId}/parts`)
+    if (res.ok) setParts(await res.json())
+  }
+
+  const openPartCreate = () => {
+    setEditPart(null)
+    setPartForm(emptyPartForm)
+    setPartModalOpen(true)
+  }
+
+  const openPartEdit = (p: DppPart) => {
+    setEditPart(p)
+    setPartForm({
+      part_name: p.part_name ?? "", kosei_shu: p.kosei_shu ?? "", kosei_dankai: p.kosei_dankai ?? "初校",
+      yoshi_name: p.yoshi_name ?? "", yoshi_renryo: p.yoshi_renryo ?? "",
+      iro_omote: p.iro_omote ?? "", iro_ura: p.iro_ura ?? "",
+      maisu: p.maisu ?? "", mentuke_daisuu: p.mentuke_daisuu?.toString() ?? "", page: p.page ?? "",
+      nyuko_date: p.nyuko_date ? p.nyuko_date.split("T")[0] : "",
+      nyuko_time: p.nyuko_time ?? "",
+      shiagari_date: p.shiagari_date ? p.shiagari_date.split("T")[0] : "",
+      shiagari_time: p.shiagari_time ?? "",
+      biko: p.biko ?? "", biko_shiyosho: p.biko_shiyosho ?? "", flg_dgs: p.flg_dgs.toString(),
+    })
+    setPartModalOpen(true)
+  }
+
+  const handlePartSave = async () => {
+    if (!editTarget) return
+    setPartSaving(true)
+    try {
+      if (editPart) {
+        await fetch(`/api/dpp/schedules/${editTarget.id}/parts`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editPart.id, ...partForm }),
+        })
+      } else {
+        await fetch(`/api/dpp/schedules/${editTarget.id}/parts`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(partForm),
+        })
+      }
+      setPartModalOpen(false)
+      fetchParts(editTarget.id)
+    } finally { setPartSaving(false) }
+  }
+
+  const handlePartDelete = async (partId: string) => {
+    if (!editTarget) return
+    if (!confirm("このパーツを削除しますか？")) return
+    await fetch(`/api/dpp/schedules/${editTarget.id}/parts`, {
+      method: "DELETE", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: partId }),
+    })
+    fetchParts(editTarget.id)
   }
 
   const handleSave = async () => {
@@ -593,12 +671,148 @@ export default function DppPage() {
                   <Textarea value={form.biko} onChange={e => setForm(f => ({ ...f, biko: e.target.value }))} rows={3} className="text-sm" />
                 </div>
               </div>
+              {editTarget && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">パーツ一覧</span>
+                    <Button size="sm" onClick={openPartCreate} className="flex items-center gap-1">
+                      <Plus className="w-3 h-3" />追加
+                    </Button>
+                  </div>
+                  {parts.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-2">パーツがありません</p>
+                  ) : (
+                    <div className="border rounded overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            {["パーツ名","校正種","校正段階","用紙名","色表","色裏","枚数","入稿日","仕上日",""].map(h => (
+                              <th key={h} className="px-2 py-1.5 text-left text-gray-600 font-medium whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {parts.map(p => (
+                            <tr key={p.id} className="hover:bg-gray-50">
+                              <td className="px-2 py-1.5">{p.part_name ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.kosei_shu ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.kosei_dankai ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.yoshi_name ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.iro_omote ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.iro_ura ?? "—"}</td>
+                              <td className="px-2 py-1.5">{p.maisu ?? "—"}</td>
+                              <td className="px-2 py-1.5 whitespace-nowrap">{p.nyuko_date ? new Date(p.nyuko_date).toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit"}) : "—"}</td>
+                              <td className="px-2 py-1.5 whitespace-nowrap">{p.shiagari_date ? new Date(p.shiagari_date).toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit"}) : "—"}</td>
+                              <td className="px-2 py-1.5">
+                                <div className="flex gap-1">
+                                  <button onClick={() => openPartEdit(p)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-3 h-3" /></button>
+                                  <button onClick={() => handlePartDelete(p.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t flex justify-end gap-2 flex-shrink-0">
               <Button variant="outline" onClick={() => setModalOpen(false)}>キャンセル</Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? "保存中..." : "保存"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {partModalOpen && editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b flex-shrink-0 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-800">{editPart ? "パーツを編集" : "パーツを追加"}</h2>
+              <button onClick={() => setPartModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">パーツ名</Label>
+                  <Input value={partForm.part_name} onChange={e => setPartForm(f => ({ ...f, part_name: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">校正種</Label>
+                  <Input value={partForm.kosei_shu} onChange={e => setPartForm(f => ({ ...f, kosei_shu: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">校正段階</Label>
+                  <select value={partForm.kosei_dankai} onChange={e => setPartForm(f => ({ ...f, kosei_dankai: e.target.value }))} className="w-full h-8 border rounded px-2 text-sm bg-white">
+                    {["初校","再校","三校","四校","五校","六校","七校","八校","九校"].map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">用紙名</Label>
+                  <Input value={partForm.yoshi_name} onChange={e => setPartForm(f => ({ ...f, yoshi_name: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">用紙連量</Label>
+                  <Input value={partForm.yoshi_renryo} onChange={e => setPartForm(f => ({ ...f, yoshi_renryo: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">色表</Label>
+                  <Input value={partForm.iro_omote} onChange={e => setPartForm(f => ({ ...f, iro_omote: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">色裏</Label>
+                  <Input value={partForm.iro_ura} onChange={e => setPartForm(f => ({ ...f, iro_ura: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">枚数</Label>
+                  <Input value={partForm.maisu} onChange={e => setPartForm(f => ({ ...f, maisu: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">面付台数</Label>
+                  <Input type="number" value={partForm.mentuke_daisuu} onChange={e => setPartForm(f => ({ ...f, mentuke_daisuu: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">頁</Label>
+                  <Input value={partForm.page} onChange={e => setPartForm(f => ({ ...f, page: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">入稿日付</Label>
+                  <Input type="date" value={partForm.nyuko_date} onChange={e => setPartForm(f => ({ ...f, nyuko_date: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">入稿時刻</Label>
+                  <Input value={partForm.nyuko_time} onChange={e => setPartForm(f => ({ ...f, nyuko_time: e.target.value }))} placeholder="例：12:00" autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">仕上日付</Label>
+                  <Input type="date" value={partForm.shiagari_date} onChange={e => setPartForm(f => ({ ...f, shiagari_date: e.target.value }))} className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">仕上時刻</Label>
+                  <Input value={partForm.shiagari_time} onChange={e => setPartForm(f => ({ ...f, shiagari_time: e.target.value }))} placeholder="例：12:00" autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">備考</Label>
+                  <Input value={partForm.biko} onChange={e => setPartForm(f => ({ ...f, biko: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">備考（仕様書）</Label>
+                  <Input value={partForm.biko_shiyosho} onChange={e => setPartForm(f => ({ ...f, biko_shiyosho: e.target.value }))} autoComplete="off" className="h-8 text-sm" />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <input type="checkbox" id="flg_dgs" checked={partForm.flg_dgs === "1"}
+                    onChange={e => setPartForm(f => ({ ...f, flg_dgs: e.target.checked ? "1" : "0" }))} />
+                  <label htmlFor="flg_dgs" className="text-xs text-gray-600">DGS案件</label>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-2 flex-shrink-0">
+              <Button variant="outline" onClick={() => setPartModalOpen(false)}>キャンセル</Button>
+              <Button onClick={handlePartSave} disabled={partSaving}>{partSaving ? "保存中..." : "保存"}</Button>
             </div>
           </div>
         </div>
