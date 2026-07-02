@@ -930,6 +930,73 @@ model DppSeihanMaster {
 
   @@map("m_dpp_seihan")
 }
+
+model DppScheduleArchive {
+  id              String    @id @default(cuid())
+  sc_id           String    @unique
+  hinban          String?
+  hinmei          String?
+  artist_name     String?
+  kosei_stage     String?
+  nouki_date      DateTime?
+  nouki_time      String?
+  progress        String?
+  eigyo_tanto     String?
+  seihan_tanto    String?
+  biko            String?
+  shuukei_daisuu  Decimal?  @db.Decimal(10, 2)
+  fm_created_at   DateTime?
+  fm_updated_at   DateTime?
+  imported_at     DateTime  @default(now())
+
+  parts DppScheduleArchivePart[]
+
+  @@map("t_dpp_schedule_archive")
+}
+
+model DppScheduleArchivePart {
+  id                              String    @id @default(cuid())
+  dsi_u_id                        String    @unique
+  siyou_u_id                      String?
+  page                            String?
+  biko                            String?
+  biko_siyou                      String?
+  kosei_type                      String?
+  kosei_stage                     String?
+  paper_name                      String?
+  paper_weight                    String?
+  part_name                       String?
+  color_omote                     String?
+  color_ura                       String?
+  maisu                           String?
+  menzuke_daisuu                  Int?
+  flg_dgs                         String?
+  dgs_sensuu                      String?
+  dgs_seikei_teishutsu            Int?
+  dgs_kakou_ari_teishutsu         Int?
+  dgs_kakou_nashi_teishutsu       Int?
+  dgs_kakou_ari_hikae             Int?
+  dgs_kakou_nashi_hikae           Int?
+  dgs_kakou_ari_sousuu            Int?
+  dgs_kakou_nashi_sousuu          Int?
+  dgs_sousuu                      Int?
+  dgs_yohaku_dansai_ari_maisu     Int?
+  dgs_yohaku_dansai_nashi_maisu   Int?
+  dgs_hira_ari_maisu              Int?
+  dgs_hira_nashi_maisu            Int?
+  dgs_hikae_goukei                Int?
+  nyuko_date                      DateTime?
+  nyuko_time                      String?
+  shiage_date                     DateTime?
+  shiage_time                     String?
+  fm_created_at                   DateTime?
+  fm_updated_at                   DateTime?
+
+  scId     String
+  schedule DppScheduleArchive @relation(fields: [scId], references: [sc_id])
+
+  @@map("t_dpp_schedule_archive_parts")
+}
 model CadRequest {
   id              String    @id @default(cuid())
   uid             String    @unique

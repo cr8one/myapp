@@ -1,8 +1,11 @@
-export default function Page() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-800">準備中</h1>
-      <p className="text-gray-500 mt-2">予定表アーカイブは現在開発中です。</p>
-    </div>
-  )
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import DppArchiveClient from "./DppArchiveClient"
+
+export default async function DppArchivePage() {
+  const session = await auth()
+  if (!session) redirect("/login")
+  const isAdmin = session.user?.role === "ADMIN"
+
+  return <DppArchiveClient isAdmin={isAdmin} />
 }
