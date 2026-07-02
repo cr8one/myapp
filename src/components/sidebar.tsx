@@ -100,7 +100,9 @@ const baseMenuItems = [
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
   ]},
   { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
-    { label: "予定表", href: "/dashboard/dpp" },
+    { label: "予定表", href: "/dashboard/dpp/schedule" },
+    { label: "予定表アーカイブ", href: "/dashboard/dpp/archive" },
+    { label: "データ保管台帳", href: "/dashboard/dpp/storage-ledger" },
     { label: "DPPマスタ管理", href: "/dashboard/dpp/masters" },
   ]},
   { label: "SSSS", href: "/dashboard/ssss", icon: "ssss", children: [
