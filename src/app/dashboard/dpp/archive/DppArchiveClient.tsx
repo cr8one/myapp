@@ -335,7 +335,21 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
           <Pagination />
           <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-[15px]">
+              <table className="w-full text-[15px] table-fixed">
+                <colgroup>
+                  <col style={{ width: "32px" }} />
+                  <col style={{ width: "90px" }} />
+                  <col style={{ width: "70px" }} />
+                  <col style={{ width: "110px" }} />
+                  <col style={{ width: "220px" }} />
+                  <col style={{ width: "140px" }} />
+                  <col style={{ width: "100px" }} />
+                  <col style={{ width: "90px" }} />
+                  <col style={{ width: "70px" }} />
+                  <col style={{ width: "90px" }} />
+                  <col style={{ width: "90px" }} />
+                  <col style={{ width: "auto" }} />
+                </colgroup>
                 <thead className="bg-gray-100 border-b">
                   <tr className="text-xs">
                     <th className="px-3 py-2.5 w-8"></th>
@@ -381,9 +395,9 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                           ? <span className="text-sm bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{r.kosei_stage}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-3 text-sm font-medium text-gray-600 whitespace-nowrap">{r.hinban ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-3 text-lg font-bold text-gray-900 max-w-[200px]"><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
-                      <td className="px-3 py-3 text-sm text-gray-600 max-w-[140px]"><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-sm font-medium text-gray-600 truncate" title={r.hinban ?? ""}>{r.hinban ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-3 py-3 text-lg font-bold text-gray-900" title={r.hinmei ?? ""}><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-sm text-gray-600" title={r.artist_name ?? ""}><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
                       <td className="px-3 py-3 whitespace-nowrap text-gray-800">
                         {r.nouki_date
                           ? <span className="text-lg font-bold">{new Date(r.nouki_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })}</span>
@@ -398,11 +412,11 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                       <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{r.shuukei_daisuu ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{r.eigyo_tanto ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{r.seihan_tanto ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-3 text-xs text-gray-400 max-w-[160px]"><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-xs text-gray-400" title={r.biko ?? ""}><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={12} className="bg-gray-50 px-6 py-3">
+                        <td colSpan={12} className="bg-slate-50 px-6 py-4 border-t-2 border-b-2 border-slate-200">
                           {isLoadingParts ? (
                             <p className="text-xs text-gray-400 py-2">読み込み中...</p>
                           ) : !parts || parts.length === 0 ? (
@@ -410,17 +424,17 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                           ) : (
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="bg-slate-600 text-white">
-                                  <th className="text-left px-2 py-2 font-semibold rounded-l">パーツ名</th>
-                                  <th className="text-left px-2 py-2 font-semibold">頁</th>
-                                  <th className="text-left px-2 py-2 font-semibold">色表/色裏</th>
-                                  <th className="text-left px-2 py-2 font-semibold">校正種/枚数</th>
-                                  <th className="text-left px-2 py-2 font-semibold">用紙名/連量</th>
-                                  <th className="text-left px-2 py-2 font-semibold">面付</th>
-                                  <th className="text-left px-2 py-2 font-semibold">仕様書備考</th>
-                                  <th className="text-left px-2 py-2 font-semibold">備考</th>
-                                  <th className="text-left px-2 py-2 font-semibold">入稿日時</th>
-                                  <th className="text-left px-2 py-2 font-semibold rounded-r">仕上日時</th>
+                                <tr className="border-b-2 border-gray-300">
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">パーツ名</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">頁</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">色表/色裏</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">校正種/枚数</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">用紙名/連量</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">面付</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">仕様書備考</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">備考</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">入稿日時</th>
+                                  <th className="text-left px-2 py-2 font-semibold text-gray-500">仕上日時</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200 bg-white">
