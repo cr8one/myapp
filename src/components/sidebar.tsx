@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -190,6 +190,8 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
 
   const [manualOverrides, setManualOverrides] = useState<Record<string, boolean>>({})
   useEffect(() => { setManualOverrides({}) }, [pathname])
+  const [collapsed, setCollapsed] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const isOpen = (label: string) => label in manualOverrides ? manualOverrides[label] : isMenuOpen(label)
   const toggleMenu = (label: string) => setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
 
@@ -235,8 +237,22 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   }
 
   return (
-    <aside className="w-56 min-h-screen bg-white border-r">
-      <nav className="py-4">
+    <aside className={`${collapsed ? "w-16" : "w-56"} min-h-screen bg-white border-r transition-all duration-200 flex-shrink-0`}>
+      <div className="border-b">
+        {collapsed ? (
+          <button onClick={() => setCollapsed(c => !c)} title="サイドバーを開く"
+            className="flex items-center justify-center w-full py-3 hover:bg-gray-50 text-gray-400 hover:text-gray-600">
+            <PanelLeftOpen className="w-4 h-4 flex-shrink-0" />
+          </button>
+        ) : (
+          <button onClick={() => setCollapsed(c => !c)}
+            className="flex items-center gap-2 w-full px-6 py-3 text-sm hover:bg-gray-50 text-gray-500 hover:text-gray-700">
+            <PanelLeftClose className="w-4 h-4 flex-shrink-0" />
+            折りたたむ
+          </button>
+        )}
+      </div>
+      <nav className="py-2">
         {menuItems.map(item => {
           const viewable = canView(item.icon)
           if (item.children) {
@@ -247,10 +263,34 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
             if (!viewable) {
               return (
                 <div key={item.label}>
-                  <span className="flex items-center gap-2 px-6 py-3 text-sm text-gray-300 cursor-not-allowed select-none">
+                  <span className={`flex items-center gap-2 py-3 text-sm text-gray-300 cursor-not-allowed select-none ${collapsed ? "justify-center px-0" : "px-6"}`}>
                     {item.icon && <MenuIcon icon={item.icon} className="w-4 h-4 flex-shrink-0 text-gray-300" />}
-                    {item.label}
+                    {!collapsed && item.label}
                   </span>
+                </div>
+              )
+            }
+            if (collapsed) {
+              return (
+                <div key={item.label} className="relative"
+                  onMouseEnter={() => setHoveredItem(item.label)}
+                  onMouseLeave={() => setHoveredItem(null)}>
+                  {hasHref ? (
+                    <Link href={item.href!}
+                      className={`flex items-center justify-center py-3 hover:bg-gray-50 ${isActive ? "bg-gray-50" : ""}`}>
+                      {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
+                    </Link>
+                  ) : (
+                    <div className={`flex items-center justify-center py-3 ${isActive ? "bg-gray-50" : ""}`}>
+                      {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500"}`} />}
+                    </div>
+                  )}
+                  {hoveredItem === item.label && (
+                    <div className="absolute left-full top-0 ml-0 w-56 bg-white border rounded-r-lg shadow-lg z-50 py-2">
+                      <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b">{item.label}</div>
+                      {renderChildren(item.children, 0)}
+                    </div>
+                  )}
                 </div>
               )
             }
@@ -274,6 +314,16 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
                   </button>
                 </div>
                 {open && <div className="bg-gray-50">{renderChildren(item.children)}</div>}
+              </div>
+            )
+          }
+          if (collapsed) {
+            return (
+              <div key={item.href} className="relative group">
+                <Link href={item.href!} title={item.label}
+                  className={`flex items-center justify-center py-3 hover:bg-gray-50 ${pathname === item.href ? "bg-gray-100" : ""}`}>
+                  {item.icon && <MenuIcon icon={item.icon} className={`w-4 h-4 flex-shrink-0 ${pathname === item.href ? "text-blue-600" : "text-gray-500"}`} />}
+                </Link>
               </div>
             )
           }
