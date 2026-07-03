@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
 
 const PROGRESS_OPTIONS = ["保留", "入稿待ち", "入稿済", "製版中", "製版済", "出力中", "出力済", "印刷中", "印刷済", "完了"]
 const PROGRESS_COLORS: Record<string, string> = {
@@ -26,6 +26,17 @@ type DppScheduleArchive = {
   progress: string | null; eigyo_tanto: string | null; seihan_tanto: string | null
   biko: string | null; shuukei_daisuu: number | null
 }
+type DppScheduleArchivePart = {
+  id: string; dsi_u_id: string
+  page: string | null; part_name: string | null
+  kosei_type: string | null; kosei_stage: string | null
+  paper_name: string | null; paper_weight: string | null
+  color_omote: string | null; color_ura: string | null
+  maisu: string | null; menzuke_daisuu: number | null
+  nyuko_date: string | null; nyuko_time: string | null
+  shiage_date: string | null; shiage_time: string | null
+  biko: string | null
+}
 const PAGE_SIZE = 50
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 type ImportTarget = "schedules" | "parts"
@@ -40,6 +51,10 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState(searchParams.get("keyword") ?? "")
   const [progressFilter, setProgressFilter] = useState(searchParams.get("progress") ?? "")
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [partsCache, setPartsCache] = useState<Record<string, DppScheduleArchivePart[]>>({})
+  const [partsLoading, setPartsLoading] = useState<Set<string>>(new Set())
 
   const [showImport, setShowImport] = useState(false)
   const [importTarget, setImportTarget] = useState<ImportTarget>("schedules")
@@ -76,6 +91,32 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
     setPage(p); setKeyword(kw); setProgressFilter(pf)
     fetchRecords(p, kw, pf, false)
   }, [searchParams])
+
+  const toggleExpand = async (scId: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(scId)) {
+        next.delete(scId)
+      } else {
+        next.add(scId)
+      }
+      return next
+    })
+    if (!partsCache[scId]) {
+      setPartsLoading(prev => new Set(prev).add(scId))
+      try {
+        const res = await fetch(`/api/dpp/archive/schedules/${encodeURIComponent(scId)}`)
+        const data = await res.json()
+        setPartsCache(prev => ({ ...prev, [scId]: data.parts ?? [] }))
+      } finally {
+        setPartsLoading(prev => {
+          const next = new Set(prev)
+          next.delete(scId)
+          return next
+        })
+      }
+    }
+  }
 
   const handleSearch = () => { setPage(1); fetchRecords(1) }
   const handlePage = (next: number) => {
@@ -242,6 +283,7 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="px-3 py-2.5 w-8"></th>
                     <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">sc_id</th>
                     <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">校正</th>
                     <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">品番</th>
@@ -256,12 +298,22 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {records.map(r => (
+                  {records.map(r => {
+                    const isExpanded = expandedIds.has(r.sc_id)
+                    const isLoadingParts = partsLoading.has(r.sc_id)
+                    const parts = partsCache[r.sc_id]
+                    return (
+                    <>
                     <tr
                       key={r.id}
                       className="hover:bg-rose-50 transition-colors cursor-pointer"
                       onClick={() => router.push(`/dashboard/dpp/archive/${encodeURIComponent(r.sc_id)}`)}
                     >
+                      <td className="px-3 py-2.5" onClick={e => { e.stopPropagation(); toggleExpand(r.sc_id) }}>
+                        <button className="text-gray-400 hover:text-gray-700">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </td>
                       <td className="px-3 py-2.5 font-mono text-gray-500 whitespace-nowrap">{r.sc_id}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         {r.kosei_stage
@@ -287,7 +339,53 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                       <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{r.seihan_tanto ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-3 py-2.5 text-gray-500 max-w-[160px]"><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
                     </tr>
-                  ))}
+                    {isExpanded && (
+                      <tr key={`${r.id}-parts`}>
+                        <td colSpan={11} className="bg-gray-50 px-6 py-3">
+                          {isLoadingParts ? (
+                            <p className="text-xs text-gray-400 py-2">読み込み中...</p>
+                          ) : !parts || parts.length === 0 ? (
+                            <p className="text-xs text-gray-400 py-2">パーツ情報がありません。</p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-gray-500">
+                                  <th className="text-left px-2 py-1.5 font-medium">頁</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">パーツ名</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">校正種/段階</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">用紙名</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">連量</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">色表/裏</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">枚数</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">面付台数</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">入稿</th>
+                                  <th className="text-left px-2 py-1.5 font-medium">仕上</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {parts.map(p => (
+                                  <tr key={p.id} className="text-gray-600">
+                                    <td className="px-2 py-1.5">{p.page ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.part_name ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{[p.kosei_type, p.kosei_stage].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5">{p.paper_name ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.paper_weight ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5">{p.maisu ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.menzuke_daisuu ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.nyuko_date ? `${new Date(p.nyuko_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.nyuko_time ?? ""}` : "—"}</td>
+                                    <td className="px-2 py-1.5">{p.shiage_date ? `${new Date(p.shiage_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.shiage_time ?? ""}` : "—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
