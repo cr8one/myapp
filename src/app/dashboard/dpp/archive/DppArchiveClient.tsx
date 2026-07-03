@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -64,6 +64,26 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
   const [importError, setImportError] = useState("")
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"]
+  const groupedRecords = (() => {
+    const groups: { key: string; label: string; items: DppScheduleArchive[] }[] = []
+    const map = new Map<string, DppScheduleArchive[]>()
+    for (const r of records) {
+      const key = r.nouki_date ? r.nouki_date.slice(0, 10) : "__none__"
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(r)
+    }
+    for (const [key, items] of map.entries()) {
+      let label = "納期未定"
+      if (key !== "__none__") {
+        const d = new Date(key)
+        label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAY_JP[d.getDay()]})`
+      }
+      groups.push({ key, label, items })
+    }
+    return groups
+  })()
 
   const buildQuery = (p: number, kw = keyword, pf = progressFilter) => {
     const params = new URLSearchParams()
@@ -315,68 +335,74 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
           <Pagination />
           <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-[15px]">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-3 py-2.5 w-8"></th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">sc_id</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">校正</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">品番</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">品名</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">アーティスト</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">納期</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">進捗</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">集計</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">営業</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">製版</th>
-                    <th className="text-left px-3 py-2.5 text-gray-600 font-medium whitespace-nowrap">備考</th>
+                    <th className="px-3 py-3 w-8"></th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">sc_id</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">校正</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">品番</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">品名</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">アーティスト</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">納期</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">進捗</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">集計</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">営業</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">製版</th>
+                    <th className="text-left px-3 py-3 text-gray-600 font-semibold whitespace-nowrap">備考</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {records.map(r => {
+                  {groupedRecords.map(group => (
+                    <React.Fragment key={group.key}>
+                      <tr>
+                        <td colSpan={12} className="bg-rose-50 px-4 py-2 text-sm font-bold text-rose-800 border-t-2 border-rose-200">
+                          {group.label}
+                        </td>
+                      </tr>
+                      {group.items.map(r => {
                     const isExpanded = expandedIds.has(r.sc_id)
                     const isLoadingParts = partsLoading.has(r.sc_id)
                     const parts = partsCache[r.sc_id]
                     return (
-                    <>
+                    <React.Fragment key={r.id}>
                     <tr
-                      key={r.id}
                       className="hover:bg-rose-50 transition-colors cursor-pointer"
                       onClick={() => router.push(`/dashboard/dpp/archive/${encodeURIComponent(r.sc_id)}`)}
                     >
-                      <td className="px-3 py-2.5" onClick={e => { e.stopPropagation(); toggleExpand(r.sc_id) }}>
+                      <td className="px-3 py-3" onClick={e => { e.stopPropagation(); toggleExpand(r.sc_id) }}>
                         <button className="text-gray-400 hover:text-gray-700">
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-gray-500 whitespace-nowrap">{r.sc_id}</td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-3 py-3 font-mono text-gray-500 whitespace-nowrap">{r.sc_id}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         {r.kosei_stage
-                          ? <span className="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">{r.kosei_stage}</span>
+                          ? <span className="text-sm bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{r.kosei_stage}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 font-medium text-gray-700 whitespace-nowrap">{r.hinban ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-2.5 text-gray-700 max-w-[160px]"><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
-                      <td className="px-3 py-2.5 text-gray-600 max-w-[140px]"><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
-                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">
+                      <td className="px-3 py-3 font-medium text-gray-700 whitespace-nowrap">{r.hinban ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-3 py-3 text-gray-700 max-w-[160px]"><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-gray-600 max-w-[140px]"><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 whitespace-nowrap text-gray-600">
                         {r.nouki_date
                           ? <span className="font-medium">{new Date(r.nouki_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })}</span>
                           : <span className="text-gray-300">—</span>}
-                        {r.nouki_time && <span className="ml-1 text-xs text-gray-500">{r.nouki_time}</span>}
+                        {r.nouki_time && <span className="ml-1 text-sm text-gray-500">{r.nouki_time}</span>}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         {r.progress
-                          ? <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PROGRESS_COLORS[r.progress] ?? "bg-gray-100 text-gray-600"}`}>{r.progress}</span>
+                          ? <span className={`text-sm font-medium px-2.5 py-1 rounded-full ${PROGRESS_COLORS[r.progress] ?? "bg-gray-100 text-gray-600"}`}>{r.progress}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">{r.shuukei_daisuu ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{r.eigyo_tanto ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{r.seihan_tanto ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-2.5 text-gray-500 max-w-[160px]"><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-gray-500 whitespace-nowrap">{r.shuukei_daisuu ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{r.eigyo_tanto ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{r.seihan_tanto ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-3 py-3 text-gray-500 max-w-[160px]"><div className="truncate">{r.biko ?? <span className="text-gray-300">—</span>}</div></td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${r.id}-parts`}>
-                        <td colSpan={11} className="bg-gray-50 px-6 py-3">
+                      <tr>
+                        <td colSpan={12} className="bg-gray-50 px-6 py-3">
                           {isLoadingParts ? (
                             <p className="text-xs text-gray-400 py-2">読み込み中...</p>
                           ) : !parts || parts.length === 0 ? (
@@ -418,9 +444,11 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                         </td>
                       </tr>
                     )}
-                    </>
+                    </React.Fragment>
                     )
                   })}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
