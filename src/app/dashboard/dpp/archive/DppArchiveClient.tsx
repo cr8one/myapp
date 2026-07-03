@@ -245,7 +245,7 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
   )
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="p-6 max-w-[1700px] mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">予定表アーカイブ</h1>
@@ -338,11 +338,11 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
               <table className="w-full text-[15px] table-fixed">
                 <colgroup>
                   <col style={{ width: "32px" }} />
-                  <col style={{ width: "90px" }} />
-                  <col style={{ width: "70px" }} />
-                  <col style={{ width: "110px" }} />
-                  <col style={{ width: "220px" }} />
-                  <col style={{ width: "140px" }} />
+                  <col style={{ width: "72px" }} />
+                  <col style={{ width: "56px" }} />
+                  <col style={{ width: "120px" }} />
+                  <col style={{ width: "240px" }} />
+                  <col style={{ width: "150px" }} />
                   <col style={{ width: "100px" }} />
                   <col style={{ width: "90px" }} />
                   <col style={{ width: "70px" }} />
@@ -389,14 +389,14 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
                       </td>
-                      <td className="px-3 py-3 font-mono text-xs text-gray-400 whitespace-nowrap">{r.sc_id}</td>
-                      <td className="px-3 py-3 whitespace-nowrap">
+                      <td className="px-2 py-3 font-mono text-xs text-gray-400 whitespace-nowrap">{r.sc_id}</td>
+                      <td className="px-1 py-3 whitespace-nowrap">
                         {r.kosei_stage
                           ? <span className="text-sm bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{r.kosei_stage}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-3 text-sm font-medium text-gray-600 truncate" title={r.hinban ?? ""}>{r.hinban ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-3 py-3 text-lg font-bold text-gray-900" title={r.hinmei ?? ""}><div className="truncate">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
+                      <td className="px-3 py-3 text-base font-bold text-gray-900" title={r.hinmei ?? ""}><div className="line-clamp-2 leading-snug">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
                       <td className="px-3 py-3 text-sm text-gray-600" title={r.artist_name ?? ""}><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
                       <td className="px-3 py-3 whitespace-nowrap text-gray-800">
                         {r.nouki_date
@@ -422,7 +422,19 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                           ) : !parts || parts.length === 0 ? (
                             <p className="text-xs text-gray-400 py-2">パーツ情報がありません。</p>
                           ) : (
-                            <table className="w-full text-xs">
+                            <table className="w-full text-xs table-fixed">
+                              <colgroup>
+                                <col style={{ width: "13%" }} />
+                                <col style={{ width: "6%" }} />
+                                <col style={{ width: "10%" }} />
+                                <col style={{ width: "11%" }} />
+                                <col style={{ width: "12%" }} />
+                                <col style={{ width: "6%" }} />
+                                <col style={{ width: "13%" }} />
+                                <col style={{ width: "auto" }} />
+                                <col style={{ width: "9%" }} />
+                                <col style={{ width: "9%" }} />
+                              </colgroup>
                               <thead>
                                 <tr className="border-b-2 border-gray-300">
                                   <th className="text-left px-2 py-2 font-semibold text-gray-500">パーツ名</th>
@@ -440,16 +452,23 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                               <tbody className="divide-y divide-gray-200 bg-white">
                                 {parts.map(p => (
                                   <tr key={p.id} className="text-gray-600">
-                                    <td className="px-2 py-1.5 font-medium text-gray-800">{p.part_name ?? "—"}</td>
+                                    <td className="px-2 py-1.5 font-medium text-gray-800 truncate" title={p.part_name ?? ""}>{p.part_name ?? "—"}</td>
                                     <td className="px-2 py-1.5">{p.page ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
-                                    <td className="px-2 py-1.5">{[p.kosei_type, p.maisu].filter(Boolean).join(" / ") || "—"}</td>
-                                    <td className="px-2 py-1.5">{[p.paper_name, p.paper_weight].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5 truncate">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5 truncate">
+                                      {p.kosei_type || p.maisu
+                                        ? <>
+                                            {p.kosei_type ?? "—"}
+                                            {p.maisu && <> / {p.maisu}<span className="text-xs text-gray-400"> 枚</span></>}
+                                          </>
+                                        : "—"}
+                                    </td>
+                                    <td className="px-2 py-1.5 truncate" title={[p.paper_name, p.paper_weight].filter(Boolean).join(" / ")}>{[p.paper_name, p.paper_weight].filter(Boolean).join(" / ") || "—"}</td>
                                     <td className="px-2 py-1.5">{p.menzuke_daisuu ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{p.biko_siyou ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{p.biko ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{p.nyuko_date ? `${new Date(p.nyuko_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.nyuko_time ?? ""}` : "—"}</td>
-                                    <td className="px-2 py-1.5">{p.shiage_date ? `${new Date(p.shiage_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.shiage_time ?? ""}` : "—"}</td>
+                                    <td className="px-2 py-1.5 truncate" title={p.biko_siyou ?? ""}>{p.biko_siyou ?? "—"}</td>
+                                    <td className="px-2 py-1.5 truncate" title={p.biko ?? ""}>{p.biko ?? "—"}</td>
+                                    <td className="px-2 py-1.5 truncate">{p.nyuko_date ? `${new Date(p.nyuko_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.nyuko_time ?? ""}` : "—"}</td>
+                                    <td className="px-2 py-1.5 truncate">{p.shiage_date ? `${new Date(p.shiage_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.shiage_time ?? ""}` : "—"}</td>
                                   </tr>
                                 ))}
                               </tbody>
