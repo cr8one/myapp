@@ -35,7 +35,7 @@ type DppScheduleArchivePart = {
   maisu: string | null; menzuke_daisuu: number | null
   nyuko_date: string | null; nyuko_time: string | null
   shiage_date: string | null; shiage_time: string | null
-  biko: string | null
+  biko: string | null; biko_siyou: string | null
 }
 const PAGE_SIZE = 50
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
