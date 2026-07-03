@@ -399,10 +399,14 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                       <td className="px-3 py-3 text-base font-bold text-gray-900" title={r.hinmei ?? ""}><div className="line-clamp-2 leading-snug">{r.hinmei ?? <span className="text-gray-300">—</span>}</div></td>
                       <td className="px-3 py-3 text-sm text-gray-600" title={r.artist_name ?? ""}><div className="truncate">{r.artist_name ?? <span className="text-gray-300">—</span>}</div></td>
                       <td className="px-3 py-3 whitespace-nowrap text-gray-800 leading-tight">
-                        {r.nouki_date
-                          ? <div className="text-base font-bold">{new Date(r.nouki_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })}</div>
+                        {r.nouki_time
+                          ? <div className="text-lg font-bold">{r.nouki_time}</div>
                           : <span className="text-gray-300">—</span>}
-                        {r.nouki_time && <div className="text-xs font-medium text-gray-500">{r.nouki_time}</div>}
+                        {r.nouki_date && (
+                          <div className="text-xs text-gray-400">
+                            {new Date(r.nouki_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         {r.progress
