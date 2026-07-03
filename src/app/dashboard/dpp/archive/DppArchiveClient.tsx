@@ -118,6 +118,37 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
+  const expandAll = async () => {
+    const targets = records.map(r => r.sc_id)
+    setExpandedIds(new Set(targets))
+    const missing = targets.filter(id => !partsCache[id])
+    if (missing.length === 0) return
+    setPartsLoading(prev => {
+      const next = new Set(prev)
+      missing.forEach(id => next.add(id))
+      return next
+    })
+    const results = await Promise.all(
+      missing.map(async id => {
+        const res = await fetch(`/api/dpp/archive/schedules/${encodeURIComponent(id)}`)
+        const data = await res.json()
+        return [id, data.parts ?? []] as const
+      })
+    )
+    setPartsCache(prev => {
+      const next = { ...prev }
+      results.forEach(([id, parts]) => { next[id] = parts })
+      return next
+    })
+    setPartsLoading(prev => {
+      const next = new Set(prev)
+      missing.forEach(id => next.delete(id))
+      return next
+    })
+  }
+
+  const collapseAll = () => setExpandedIds(new Set())
+
   const handleSearch = () => { setPage(1); fetchRecords(1) }
   const handlePage = (next: number) => {
     setPage(next)
@@ -268,6 +299,10 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
           <Button onClick={handleSearch} className="flex items-center gap-1">
             <Search className="w-4 h-4" />検索
           </Button>
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={expandAll}>全て展開</Button>
+            <Button variant="outline" size="sm" onClick={collapseAll}>全て閉じる</Button>
+          </div>
         </div>
       </div>
 
