@@ -410,28 +410,30 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                           ) : (
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="text-gray-500">
-                                  <th className="text-left px-2 py-1.5 font-medium">パーツ名</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">校正種/頁</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">用紙名</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">連量</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">色表/裏</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">枚数</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">面付台数</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">入稿</th>
-                                  <th className="text-left px-2 py-1.5 font-medium">仕上</th>
+                                <tr className="bg-slate-600 text-white">
+                                  <th className="text-left px-2 py-2 font-semibold rounded-l">パーツ名</th>
+                                  <th className="text-left px-2 py-2 font-semibold">頁</th>
+                                  <th className="text-left px-2 py-2 font-semibold">色表/色裏</th>
+                                  <th className="text-left px-2 py-2 font-semibold">校正種/枚数</th>
+                                  <th className="text-left px-2 py-2 font-semibold">用紙名/連量</th>
+                                  <th className="text-left px-2 py-2 font-semibold">面付</th>
+                                  <th className="text-left px-2 py-2 font-semibold">仕様書備考</th>
+                                  <th className="text-left px-2 py-2 font-semibold">備考</th>
+                                  <th className="text-left px-2 py-2 font-semibold">入稿日時</th>
+                                  <th className="text-left px-2 py-2 font-semibold rounded-r">仕上日時</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-200">
+                              <tbody className="divide-y divide-gray-200 bg-white">
                                 {parts.map(p => (
                                   <tr key={p.id} className="text-gray-600">
-                                    <td className="px-2 py-1.5">{p.part_name ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{[p.kosei_type, p.page].filter(Boolean).join(" / ") || "—"}</td>
-                                    <td className="px-2 py-1.5">{p.paper_name ?? "—"}</td>
-                                    <td className="px-2 py-1.5">{p.paper_weight ?? "—"}</td>
+                                    <td className="px-2 py-1.5 font-medium text-gray-800">{p.part_name ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.page ?? "—"}</td>
                                     <td className="px-2 py-1.5">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
-                                    <td className="px-2 py-1.5">{p.maisu ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{[p.kosei_type, p.maisu].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5">{[p.paper_name, p.paper_weight].filter(Boolean).join(" / ") || "—"}</td>
                                     <td className="px-2 py-1.5">{p.menzuke_daisuu ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.biko_siyou ?? "—"}</td>
+                                    <td className="px-2 py-1.5">{p.biko ?? "—"}</td>
                                     <td className="px-2 py-1.5">{p.nyuko_date ? `${new Date(p.nyuko_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.nyuko_time ?? ""}` : "—"}</td>
                                     <td className="px-2 py-1.5">{p.shiage_date ? `${new Date(p.shiage_date).toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${p.shiage_time ?? ""}` : "—"}</td>
                                   </tr>
