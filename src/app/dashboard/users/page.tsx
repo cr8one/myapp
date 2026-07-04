@@ -20,6 +20,8 @@ type Permission = {
   ssssView: boolean;     ssssEdit: boolean
   mastersView: boolean;  mastersEdit: boolean
   cadView: boolean;      cadEdit: boolean
+  manufacturingView: boolean; manufacturingEdit: boolean
+  trayView: boolean;          trayEdit: boolean
   ssssIsIssuer: boolean; ssssIsSupplier: boolean
   ssssIsReceiver: boolean; ssssIsOutsourceReceiver: boolean
   addressBookView: boolean; addressBookEdit: boolean
@@ -63,6 +65,8 @@ const defaultPermission: Permission = {
   ssssView: true,     ssssEdit: false,
   mastersView: false, mastersEdit: false,
   cadView: true,      cadEdit: false,
+  manufacturingView: true, manufacturingEdit: false,
+  trayView: true,          trayEdit: false,
   ssssIsIssuer: false, ssssIsSupplier: false,
   ssssIsReceiver: false, ssssIsOutsourceReceiver: false,
   addressBookView: true, addressBookEdit: false,
@@ -78,6 +82,8 @@ const permissionGroups: { group: string; color: string; items: { key: keyof Perm
   { group: "BPMS",       color: "bg-indigo-50 text-indigo-700",items: [{ key: "bpmsView", label: "閲覧" }, { key: "bpmsEdit", label: "編集" }] },
   { group: "DLMS",       color: "bg-orange-50 text-orange-700",items: [{ key: "dlmsView", label: "閲覧" }, { key: "dlmsEdit", label: "編集" }] },
   { group: "CAD/台紙",   color: "bg-lime-50 text-lime-700",    items: [{ key: "cadView", label: "閲覧" }, { key: "cadEdit", label: "編集" }] },
+  { group: "製造依頼書", color: "bg-fuchsia-50 text-fuchsia-700", items: [{ key: "manufacturingView", label: "閲覧" }, { key: "manufacturingEdit", label: "編集" }] },
+  { group: "トレイ管理", color: "bg-emerald-50 text-emerald-700", items: [{ key: "trayView", label: "閲覧" }, { key: "trayEdit", label: "編集" }] },
   { group: "住所録",     color: "bg-amber-50 text-amber-700",  items: [{ key: "addressBookView", label: "閲覧" }, { key: "addressBookEdit", label: "編集" }, { key: "addressBookChangeRequestTarget", label: "変更依頼配信先" }] },
   { group: "DPP予定表",  color: "bg-pink-50 text-pink-700",    items: [{ key: "dppView", label: "閲覧" }, { key: "dppEdit", label: "編集" }] },
   { group: "SSSS",       color: "bg-yellow-50 text-yellow-700",items: [

@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen, ClipboardList } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -36,11 +36,21 @@ function EApplicationIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+function TrayIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 14 L6 6 Q6.4 5 7.5 5 L16.5 5 Q17.6 5 18 6 L21 14" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="currentColor" fillOpacity="0.08"/>
+      <rect x="2.5" y="14" width="19" height="5" rx="1" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.15"/>
+      <line x1="9" y1="16.5" x2="15" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  )
+}
 
 type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
+  manufacturingView: boolean; trayView: boolean
 } | null
 
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
@@ -48,6 +58,7 @@ const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
   ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
+  manufacturing: "manufacturingView", tray: "trayView",
 }
 
 const baseMenuItems = [
@@ -79,6 +90,12 @@ const baseMenuItems = [
     { label: "変更依頼一覧", href: "/dashboard/address-book/change-requests" },
     { label: "出力リスト", href: "/dashboard/address-book/output-lists" },
   ]},
+  { label: "製造依頼書", href: "/dashboard/manufacturing-request", icon: "manufacturing", children: [
+    { label: "依頼書一覧", href: "/dashboard/manufacturing-request" },
+  ]},
+  { label: "トレイ管理", href: "/dashboard/tray", icon: "tray", children: [
+    { label: "トレイ一覧", href: "/dashboard/tray" },
+  ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
     { label: "案件管理", href: "/dashboard/dev/projects" },
@@ -92,20 +109,20 @@ const baseMenuItems = [
     { label: "DXF・台紙DB",        href: "/dashboard/cad/daishi-db" },
     { label: "CAD/台紙マスタ", href: "/dashboard/cad/masters" },
   ]},
-  { label: "DLMS", href: "/dashboard/dlms", icon: "dlms", children: [
+  { label: "抜き型/図面", href: "/dashboard/dlms", icon: "dlms", children: [
     { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
     { label: "依頼書管理", href: "/dashboard/dlms/requests" },
     { label: "図面管理", href: "/dashboard/dlms/drawings" },
     { label: "図面作成", href: "/dashboard/dlms/drawings/editor" },
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
   ]},
-  { label: "DPP予定表", href: "/dashboard/dpp", icon: "dpp", children: [
+  { label: "DPP管理", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp/schedule" },
     { label: "予定表アーカイブ", href: "/dashboard/dpp/archive" },
     { label: "データ保管台帳", href: "/dashboard/dpp/storage-ledger" },
     { label: "DPPマスタ管理", href: "/dashboard/dpp/masters" },
   ]},
-  { label: "SSSS", href: "/dashboard/ssss", icon: "ssss", children: [
+  { label: "サンプルシール", href: "/dashboard/ssss", icon: "ssss", children: [
     { label: "支給管理表", href: "/dashboard/ssss/supplies" },
     { label: "運用ルール", href: "/dashboard/ssss/rules" },
     { label: "SSSSマスタ管理", href: "/dashboard/ssss/masters" },
@@ -148,6 +165,8 @@ function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "bpms")      return <Handshake className={className} />
   if (icon === "addressbook") return <BookUser className={className} />
   if (icon === "cad")       return <PenTool className={className} />
+  if (icon === "manufacturing") return <ClipboardList className={className} />
+  if (icon === "tray")      return <TrayIcon className={className} />
   if (icon === "dlms")      return <DlmsIcon className={className} />
   if (icon === "dpp")       return <CalendarDays className={className} />
   if (icon === "ssss")      return <SsssIcon className={className} />
@@ -176,11 +195,13 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
     if (label === "住所録")     return pathname.startsWith("/dashboard/address-book")
+    if (label === "製造依頼書") return pathname.startsWith("/dashboard/manufacturing-request")
+    if (label === "トレイ管理") return pathname.startsWith("/dashboard/tray")
     if (label === "BPMS")       return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "CAD/台紙")   return pathname.startsWith("/dashboard/cad")
-    if (label === "DLMS")       return pathname.startsWith("/dashboard/dlms")
-    if (label === "DPP予定表")  return pathname.startsWith("/dashboard/dpp")
-    if (label === "SSSS")       return pathname.startsWith("/dashboard/ssss")
+    if (label === "抜き型/図面")       return pathname.startsWith("/dashboard/dlms")
+    if (label === "DPP管理")  return pathname.startsWith("/dashboard/dpp")
+    if (label === "サンプルシール")       return pathname.startsWith("/dashboard/ssss")
     if (label === "端末管理")   return pathname.startsWith("/dashboard/terminal")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
     if (label === "システム管理") return pathname.startsWith("/dashboard/system")
