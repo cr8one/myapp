@@ -118,6 +118,9 @@ const baseMenuItems = [
   ]},
   { label: "DPP管理", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp/schedule" },
+    { label: "両国校正依頼書", href: "/dashboard/dpp/ryogoku-calibration" },
+    { label: "濃度管理報告書", href: "/dashboard/dpp/density-report" },
+    { label: "平台校正依頼書", href: "/dashboard/dpp/flatbed-calibration" },
     { label: "予定表アーカイブ", href: "/dashboard/dpp/archive" },
     { label: "データ保管台帳", href: "/dashboard/dpp/storage-ledger" },
     { label: "DPPマスタ管理", href: "/dashboard/dpp/masters" },
