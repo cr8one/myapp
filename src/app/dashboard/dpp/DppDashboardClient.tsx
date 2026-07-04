@@ -6,6 +6,7 @@ import { CalendarDays, Archive, Database, Settings } from "lucide-react"
 type Stats = {
   scheduleCount: number
   masterCount: number
+  archiveCount: number
 }
 
 function DppIcon({ style }: { style?: React.CSSProperties }) {
@@ -37,14 +38,14 @@ const cards = [
   },
   {
     label: "予定表アーカイブ",
-    key: null,
+    key: "archiveCount" as keyof Stats,
     href: "/dashboard/dpp/archive",
     icon: Archive,
     bg: "bg-rose-50",
     text: "text-rose-600",
     border: "border-rose-100",
     hover: "hover:border-rose-300",
-    placeholder: true,
+    placeholder: false,
   },
   {
     label: "データ保管台帳",
@@ -130,7 +131,7 @@ export default function DppDashboardClient({ stats }: { stats: Stats }) {
           </div>
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-2xl font-black tracking-tight text-gray-900">DPP予定表</span>
+              <span className="text-2xl font-black tracking-tight text-gray-900">DPP進行管理</span>
               {phase >= 2 && (
                 <span className="text-xs font-semibold text-pink-400 tracking-widest uppercase">
                   {fullText.slice(0, visibleChars)}

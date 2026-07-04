@@ -97,7 +97,7 @@ const SERVICE_CARDS = [
   { label: "BPMS",        href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",          color: "text-violet-600 bg-violet-50" },
   { label: "CAD/台紙",    href: "/dashboard/cad",       icon: "cad",      desc: "CAD・DXF・台紙データ管理",        color: "text-lime-600 bg-lime-50" },
   { label: "抜き型/図面", href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",                color: "text-orange-600 bg-orange-50" },
-  { label: "DPP管理",     href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",            color: "text-pink-600 bg-pink-50" },
+  { label: "DPP進行管理", href: "/dashboard/dpp",       icon: "dpp",      desc: "DPP スケジュール管理",            color: "text-pink-600 bg-pink-50" },
   { label: "サンプルシール", href: "/dashboard/ssss",   icon: "ssss",     desc: "支給管理・送り状",                color: "text-yellow-600 bg-yellow-50" },
   { label: "端末管理",    href: "/dashboard/terminal",  icon: "terminal", desc: "端末・IP・ソフトウェア管理",      color: "text-slate-600 bg-slate-50" },
   { label: "マスタ管理",  href: "/dashboard/masters",   icon: "masters",  desc: "ユーザー・PRINSERマスタ",         color: "text-gray-600 bg-gray-100" },

@@ -7,10 +7,11 @@ export default async function DppDashboardPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  const [scheduleCount, eigyoCount, seihanCount] = await Promise.all([
+  const [scheduleCount, eigyoCount, seihanCount, archiveCount] = await Promise.all([
     prisma.dppSchedule.count({ where: { flg_del: 0 } }),
     prisma.dppEigyoMaster.count(),
     prisma.dppSeihanMaster.count(),
+    prisma.dppScheduleArchive.count(),
   ])
 
   return (
@@ -18,6 +19,7 @@ export default async function DppDashboardPage() {
       stats={{
         scheduleCount,
         masterCount: eigyoCount + seihanCount,
+        archiveCount,
       }}
     />
   )

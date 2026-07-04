@@ -116,7 +116,7 @@ const baseMenuItems = [
     { label: "図面作成", href: "/dashboard/dlms/drawings/editor" },
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
   ]},
-  { label: "DPP管理", href: "/dashboard/dpp", icon: "dpp", children: [
+  { label: "DPP進行管理", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp/schedule" },
     { label: "両国校正依頼書", href: "/dashboard/dpp/ryogoku-calibration" },
     { label: "濃度管理報告書", href: "/dashboard/dpp/density-report" },
@@ -203,7 +203,7 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "BPMS")       return pathname.startsWith("/dashboard/dev") || pathname === "/dashboard/bpms"
     if (label === "CAD/台紙")   return pathname.startsWith("/dashboard/cad")
     if (label === "抜き型/図面")       return pathname.startsWith("/dashboard/dlms")
-    if (label === "DPP管理")  return pathname.startsWith("/dashboard/dpp")
+    if (label === "DPP進行管理")  return pathname.startsWith("/dashboard/dpp")
     if (label === "サンプルシール")       return pathname.startsWith("/dashboard/ssss")
     if (label === "端末管理")   return pathname.startsWith("/dashboard/terminal")
     if (label === "マスタ管理") return pathname.startsWith("/dashboard/users") || pathname.startsWith("/dashboard/masters")
