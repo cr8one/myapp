@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
     prisma.dppScheduleArchive.findMany({
       where,
       orderBy: [
-        { nouki_date: "asc" },
-        { nouki_time: "asc" },
-        { imported_at: "desc" },
+        { nouki_date: { sort: "desc", nulls: "last" } },
+        { nouki_time: "desc" },
+        { sc_id: "desc" },
       ],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
