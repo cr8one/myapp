@@ -1,8 +1,14 @@
-export default function Page() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-800">準備中</h1>
-      <p className="text-gray-500 mt-2">データ保管台帳は現在開発中です。</p>
-    </div>
-  )
+import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import { prisma } from "@/lib/prisma"
+import { hasPermission } from "@/lib/permissions"
+import StorageLedgerClient from "./StorageLedgerClient"
+export default async function StorageLedgerPage() {
+  const session = await auth()
+  if (!session) redirect("/login")
+  const [canImport, total] = await Promise.all([
+    hasPermission("dppStorageLedgerImport"),
+    prisma.dppStorageLedgerEntry.count(),
+  ])
+  return <StorageLedgerClient canImport={canImport} initialTotal={total} />
 }

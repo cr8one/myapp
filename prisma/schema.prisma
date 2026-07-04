@@ -75,6 +75,7 @@ model UserPermission {
   manufacturingEdit Boolean  @default(false) @map("manufacturing_edit")
   trayView          Boolean  @default(true)  @map("tray_view")
   trayEdit          Boolean  @default(false) @map("tray_edit")
+  dppStorageLedgerImport Boolean @default(false) @map("dpp_storage_ledger_import")
   ssssIsIssuer            Boolean @default(false) @map("ssss_is_issuer")
   ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")
   ssssIsReceiver          Boolean @default(false) @map("ssss_is_receiver")
@@ -1000,6 +1001,16 @@ model DppScheduleArchivePart {
   schedule DppScheduleArchive @relation(fields: [scId], references: [sc_id])
 
   @@map("t_dpp_schedule_archive_parts")
+}
+model DppStorageLedgerEntry {
+  id               String   @id @default(cuid())
+  storage_location String
+  hinban           String
+  category         String?
+  imported_at      DateTime @default(now())
+  @@index([storage_location])
+  @@index([hinban])
+  @@map("t_dpp_storage_ledger_entry")
 }
 model CadRequest {
   id              String    @id @default(cuid())
