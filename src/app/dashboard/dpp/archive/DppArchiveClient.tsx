@@ -455,8 +455,8 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                                   <tr key={p.id} className="text-gray-600">
                                     <td className="px-2 py-1.5 font-medium text-gray-800 break-words leading-snug" title={p.part_name ?? ""}>{p.part_name ?? "—"}</td>
                                     <td className="px-2 py-1.5">{p.page ?? "—"}</td>
-                                    <td className="px-2 py-1.5 truncate">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
-                                    <td className="px-2 py-1.5 truncate">
+                                    <td className="px-2 py-1.5 break-words leading-snug">{[p.color_omote, p.color_ura].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5 break-words leading-snug">
                                       {p.kosei_type || p.maisu
                                         ? <>
                                             {p.kosei_type ?? "—"}
@@ -464,7 +464,14 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
                                           </>
                                         : "—"}
                                     </td>
-                                    <td className="px-2 py-1.5 break-words leading-snug" title={[p.paper_name, p.paper_weight].filter(Boolean).join(" / ")}>{[p.paper_name, p.paper_weight].filter(Boolean).join(" / ") || "—"}</td>
+                                    <td className="px-2 py-1.5 break-words leading-snug" title={[p.paper_name, p.paper_weight].filter(Boolean).join(" ")}>
+                                      {p.paper_name || p.paper_weight
+                                        ? <>
+                                            {p.paper_name ?? "—"}
+                                            {p.paper_weight && <> {p.paper_weight}<span className="text-xs text-gray-400">kg</span></>}
+                                          </>
+                                        : "—"}
+                                    </td>
                                     <td className="px-2 py-1.5">{p.menzuke_daisuu ?? "—"}</td>
                                     <td className="px-2 py-1.5 break-words leading-snug" title={p.biko_siyou ?? ""}>{p.biko_siyou ?? "—"}</td>
                                     <td className="px-2 py-1.5 break-words leading-snug" title={p.biko ?? ""}>{p.biko ?? "—"}</td>
