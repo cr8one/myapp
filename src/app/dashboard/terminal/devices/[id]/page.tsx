@@ -543,11 +543,32 @@ export default function DeviceDetailPage() {
             <div className="space-y-1"><Label>IPアドレス <span className="text-red-500">*</span></Label>
               <Input value={ipForm.ip} onChange={e => setIpForm(f => ({ ...f, ip: e.target.value }))} placeholder="例：192.168.1.10" autoComplete="off" /></div>
             <div className="space-y-1"><Label>サブネットマスク</Label>
-              <Input value={ipForm.subnet} onChange={e => setIpForm(f => ({ ...f, subnet: e.target.value }))} placeholder="例：255.255.255.0" autoComplete="off" /></div>
+              <Input value={ipForm.subnet} onChange={e => setIpForm(f => ({ ...f, subnet: e.target.value }))} placeholder="例：255.255.255.0" autoComplete="off" />
+              <div className="flex gap-1.5 pt-1">
+                {["255.255.255.0"].map(v => (
+                  <button key={v} type="button" onClick={() => setIpForm(f => ({ ...f, subnet: v }))}
+                    className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">{v}</button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-1"><Label>ゲートウェイ</Label>
-              <Input value={ipForm.gateway} onChange={e => setIpForm(f => ({ ...f, gateway: e.target.value }))} placeholder="例：192.168.1.1" autoComplete="off" /></div>
+              <Input value={ipForm.gateway} onChange={e => setIpForm(f => ({ ...f, gateway: e.target.value }))} placeholder="例：192.168.1.1" autoComplete="off" />
+              <div className="flex gap-1.5 pt-1">
+                {["192.168.2.22"].map(v => (
+                  <button key={v} type="button" onClick={() => setIpForm(f => ({ ...f, gateway: v }))}
+                    className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">{v}</button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-1"><Label>インターフェース</Label>
-              <Input value={ipForm.interface} onChange={e => setIpForm(f => ({ ...f, interface: e.target.value }))} placeholder="例：Ethernet、Wi-Fi" autoComplete="off" /></div>
+              <Input value={ipForm.interface} onChange={e => setIpForm(f => ({ ...f, interface: e.target.value }))} placeholder="例：Ethernet、Wi-Fi" autoComplete="off" />
+              <div className="flex gap-1.5 pt-1">
+                {["Ethernet", "Wi-Fi"].map(v => (
+                  <button key={v} type="button" onClick={() => setIpForm(f => ({ ...f, interface: v }))}
+                    className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">{v}</button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-1"><Label>備考</Label>
               <Input value={ipForm.note} onChange={e => setIpForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" /></div>
             <div className="flex justify-end gap-2 pt-2">
