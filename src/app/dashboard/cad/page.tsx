@@ -10,7 +10,7 @@ function PenToolIcon({ style }: { style?: React.CSSProperties }) {
 const cards = [
   {
     label: "CAD依頼書",
-    href: "/dashboard/cad/cad-requests",
+    href: "/dashboard/cad/requests",
     icon: FileText,
     bg: "bg-lime-50",
     text: "text-lime-600",
