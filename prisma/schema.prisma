@@ -1026,6 +1026,7 @@ model CadRequest {
   genre           String?
   hinmoku         String?
   hinban          String?
+  status          String    @default("作成中")
   dieline_no      String?
   develop_y       Float?
   develop_x       Float?
