@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
+import { Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react"
 
 const PROGRESS_OPTIONS = ["保留", "入稿待ち", "入稿済", "製版中", "製版済", "出力中", "出力済", "印刷中", "印刷済", "完了"]
 const PROGRESS_COLORS: Record<string, string> = {
@@ -38,6 +38,26 @@ type DppScheduleArchivePart = {
   biko: string | null; biko_siyou: string | null
 }
 const PAGE_SIZE = 50
+type AdvancedFilters = {
+  hinban: string; hinmei: string; artistName: string; koseiStage: string
+  noukiFrom: string; noukiTo: string; eigyoTanto: string; seihanTanto: string
+  partName: string; paperName: string; colorOmote: string; colorUra: string
+  koseiType: string; bikoSiyou: string; partBiko: string
+  dgsYes: boolean; dgsNo: boolean
+}
+const emptyAdvanced: AdvancedFilters = {
+  hinban: "", hinmei: "", artistName: "", koseiStage: "",
+  noukiFrom: "", noukiTo: "", eigyoTanto: "", seihanTanto: "",
+  partName: "", paperName: "", colorOmote: "", colorUra: "",
+  koseiType: "", bikoSiyou: "", partBiko: "",
+  dgsYes: false, dgsNo: false,
+}
+type AdvancedStringKey = Exclude<keyof AdvancedFilters, "dgsYes" | "dgsNo">
+const ADVANCED_KEYS: AdvancedStringKey[] = [
+  "hinban", "hinmei", "artistName", "koseiStage", "noukiFrom", "noukiTo",
+  "eigyoTanto", "seihanTanto", "partName", "paperName", "colorOmote", "colorUra",
+  "koseiType", "bikoSiyou", "partBiko",
+]
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 type ImportTarget = "schedules" | "parts"
 
@@ -51,6 +71,14 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState(searchParams.get("keyword") ?? "")
   const [progressFilter, setProgressFilter] = useState(searchParams.get("progress") ?? "")
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [advanced, setAdvanced] = useState<AdvancedFilters>(() => {
+    const init = { ...emptyAdvanced }
+    ADVANCED_KEYS.forEach(k => { init[k] = searchParams.get(k) ?? "" })
+    init.dgsYes = searchParams.get("dgsYes") === "1"
+    init.dgsNo = searchParams.get("dgsNo") === "1"
+    return init
+  })
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [partsCache, setPartsCache] = useState<Record<string, DppScheduleArchivePart[]>>({})
@@ -85,18 +113,23 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
     return groups
   })()
 
-  const buildQuery = (p: number, kw = keyword, pf = progressFilter) => {
+  const buildQuery = (p: number, kw = keyword, pf = progressFilter, adv = advanced) => {
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
     if (pf) params.set("progress", pf)
+    ADVANCED_KEYS.forEach(k => { if (adv[k]) params.set(k, adv[k] as string) })
+    if (adv.dgsYes) params.set("dgsYes", "1")
+    if (adv.dgsNo) params.set("dgsNo", "1")
     params.set("page", String(p))
     return params
   }
 
-  const fetchRecords = async (p = page, kw = keyword, pf = progressFilter, syncUrl = true) => {
+  const fetchRecords = async (p = page, kw = keyword, pf = progressFilter, syncUrl = true, adv = advanced) => {
     setLoading(true)
-    const params = buildQuery(p, kw, pf)
+    const params = buildQuery(p, kw, pf, adv)
     if (syncUrl) router.replace(`/dashboard/dpp/archive?${params.toString()}`)
+    if (adv.dgsYes && !adv.dgsNo) params.set("dgs", "1")
+    if (adv.dgsNo && !adv.dgsYes) params.set("dgs", "0")
     const res = await fetch(`/api/dpp/archive/schedules?${params.toString()}`)
     const data = await res.json()
     setRecords(data.records)
@@ -108,8 +141,12 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
     const p = parseInt(searchParams.get("page") ?? "1")
     const kw = searchParams.get("keyword") ?? ""
     const pf = searchParams.get("progress") ?? ""
-    setPage(p); setKeyword(kw); setProgressFilter(pf)
-    fetchRecords(p, kw, pf, false)
+    const adv = { ...emptyAdvanced }
+    ADVANCED_KEYS.forEach(k => { adv[k] = searchParams.get(k) ?? "" })
+    adv.dgsYes = searchParams.get("dgsYes") === "1"
+    adv.dgsNo = searchParams.get("dgsNo") === "1"
+    setPage(p); setKeyword(kw); setProgressFilter(pf); setAdvanced(adv)
+    fetchRecords(p, kw, pf, false, adv)
   }, [searchParams])
 
   const toggleExpand = async (scId: string) => {
@@ -170,6 +207,8 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
   const collapseAll = () => setExpandedIds(new Set())
 
   const handleSearch = () => { setPage(1); fetchRecords(1) }
+  const updateAdvanced = (patch: Partial<AdvancedFilters>) => setAdvanced(prev => ({ ...prev, ...patch }))
+  const clearAdvanced = () => { setAdvanced(emptyAdvanced); setPage(1); fetchRecords(1, keyword, progressFilter, true, emptyAdvanced) }
   const handlePage = (next: number) => {
     setPage(next)
     fetchRecords(next)
@@ -319,11 +358,62 @@ export default function DppArchiveClient({ isAdmin }: { isAdmin: boolean }) {
           <Button onClick={handleSearch} className="flex items-center gap-1">
             <Search className="w-4 h-4" />検索
           </Button>
+          <Button variant="outline" onClick={() => setShowAdvanced(s => !s)} className="flex items-center gap-1.5">
+            <SlidersHorizontal className="w-4 h-4" />詳細検索
+          </Button>
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" size="sm" onClick={expandAll}>全て展開</Button>
             <Button variant="outline" size="sm" onClick={collapseAll}>全て閉じる</Button>
           </div>
         </div>
+        {showAdvanced && (
+          <div className="mt-4 pt-4 border-t space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 mb-2">仕様情報</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <Input value={advanced.hinban} onChange={e => updateAdvanced({ hinban: e.target.value })} placeholder="品番" autoComplete="off" />
+                <Input value={advanced.hinmei} onChange={e => updateAdvanced({ hinmei: e.target.value })} placeholder="品名" autoComplete="off" />
+                <Input value={advanced.artistName} onChange={e => updateAdvanced({ artistName: e.target.value })} placeholder="アーティスト名" autoComplete="off" />
+                <Input value={advanced.koseiStage} onChange={e => updateAdvanced({ koseiStage: e.target.value })} placeholder="校正段階" autoComplete="off" />
+                <Input value={advanced.eigyoTanto} onChange={e => updateAdvanced({ eigyoTanto: e.target.value })} placeholder="営業担当" autoComplete="off" />
+                <Input value={advanced.seihanTanto} onChange={e => updateAdvanced({ seihanTanto: e.target.value })} placeholder="製版担当" autoComplete="off" />
+                <div className="flex items-center gap-1.5 col-span-2">
+                  <Input type="date" value={advanced.noukiFrom} onChange={e => updateAdvanced({ noukiFrom: e.target.value })} className="text-sm" />
+                  <span className="text-gray-400 text-sm">〜</span>
+                  <Input type="date" value={advanced.noukiTo} onChange={e => updateAdvanced({ noukiTo: e.target.value })} className="text-sm" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 mb-2">パーツ情報</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <Input value={advanced.partName} onChange={e => updateAdvanced({ partName: e.target.value })} placeholder="パーツ名" autoComplete="off" />
+                <Input value={advanced.paperName} onChange={e => updateAdvanced({ paperName: e.target.value })} placeholder="用紙名" autoComplete="off" />
+                <Input value={advanced.colorOmote} onChange={e => updateAdvanced({ colorOmote: e.target.value })} placeholder="色表" autoComplete="off" />
+                <Input value={advanced.colorUra} onChange={e => updateAdvanced({ colorUra: e.target.value })} placeholder="色裏" autoComplete="off" />
+                <Input value={advanced.koseiType} onChange={e => updateAdvanced({ koseiType: e.target.value })} placeholder="校正種" autoComplete="off" />
+                <Input value={advanced.bikoSiyou} onChange={e => updateAdvanced({ bikoSiyou: e.target.value })} placeholder="仕様書備考" autoComplete="off" />
+                <Input value={advanced.partBiko} onChange={e => updateAdvanced({ partBiko: e.target.value })} placeholder="備考" autoComplete="off" />
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={advanced.dgsYes} onChange={e => updateAdvanced({ dgsYes: e.target.checked })} />
+                    DGSあり
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={advanced.dgsNo} onChange={e => updateAdvanced({ dgsNo: e.target.checked })} />
+                    DGSなし
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={clearAdvanced}>詳細検索をクリア</Button>
+              <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
+                <Search className="w-3.5 h-3.5" />この条件で検索
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
