@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Fragment } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ type CadRequest = {
   request_date: string
   request_time: string
   requester_name: string
-  department: string | null
+  content: string | null
   client: string | null
   title: string | null
   genre: string | null
@@ -24,7 +24,9 @@ type CadRequest = {
 }
 
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
+type SortMode = "created" | "nouki"
 const PAGE_SIZE = 50
+const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"]
 
 const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"] as const
 
@@ -45,6 +47,7 @@ export default function CadRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+  const [sortMode, setSortMode] = useState<SortMode>("created")
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
@@ -52,11 +55,12 @@ export default function CadRequestsPage() {
   const [importError, setImportError] = useState("")
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const fetchRecords = async (p = page, kw = keyword, st = statusFilter) => {
+  const fetchRecords = async (p = page, kw = keyword, st = statusFilter, sm = sortMode) => {
     setLoading(true)
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
     if (st) params.set("status", st)
+    params.set("sort", sm)
     params.set("page", String(p))
     const res = await fetch(`/api/cad/requests?${params.toString()}`)
     const data = await res.json()
@@ -69,19 +73,25 @@ export default function CadRequestsPage() {
 
   const handleSearch = () => {
     setPage(1)
-    fetchRecords(1, keyword, statusFilter)
+    fetchRecords(1, keyword, statusFilter, sortMode)
   }
 
   const handleStatusFilter = (st: string) => {
     const next = statusFilter === st ? "" : st
     setStatusFilter(next)
     setPage(1)
-    fetchRecords(1, keyword, next)
+    fetchRecords(1, keyword, next, sortMode)
+  }
+
+  const handleSortMode = (sm: SortMode) => {
+    setSortMode(sm)
+    setPage(1)
+    fetchRecords(1, keyword, statusFilter, sm)
   }
 
   const handlePage = (next: number) => {
     setPage(next)
-    fetchRecords(next, keyword, statusFilter)
+    fetchRecords(next, keyword, statusFilter, sortMode)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -89,7 +99,7 @@ export default function CadRequestsPage() {
     e.stopPropagation()
     if (!confirm("このCAD依頼を削除しますか？")) return
     await fetch(`/api/cad/requests/${id}`, { method: "DELETE" })
-    fetchRecords(page, keyword, statusFilter)
+    fetchRecords(page, keyword, statusFilter, sortMode)
   }
 
   const handleExport = () => {
@@ -129,7 +139,7 @@ export default function CadRequestsPage() {
         if (data.done) break
       }
       setImportStatus("done")
-      fetchRecords(1, keyword, statusFilter)
+      fetchRecords(1, keyword, statusFilter, sortMode)
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "エラーが発生しました")
       setImportStatus("error")
@@ -148,6 +158,26 @@ export default function CadRequestsPage() {
     if (!str) return ""
     return new Date(str).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
   }
+
+  const groupedRecords = (() => {
+    const groups: { key: string; label: string; items: CadRequest[] }[] = []
+    const map = new Map<string, CadRequest[]>()
+    for (const r of records) {
+      const dateStr = sortMode === "nouki" ? r.desired_date : r.request_date
+      const key = dateStr ? dateStr.slice(0, 10) : "__none__"
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(r)
+    }
+    for (const [key, items] of map.entries()) {
+      let label = sortMode === "nouki" ? "納期未定" : "作成日不明"
+      if (key !== "__none__") {
+        const d = new Date(key)
+        label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAY_JP[d.getDay()]})`
+      }
+      groups.push({ key, label, items })
+    }
+    return groups
+  })()
 
   const Pagination = () => (
     <div className="flex items-center justify-between py-3 px-1">
@@ -246,7 +276,7 @@ export default function CadRequestsPage() {
         </div>
       )}
 
-      {/* 検索・フィルタ */}
+      {/* 検索・フィルタ・グルーピング切替 */}
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm space-y-3">
         <div className="flex gap-3">
           <Input
@@ -260,6 +290,25 @@ export default function CadRequestsPage() {
           <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
             <Search className="w-3 h-3" />検索
           </Button>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400">表示順：</span>
+          <button
+            onClick={() => handleSortMode("created")}
+            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              sortMode === "created" ? "bg-gray-800 text-white border-transparent font-semibold" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            作成日順
+          </button>
+          <button
+            onClick={() => handleSortMode("nouki")}
+            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              sortMode === "nouki" ? "bg-gray-800 text-white border-transparent font-semibold" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            納期順
+          </button>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-gray-400">ステータス絞り込み：</span>
@@ -290,67 +339,86 @@ export default function CadRequestsPage() {
           <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
             <table className="w-full table-fixed">
               <colgroup>
-                <col className="w-16" />
-                <col className="w-20" />
-                <col className="w-32" />
-                <col className="w-40" />
-                <col className="w-[22%]" />
-                <col className="w-[18%]" />
+                <col className="w-14" />
                 <col className="w-20" />
                 <col className="w-24" />
+                <col className="w-[16%]" />
+                <col className="w-28" />
+                <col className="w-24" />
+                <col className="w-32" />
+                <col className="w-[18%]" />
+                <col className="w-[16%]" />
                 <col className="w-28" />
               </colgroup>
               <thead>
                 <tr className="border-b bg-gray-50 text-xs text-gray-500">
                   <th className="text-left font-medium px-3 py-2">No.</th>
-                  <th className="text-left font-medium px-3 py-2">依頼日</th>
-                  <th className="text-left font-medium px-3 py-2">依頼者/部署</th>
+                  <th className="text-left font-medium px-3 py-2">ステータス</th>
+                  <th className="text-left font-medium px-3 py-2">作成日</th>
+                  <th className="text-left font-medium px-3 py-2">依頼内容</th>
+                  <th className="text-left font-medium px-3 py-2">依頼者</th>
+                  <th className="text-left font-medium px-3 py-2">納期日</th>
                   <th className="text-left font-medium px-3 py-2">クライアント</th>
                   <th className="text-left font-medium px-3 py-2">タイトル</th>
                   <th className="text-left font-medium px-3 py-2">品番/品目</th>
-                  <th className="text-left font-medium px-3 py-2">ステータス</th>
-                  <th className="text-left font-medium px-3 py-2">希望納期</th>
                   <th className="text-left font-medium px-3 py-2">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {records.map(r => (
-                  <tr
-                    key={r.id}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors align-top"
-                    onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}
-                  >
-                    <td className="px-3 py-3 text-xs text-gray-400">{r.uid}</td>
-                    <td className="px-3 py-3 text-sm text-gray-600">{formatDate(r.request_date)}</td>
-                    <td className="px-3 py-3">
-                      <div className="text-sm text-gray-700 break-words leading-snug">{r.requester_name}</div>
-                      {r.department && <div className="text-xs text-gray-400 mt-0.5">{r.department}</div>}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="text-sm text-gray-600 break-words leading-snug">{r.client ?? ""}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="text-sm font-semibold text-gray-800 break-words leading-snug">{r.title ?? ""}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
-                      {r.hinmoku && <div className="text-xs text-gray-400 mt-0.5 break-words leading-snug">{r.hinmoku}</div>}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-sm text-gray-600">{formatDate(r.desired_date)}</td>
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                      <div className="flex gap-1.5">
-                        <Button variant="outline" size="sm"
-                          onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
-                        <Button variant="destructive" size="sm"
-                          onClick={e => handleDelete(r.id, e)}>削除</Button>
-                      </div>
-                    </td>
-                  </tr>
+                {groupedRecords.map(group => (
+                  <Fragment key={group.key}>
+                    <tr>
+                      <td colSpan={10} className="bg-slate-700 px-4 py-2 text-sm font-bold text-white">
+                        {group.label}
+                      </td>
+                    </tr>
+                    {group.items.map(r => (
+                      <tr
+                        key={r.id}
+                        className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors align-top"
+                        onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}
+                      >
+                        <td className="px-3 py-3 text-xs text-gray-400">{r.uid}</td>
+                        <td className="px-3 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-gray-600">{formatDate(r.request_date)}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{r.request_time}</div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-sm text-gray-600 break-words leading-snug">{r.content ?? ""}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-sm text-gray-700 break-words leading-snug">{r.requester_name}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-gray-600">{formatDate(r.desired_date)}</div>
+                          {r.desired_time && <div className="text-xs text-gray-400 mt-0.5">{r.desired_time}</div>}
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-sm text-gray-600 break-words leading-snug">{r.client ?? ""}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-sm font-semibold text-gray-800 break-words leading-snug">{r.title ?? ""}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
+                          {r.hinmoku && <div className="text-xs text-gray-400 mt-0.5 break-words leading-snug">{r.hinmoku}</div>}
+                        </td>
+                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1.5">
+                            <Button variant="outline" size="sm"
+                              onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
+                            <Button variant="destructive" size="sm"
+                              onClick={e => handleDelete(r.id, e)}>削除</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
   const status = searchParams.get("status")
+  const sort = searchParams.get("sort") ?? "created"
   const page = parseInt(searchParams.get("page") ?? "1")
   const PAGE_SIZE = 50
 
@@ -31,7 +32,9 @@ export async function GET(req: NextRequest) {
     prisma.cadRequest.findMany({
       where,
       include: { requester: { select: { id: true, name: true } } },
-      orderBy: { uid: "desc" },
+      orderBy: sort === "nouki"
+        ? [{ desired_date: "desc" }, { desired_time: "desc" }]
+        : { uid: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
