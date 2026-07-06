@@ -3,16 +3,13 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 
 type User = { id: string; name: string | null; department: string | null }
-
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
-const CONTENT_OPTIONS = ["校正カット", "有型 白ダミー", "新規型 白ダミー"]
 
+const CONTENT_OPTIONS = ["校正カット", "有型 白ダミー", "新規型 白ダミー"]
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
-const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"]
 
 function today() { return new Date().toISOString().slice(0, 10) }
 function nowTime() { return new Date().toTimeString().slice(0, 5) }
@@ -34,7 +31,6 @@ export default function CadRequestNewPage() {
     genre: "",
     hinmoku: "",
     hinban: "",
-    status: "作成中",
     dieline_no: "",
     develop_y: "",
     develop_x: "",
@@ -92,33 +88,40 @@ export default function CadRequestNewPage() {
     }
   }
 
-
-  const labelCls = "text-sm font-medium text-gray-700 mb-1 block"
-  const inputCls = "h-9 text-sm"
+  const labelCls = "text-xs font-medium text-gray-500 w-24 shrink-0 pt-2"
+  const inputCls = "h-8 text-sm flex-1"
+  const rowCls = "flex items-center gap-3"
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>← 戻る</Button>
-        <h1 className="text-2xl font-bold">CAD依頼書 新規登録</h1>
+    <div className="p-8 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>← 戻る</Button>
+          <h1 className="text-2xl font-bold">CAD作業依頼書 新規登録</h1>
+        </div>
+        <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600 font-semibold">作成中</span>
       </div>
 
-      <div className="space-y-6">
-        {/* 依頼情報 */}
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-4">依頼情報</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>依頼日 <span className="text-red-500">*</span></label>
-                <Input type="date" value={form.request_date} onChange={e => set("request_date", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>依頼時刻</label>
-                <Input type="time" value={form.request_time} onChange={e => set("request_time", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>依頼部署</label>
+      <div className="bg-white border rounded-lg shadow-sm">
+        {/* ヘッダー：依頼日時 */}
+        <div className="border-b px-6 py-4 flex items-center gap-6">
+          <div className={rowCls}>
+            <label className={labelCls + " pt-0"}>依頼日 <span className="text-red-500">*</span></label>
+            <Input type="date" value={form.request_date} onChange={e => set("request_date", e.target.value)} className="h-8 text-sm w-40" autoComplete="off" />
+          </div>
+          <div className={rowCls}>
+            <label className={labelCls + " pt-0"}>依頼時刻</label>
+            <Input type="time" value={form.request_time} onChange={e => set("request_time", e.target.value)} className="h-8 text-sm w-28" autoComplete="off" />
+          </div>
+        </div>
+
+        {/* 本体：2カラム */}
+        <div className="grid grid-cols-2 divide-x">
+          {/* 左カラム */}
+          <div className="p-6 space-y-3">
+            <div className={rowCls}>
+              <label className={labelCls}>依頼部署</label>
+              <div className="flex-1">
                 <Input
                   value={form.department}
                   onChange={e => set("department", e.target.value)}
@@ -136,21 +139,31 @@ export default function CadRequestNewPage() {
                   )))}
                 </datalist>
               </div>
-              <div>
-                <label className={labelCls}>依頼営業名 <span className="text-red-500">*</span></label>
-                <select
-                  value={form.requester_id}
-                  onChange={e => handleUserSelect(e.target.value)}
-                  className="w-full h-9 border rounded px-2 text-sm bg-white"
-                >
-                  <option value="">-- 選択してください --</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>依頼内容</label>
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>依頼営業名 <span className="text-red-500">*</span></label>
+              <select
+                value={form.requester_id}
+                onChange={e => handleUserSelect(e.target.value)}
+                className="flex-1 h-8 border rounded px-2 text-sm bg-white"
+              >
+                <option value="">-- 選択してください --</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>クライアント</label>
+              <Input value={form.client} onChange={e => set("client", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>タイトル</label>
+              <Input value={form.title} onChange={e => set("title", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>依頼内容</label>
+              <div className="flex-1">
                 <Input
                   value={form.content}
                   onChange={e => set("content", e.target.value)}
@@ -164,122 +177,98 @@ export default function CadRequestNewPage() {
                 </datalist>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 案件情報 */}
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-4">案件情報</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>クライアント</label>
-                <Input value={form.client} onChange={e => set("client", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>タイトル</label>
-                <Input value={form.title} onChange={e => set("title", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>ジャンル</label>
-                <select value={form.genre} onChange={e => set("genre", e.target.value)}
-                  className="w-full h-9 border rounded px-2 text-sm bg-white">
-                  <option value="">-- 選択 --</option>
-                  {GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>品目名</label>
-                <select value={form.hinmoku} onChange={e => set("hinmoku", e.target.value)}
-                  className="w-full h-9 border rounded px-2 text-sm bg-white">
-                  <option value="">-- 選択 --</option>
-                  {HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>品番</label>
-                <Input value={form.hinban} onChange={e => set("hinban", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>ステータス</label>
-                <select value={form.status} onChange={e => set("status", e.target.value)}
-                  className="w-full h-9 border rounded px-2 text-sm bg-white">
-                  {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>型台帳番号</label>
-                <Input value={form.dieline_no} onChange={e => set("dieline_no", e.target.value)} className={inputCls} autoComplete="off" />
+            <div className={rowCls}>
+              <label className={labelCls}>ジャンル</label>
+              <select value={form.genre} onChange={e => set("genre", e.target.value)}
+                className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                <option value="">-- 選択 --</option>
+                {GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>品目名</label>
+              <select value={form.hinmoku} onChange={e => set("hinmoku", e.target.value)}
+                className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                <option value="">-- 選択 --</option>
+                {HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>品番</label>
+              <Input value={form.hinban} onChange={e => set("hinban", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>型台帳番号</label>
+              <Input value={form.dieline_no} onChange={e => set("dieline_no", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>展開寸法</label>
+              <div className="flex-1 flex items-center gap-2">
+                <Input type="number" value={form.develop_y} onChange={e => set("develop_y", e.target.value)} className="h-8 text-sm w-20" autoComplete="off" placeholder="天地" />
+                <span className="text-gray-400 text-sm">×</span>
+                <Input type="number" value={form.develop_x} onChange={e => set("develop_x", e.target.value)} className="h-8 text-sm w-20" autoComplete="off" placeholder="左右" />
+                <span className="text-xs text-gray-400">mm</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 寸法・仕様 */}
-        <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-4">寸法・仕様</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>展開天地 (mm)</label>
-                <Input type="number" value={form.develop_y} onChange={e => set("develop_y", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>展開左右 (mm)</label>
-                <Input type="number" value={form.develop_x} onChange={e => set("develop_x", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>用紙</label>
-                <Input value={form.paper} onChange={e => set("paper", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>仕上げ個数</label>
-                <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>希望納期日</label>
-                <Input type="date" value={form.desired_date} onChange={e => set("desired_date", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>希望納期時刻</label>
-                <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>使用トレイ</label>
-                <Input value={form.tray} onChange={e => set("tray", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>デジ仕様</label>
-                <Input value={form.degi_spec} onChange={e => set("degi_spec", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>トレイ枚数</label>
-                <Input type="number" value={form.tray_count} onChange={e => set("tray_count", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div>
-                <label className={labelCls}>ポケット</label>
-                <Input value={form.pocket} onChange={e => set("pocket", e.target.value)} className={inputCls} autoComplete="off" />
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>備考</label>
-                <textarea
-                  value={form.remarks}
-                  onChange={e => set("remarks", e.target.value)}
-                  className="w-full border rounded px-3 py-2 text-sm resize-none"
-                  rows={3}
-                  autoComplete="off"
-                />
+            <div className={rowCls}>
+              <label className={labelCls}>用紙</label>
+              <Input value={form.paper} onChange={e => set("paper", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>仕上個数</label>
+              <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>希望納期</label>
+              <div className="flex-1 flex items-center gap-2">
+                <Input type="date" value={form.desired_date} onChange={e => set("desired_date", e.target.value)} className="h-8 text-sm w-36" autoComplete="off" />
+                <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className="h-8 text-sm w-24" autoComplete="off" />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
-          <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? "登録中..." : "登録する"}
-          </Button>
+          {/* 右カラム */}
+          <div className="p-6 space-y-6">
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 mb-3">トレイ仕様詳細</h3>
+              <div className="space-y-3">
+                <div className={rowCls}>
+                  <label className={labelCls}>使用トレイ</label>
+                  <Input value={form.tray} onChange={e => set("tray", e.target.value)} className={inputCls} autoComplete="off" />
+                </div>
+                <div className={rowCls}>
+                  <label className={labelCls}>デジ仕様</label>
+                  <Input value={form.degi_spec} onChange={e => set("degi_spec", e.target.value)} className={inputCls} autoComplete="off" />
+                </div>
+                <div className={rowCls}>
+                  <label className={labelCls}>トレイ枚数</label>
+                  <Input type="number" value={form.tray_count} onChange={e => set("tray_count", e.target.value)} className={inputCls} autoComplete="off" />
+                </div>
+                <div className={rowCls}>
+                  <label className={labelCls}>ポケット</label>
+                  <Input value={form.pocket} onChange={e => set("pocket", e.target.value)} className={inputCls} autoComplete="off" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 mb-3">詳細記入欄</h3>
+              <textarea
+                value={form.remarks}
+                onChange={e => set("remarks", e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm resize-none"
+                rows={8}
+                autoComplete="off"
+              />
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
+        <Button onClick={handleSubmit} disabled={saving}>
+          {saving ? "登録中..." : "登録する"}
+        </Button>
       </div>
     </div>
   )
