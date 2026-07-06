@@ -8,9 +8,11 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
+  const status = searchParams.get("status")
 
   const where = {
     flg_del: 0,
+    ...(status ? { status } : {}),
     ...(keyword ? {
       OR: [
         { uid: { contains: keyword } },
@@ -29,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const headers = [
     "依頼番号", "依頼日", "依頼時刻", "依頼営業名", "依頼部署", "依頼内容",
-    "クライアント", "タイトル", "ジャンル", "品目名", "品番", "型台帳番号",
+    "クライアント", "タイトル", "ジャンル", "品目名", "品番", "ステータス", "型台帳番号",
     "展開天地", "展開左右", "用紙", "仕上個数", "希望納期日", "希望納期時刻",
     "使用トレイ", "デジ仕様", "トレイ枚数", "ポケット", "備考",
   ]
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest) {
     r.genre ?? "",
     r.hinmoku ?? "",
     r.hinban ?? "",
+    r.status ?? "",
     r.dieline_no ?? "",
     r.develop_y?.toString() ?? "",
     r.develop_x?.toString() ?? "",

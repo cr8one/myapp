@@ -12,6 +12,7 @@ const CONTENT_OPTIONS = ["校正カット", "有型 白ダミー", "新規型 �
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
+const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"]
 
 function today() { return new Date().toISOString().slice(0, 10) }
 function nowTime() { return new Date().toTimeString().slice(0, 5) }
@@ -33,6 +34,7 @@ export default function CadRequestNewPage() {
     genre: "",
     hinmoku: "",
     hinban: "",
+    status: "作成中",
     dieline_no: "",
     develop_y: "",
     develop_x: "",
@@ -197,6 +199,13 @@ export default function CadRequestNewPage() {
               <div>
                 <label className={labelCls}>品番</label>
                 <Input value={form.hinban} onChange={e => set("hinban", e.target.value)} className={inputCls} autoComplete="off" />
+              </div>
+              <div>
+                <label className={labelCls}>ステータス</label>
+                <select value={form.status} onChange={e => set("status", e.target.value)}
+                  className="w-full h-9 border rounded px-2 text-sm bg-white">
+                  {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>型台帳番号</label>

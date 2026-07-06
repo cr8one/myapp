@@ -8,11 +8,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
+  const status = searchParams.get("status")
   const page = parseInt(searchParams.get("page") ?? "1")
   const PAGE_SIZE = 50
 
   const where = {
     flg_del: 0,
+    ...(status ? { status } : {}),
     ...(keyword ? {
       OR: [
         { uid: { contains: keyword } },

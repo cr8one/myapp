@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const [
       uid, request_date, request_time, requester_name, department, content,
-      client, title, genre, hinmoku, hinban, dieline_no,
+      client, title, genre, hinmoku, hinban, status, dieline_no,
       develop_y, develop_x, paper, finish_count,
       desired_date, desired_time, tray, degi_spec, tray_count, pocket, remarks
     ] = cols
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       genre: genre || null,
       hinmoku: hinmoku || null,
       hinban: hinban || null,
+      status: status || "作成中",
       dieline_no: dieline_no || null,
       develop_y: develop_y ? parseFloat(develop_y) : null,
       develop_x: develop_x ? parseFloat(develop_x) : null,

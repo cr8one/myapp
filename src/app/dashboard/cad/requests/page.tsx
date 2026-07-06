@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle } from "lucide-react"
 
 type CadRequest = {
@@ -18,6 +17,7 @@ type CadRequest = {
   genre: string | null
   hinmoku: string | null
   hinban: string | null
+  status: string
   desired_date: string | null
   desired_time: string | null
   requester: { id: string; name: string | null; department: string | null } | null
@@ -25,6 +25,16 @@ type CadRequest = {
 
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 const PAGE_SIZE = 50
+
+const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"] as const
+
+const STATUS_STYLE: Record<string, string> = {
+  "作成中": "bg-gray-100 text-gray-600",
+  "依頼済": "bg-blue-100 text-blue-700",
+  "着手": "bg-yellow-100 text-yellow-700",
+  "完了": "bg-green-100 text-green-700",
+  "保留": "bg-red-100 text-red-700",
+}
 
 export default function CadRequestsPage() {
   const router = useRouter()
@@ -34,18 +44,19 @@ export default function CadRequestsPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [importProgress, setImportProgress] = useState({ count: 0, total: 0 })
   const [importError, setImportError] = useState("")
-
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const fetchRecords = async (p = page, kw = keyword) => {
+  const fetchRecords = async (p = page, kw = keyword, st = statusFilter) => {
     setLoading(true)
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
+    if (st) params.set("status", st)
     params.set("page", String(p))
     const res = await fetch(`/api/cad/requests?${params.toString()}`)
     const data = await res.json()
@@ -58,12 +69,19 @@ export default function CadRequestsPage() {
 
   const handleSearch = () => {
     setPage(1)
-    fetchRecords(1, keyword)
+    fetchRecords(1, keyword, statusFilter)
+  }
+
+  const handleStatusFilter = (st: string) => {
+    const next = statusFilter === st ? "" : st
+    setStatusFilter(next)
+    setPage(1)
+    fetchRecords(1, keyword, next)
   }
 
   const handlePage = (next: number) => {
     setPage(next)
-    fetchRecords(next, keyword)
+    fetchRecords(next, keyword, statusFilter)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -71,12 +89,13 @@ export default function CadRequestsPage() {
     e.stopPropagation()
     if (!confirm("このCAD依頼を削除しますか？")) return
     await fetch(`/api/cad/requests/${id}`, { method: "DELETE" })
-    fetchRecords(page, keyword)
+    fetchRecords(page, keyword, statusFilter)
   }
 
   const handleExport = () => {
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
+    if (statusFilter) params.set("status", statusFilter)
     window.location.href = `/api/cad/requests/export?${params.toString()}`
   }
 
@@ -110,7 +129,7 @@ export default function CadRequestsPage() {
         if (data.done) break
       }
       setImportStatus("done")
-      fetchRecords(1, keyword)
+      fetchRecords(1, keyword, statusFilter)
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "エラーが発生しました")
       setImportStatus("error")
@@ -170,7 +189,7 @@ export default function CadRequestsPage() {
             <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
           <p className="text-xs text-gray-500">
-            列順：依頼番号・依頼日・依頼時刻・依頼営業名・依頼部署・依頼内容・クライアント・タイトル・ジャンル・品目名・品番・型台帳番号・展開天地・展開左右・用紙・仕上個数・希望納期日・希望納期時刻・使用トレイ・デジ仕様・トレイ枚数・ポケット・備考
+            列順：依頼番号・依頼日・依頼時刻・依頼営業名・依頼部署・依頼内容・クライアント・タイトル・ジャンル・品目名・品番・ステータス・型台帳番号・展開天地・展開左右・用紙・仕上個数・希望納期日・希望納期時刻・使用トレイ・デジ仕様・トレイ枚数・ポケット・備考
           </p>
           {importStatus === "idle" && (
             <div>
@@ -227,8 +246,8 @@ export default function CadRequestsPage() {
         </div>
       )}
 
-      {/* 検索 */}
-      <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
+      {/* 検索・フィルタ */}
+      <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm space-y-3">
         <div className="flex gap-3">
           <Input
             value={keyword}
@@ -242,6 +261,22 @@ export default function CadRequestsPage() {
             <Search className="w-3 h-3" />検索
           </Button>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400">ステータス絞り込み：</span>
+          {STATUS_OPTIONS.map(st => (
+            <button
+              key={st}
+              onClick={() => handleStatusFilter(st)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                statusFilter === st
+                  ? `${STATUS_STYLE[st]} border-transparent font-semibold`
+                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 一覧 */}
@@ -252,46 +287,73 @@ export default function CadRequestsPage() {
       ) : (
         <>
           <Pagination />
-          <div className="space-y-3">
-            {records.map(r => (
-              <Card key={r.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>
-                <CardContent className="pt-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        <span className="font-bold text-lg text-gray-800">No.{r.uid}</span>
-                        <span className="text-sm text-gray-500">{formatDate(r.request_date)}</span>
-                        {r.department && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{r.department}</span>
-                        )}
-                        <span className="text-sm text-gray-700">{r.requester_name}</span>
+          <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-16" />
+                <col className="w-20" />
+                <col className="w-32" />
+                <col className="w-40" />
+                <col className="w-[22%]" />
+                <col className="w-[18%]" />
+                <col className="w-20" />
+                <col className="w-24" />
+                <col className="w-28" />
+              </colgroup>
+              <thead>
+                <tr className="border-b bg-gray-50 text-xs text-gray-500">
+                  <th className="text-left font-medium px-3 py-2">No.</th>
+                  <th className="text-left font-medium px-3 py-2">依頼日</th>
+                  <th className="text-left font-medium px-3 py-2">依頼者/部署</th>
+                  <th className="text-left font-medium px-3 py-2">クライアント</th>
+                  <th className="text-left font-medium px-3 py-2">タイトル</th>
+                  <th className="text-left font-medium px-3 py-2">品番/品目</th>
+                  <th className="text-left font-medium px-3 py-2">ステータス</th>
+                  <th className="text-left font-medium px-3 py-2">希望納期</th>
+                  <th className="text-left font-medium px-3 py-2">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map(r => (
+                  <tr
+                    key={r.id}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors align-top"
+                    onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}
+                  >
+                    <td className="px-3 py-3 text-xs text-gray-400">{r.uid}</td>
+                    <td className="px-3 py-3 text-sm text-gray-600">{formatDate(r.request_date)}</td>
+                    <td className="px-3 py-3">
+                      <div className="text-sm text-gray-700 break-words leading-snug">{r.requester_name}</div>
+                      {r.department && <div className="text-xs text-gray-400 mt-0.5">{r.department}</div>}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-sm text-gray-600 break-words leading-snug">{r.client ?? ""}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-sm font-semibold text-gray-800 break-words leading-snug">{r.title ?? ""}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
+                      {r.hinmoku && <div className="text-xs text-gray-400 mt-0.5 break-words leading-snug">{r.hinmoku}</div>}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-600">{formatDate(r.desired_date)}</td>
+                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                      <div className="flex gap-1.5">
+                        <Button variant="outline" size="sm"
+                          onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
+                        <Button variant="destructive" size="sm"
+                          onClick={e => handleDelete(r.id, e)}>削除</Button>
                       </div>
-                      <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
-                        {r.client && <span>クライアント：{r.client}</span>}
-                        {r.title && <span>タイトル：{r.title}</span>}
-                        {r.hinban && <span>品番：{r.hinban}</span>}
-                      </div>
-                      <div className="flex gap-3 mt-1 flex-wrap">
-                        {r.genre && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{r.genre}</span>}
-                        {r.hinmoku && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{r.hinmoku}</span>}
-                        {r.desired_date && (
-                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                            希望納期：{formatDate(r.desired_date)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4" onClick={e => e.stopPropagation()}>
-                      <Button variant="outline" size="sm"
-                        onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
-                      <Button variant="destructive" size="sm"
-                        onClick={e => handleDelete(r.id, e)}>削除</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <Pagination />
         </>

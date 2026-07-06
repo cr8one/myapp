@@ -23,6 +23,7 @@ type CadRequest = {
   genre: string | null
   hinmoku: string | null
   hinban: string | null
+  status: string
   dieline_no: string | null
   develop_y: number | null
   develop_x: number | null
@@ -40,6 +41,7 @@ type CadRequest = {
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
+const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"]
 
 export default function CadRequestDetailPage() {
   const router = useRouter()
@@ -67,6 +69,7 @@ export default function CadRequestDetailPage() {
         genre: data.genre ?? "",
         hinmoku: data.hinmoku ?? "",
         hinban: data.hinban ?? "",
+        status: data.status ?? "作成中",
         dieline_no: data.dieline_no ?? "",
         develop_y: data.develop_y?.toString() ?? "",
         develop_x: data.develop_x?.toString() ?? "",
@@ -253,6 +256,12 @@ export default function CadRequestDetailPage() {
                   </select>
                 </div>
                 <div><label className={labelCls}>品番</label><Input value={form.hinban} onChange={e => set("hinban", e.target.value)} className={inputCls} autoComplete="off" /></div>
+                <div>
+                  <label className={labelCls}>ステータス</label>
+                  <select value={form.status} onChange={e => set("status", e.target.value)} className="w-full h-9 border rounded px-2 text-sm bg-white">
+                    {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
                 <div><label className={labelCls}>型台帳番号</label><Input value={form.dieline_no} onChange={e => set("dieline_no", e.target.value)} className={inputCls} autoComplete="off" /></div>
               </div>
             ) : (
@@ -262,6 +271,7 @@ export default function CadRequestDetailPage() {
                 <div><p className="text-xs text-gray-400">ジャンル</p><p className={valCls}>{record.genre || "—"}</p></div>
                 <div><p className="text-xs text-gray-400">品目名</p><p className={valCls}>{record.hinmoku || "—"}</p></div>
                 <div><p className="text-xs text-gray-400">品番</p><p className={valCls}>{record.hinban || "—"}</p></div>
+                <div><p className="text-xs text-gray-400">ステータス</p><p className={valCls}>{record.status || "—"}</p></div>
                 <div><p className="text-xs text-gray-400">型台帳番号</p><p className={valCls}>{record.dieline_no || "—"}</p></div>
               </div>
             )}
