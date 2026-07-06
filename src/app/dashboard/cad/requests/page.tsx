@@ -95,13 +95,6 @@ export default function CadRequestsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!confirm("このCAD依頼を削除しますか？")) return
-    await fetch(`/api/cad/requests/${id}`, { method: "DELETE" })
-    fetchRecords(page, keyword, statusFilter, sortMode)
-  }
-
   const handleExport = () => {
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
@@ -154,9 +147,10 @@ export default function CadRequestsPage() {
     setShowImport(false)
   }
 
-  const formatDate = (str: string | null) => {
+  const formatMonthDay = (str: string | null) => {
     if (!str) return ""
-    return new Date(str).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
+    const d = new Date(str)
+    return `${d.getMonth() + 1}/${d.getDate()}`
   }
 
   const groupedRecords = (() => {
@@ -341,26 +335,24 @@ export default function CadRequestsPage() {
               <colgroup>
                 <col className="w-14" />
                 <col className="w-20" />
+                <col className="w-16" />
+                <col className="w-[20%]" />
                 <col className="w-24" />
-                <col className="w-[16%]" />
-                <col className="w-28" />
+                <col className="w-16" />
+                <col className="w-[22%]" />
                 <col className="w-24" />
-                <col className="w-32" />
-                <col className="w-[18%]" />
-                <col className="w-[16%]" />
-                <col className="w-28" />
+                <col className="w-20" />
               </colgroup>
               <thead>
                 <tr className="border-b bg-gray-50 text-xs text-gray-500">
                   <th className="text-left font-medium px-3 py-2">No.</th>
                   <th className="text-left font-medium px-3 py-2">ステータス</th>
-                  <th className="text-left font-medium px-3 py-2">作成日</th>
-                  <th className="text-left font-medium px-3 py-2">依頼内容</th>
-                  <th className="text-left font-medium px-3 py-2">依頼者</th>
+                  <th className="text-left font-medium px-2 py-2">作成日</th>
+                  <th className="text-left font-medium px-2 py-2">依頼内容</th>
+                  <th className="text-left font-medium px-2 py-2">依頼者</th>
                   <th className="text-left font-medium px-3 py-2">納期日</th>
-                  <th className="text-left font-medium px-3 py-2">クライアント</th>
-                  <th className="text-left font-medium px-3 py-2">タイトル</th>
-                  <th className="text-left font-medium px-3 py-2">品番/品目</th>
+                  <th className="text-left font-medium px-3 py-2">品番/品名</th>
+                  <th className="text-left font-medium px-3 py-2">品目</th>
                   <th className="text-left font-medium px-3 py-2">操作</th>
                 </tr>
               </thead>
@@ -368,7 +360,7 @@ export default function CadRequestsPage() {
                 {groupedRecords.map(group => (
                   <Fragment key={group.key}>
                     <tr>
-                      <td colSpan={10} className="bg-slate-700 px-4 py-2 text-sm font-bold text-white">
+                      <td colSpan={9} className="bg-slate-700 px-4 py-2 text-sm font-bold text-white">
                         {group.label}
                       </td>
                     </tr>
@@ -384,37 +376,30 @@ export default function CadRequestsPage() {
                             {r.status}
                           </span>
                         </td>
-                        <td className="px-3 py-3">
-                          <div className="text-sm text-gray-600">{formatDate(r.request_date)}</div>
+                        <td className="px-2 py-3">
+                          <div className="text-sm text-gray-600">{formatMonthDay(r.request_date)}</div>
                           <div className="text-xs text-gray-400 mt-0.5">{r.request_time}</div>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 py-3">
                           <span className="text-sm text-gray-600 break-words leading-snug">{r.content ?? ""}</span>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 py-3">
                           <span className="text-sm text-gray-700 break-words leading-snug">{r.requester_name}</span>
                         </td>
                         <td className="px-3 py-3">
-                          <div className="text-sm text-gray-600">{formatDate(r.desired_date)}</div>
+                          <div className="text-sm text-gray-600">{formatMonthDay(r.desired_date)}</div>
                           {r.desired_time && <div className="text-xs text-gray-400 mt-0.5">{r.desired_time}</div>}
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-sm text-gray-600 break-words leading-snug">{r.client ?? ""}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="text-sm font-semibold text-gray-800 break-words leading-snug">{r.title ?? ""}</span>
-                        </td>
-                        <td className="px-3 py-3">
                           <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
-                          {r.hinmoku && <div className="text-xs text-gray-400 mt-0.5 break-words leading-snug">{r.hinmoku}</div>}
+                          <div className="text-sm text-gray-700 break-words leading-snug mt-0.5">{r.title ?? ""}</div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-sm text-gray-700 break-words leading-snug">{r.hinmoku ?? ""}</span>
                         </td>
                         <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex gap-1.5">
-                            <Button variant="outline" size="sm"
-                              onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
-                            <Button variant="destructive" size="sm"
-                              onClick={e => handleDelete(r.id, e)}>削除</Button>
-                          </div>
+                          <Button variant="outline" size="sm"
+                            onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
                         </td>
                       </tr>
                     ))}
