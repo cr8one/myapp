@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Users, FileText } from "lucide-react"
+import { Plus, Pencil, Trash2, Users, FileText, ClipboardList } from "lucide-react"
 
 type CadClient = {
   id: string
@@ -15,11 +15,17 @@ type CadPaper = {
   height: number | null
   sort_order: number
 }
+type CadContent = {
+  id: string
+  name: string
+  sort_order: number
+}
 
 export default function CadMastersPage() {
-  const [activeTab, setActiveTab] = useState<"clients" | "papers">("clients")
+  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents">("clients")
   const [clients, setClients] = useState<CadClient[]>([])
   const [papers, setPapers] = useState<CadPaper[]>([])
+  const [contents, setContents] = useState<CadContent[]>([])
   const [loading, setLoading] = useState(true)
 
   // クライアントフォーム
@@ -37,17 +43,24 @@ export default function CadMastersPage() {
   const [paperHeight, setPaperHeight] = useState("")
   const [paperOrder, setPaperOrder] = useState(0)
 
+  // 依頼内容フォーム
+  const [showContentForm, setShowContentForm] = useState(false)
+  const [editContent, setEditContent] = useState<CadContent | null>(null)
+  const [contentName, setContentName] = useState("")
+  const [contentOrder, setContentOrder] = useState(0)
+
   const fetchAll = async () => {
     setLoading(true)
-    const [cRes, pRes] = await Promise.all([
+    const [cRes, pRes, ctRes] = await Promise.all([
       fetch("/api/cad/masters/clients"),
       fetch("/api/cad/masters/papers"),
+      fetch("/api/cad/masters/contents"),
     ])
     setClients(await cRes.json())
     setPapers(await pRes.json())
+    setContents(await ctRes.json())
     setLoading(false)
   }
-
   useEffect(() => { fetchAll() }, [])
 
   // クライアント保存
@@ -70,13 +83,11 @@ export default function CadMastersPage() {
     setClientName(""); setClientShortName(""); setClientOrder(0)
     fetchAll()
   }
-
   const deleteClient = async (id: string) => {
     if (!confirm("このクライアントを削除しますか？")) return
     await fetch(`/api/cad/masters/clients/${id}`, { method: "DELETE" })
     fetchAll()
   }
-
   const startEditClient = (c: CadClient) => {
     setEditClient(c); setClientName(c.name)
     setClientShortName(c.short_name ?? ""); setClientOrder(c.sort_order)
@@ -109,17 +120,45 @@ export default function CadMastersPage() {
     setPaperName(""); setPaperWidth(""); setPaperHeight(""); setPaperOrder(0)
     fetchAll()
   }
-
   const deletePaper = async (id: string) => {
     if (!confirm("この用紙を削除しますか？")) return
     await fetch(`/api/cad/masters/papers/${id}`, { method: "DELETE" })
     fetchAll()
   }
-
   const startEditPaper = (p: CadPaper) => {
     setEditPaper(p); setPaperName(p.name)
     setPaperWidth(p.width?.toString() ?? ""); setPaperHeight(p.height?.toString() ?? "")
     setPaperOrder(p.sort_order); setShowPaperForm(true)
+  }
+
+  // 依頼内容保存
+  const saveContent = async () => {
+    if (!contentName.trim()) return
+    if (editContent) {
+      await fetch(`/api/cad/masters/contents/${editContent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: contentName, sort_order: contentOrder }),
+      })
+    } else {
+      await fetch("/api/cad/masters/contents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: contentName, sort_order: contentOrder }),
+      })
+    }
+    setShowContentForm(false); setEditContent(null)
+    setContentName(""); setContentOrder(0)
+    fetchAll()
+  }
+  const deleteContent = async (id: string) => {
+    if (!confirm("この依頼内容を削除しますか？")) return
+    await fetch(`/api/cad/masters/contents/${id}`, { method: "DELETE" })
+    fetchAll()
+  }
+  const startEditContent = (c: CadContent) => {
+    setEditContent(c); setContentName(c.name)
+    setContentOrder(c.sort_order); setShowContentForm(true)
   }
 
   return (
@@ -127,7 +166,6 @@ export default function CadMastersPage() {
       <div className="flex items-center gap-2 mb-6">
         <h1 className="text-xl font-bold text-gray-900">CAD/台紙マスタ管理</h1>
       </div>
-
       {/* タブ */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
         <button
@@ -142,8 +180,13 @@ export default function CadMastersPage() {
         >
           <FileText className="w-4 h-4" /> 用紙
         </button>
+        <button
+          onClick={() => setActiveTab("contents")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "contents" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          <ClipboardList className="w-4 h-4" /> 依頼内容
+        </button>
       </div>
-
       {loading ? (
         <p className="text-sm text-gray-400">読み込み中...</p>
       ) : activeTab === "clients" ? (
@@ -156,7 +199,6 @@ export default function CadMastersPage() {
               <Plus className="w-4 h-4" /> クライアント追加
             </button>
           </div>
-
           {showClientForm && (
             <div className="mb-4 p-4 bg-lime-50 border border-lime-200 rounded-xl">
               <p className="text-sm font-medium text-lime-800 mb-3">{editClient ? "クライアントを編集" : "クライアントを追加"}</p>
@@ -169,7 +211,6 @@ export default function CadMastersPage() {
               </div>
             </div>
           )}
-
           {clients.length === 0 ? (
             <p className="text-sm text-gray-400">クライアントがまだ登録されていません。</p>
           ) : (
@@ -187,7 +228,7 @@ export default function CadMastersPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === "papers" ? (
         <div>
           <div className="flex justify-end mb-4">
             <button
@@ -197,7 +238,6 @@ export default function CadMastersPage() {
               <Plus className="w-4 h-4" /> 用紙追加
             </button>
           </div>
-
           {showPaperForm && (
             <div className="mb-4 p-4 bg-lime-50 border border-lime-200 rounded-xl">
               <p className="text-sm font-medium text-lime-800 mb-3">{editPaper ? "用紙を編集" : "用紙を追加"}</p>
@@ -211,7 +251,6 @@ export default function CadMastersPage() {
               </div>
             </div>
           )}
-
           {papers.length === 0 ? (
             <p className="text-sm text-gray-400">用紙がまだ登録されていません。</p>
           ) : (
@@ -228,6 +267,43 @@ export default function CadMastersPage() {
                   <span className="text-xs text-gray-300">#{p.sort_order}</span>
                   <button onClick={() => startEditPaper(p)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
                   <button onClick={() => deletePaper(p.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => { setShowContentForm(true); setEditContent(null); setContentName(""); setContentOrder(0) }}
+              className="flex items-center gap-1 px-3 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800"
+            >
+              <Plus className="w-4 h-4" /> 依頼内容追加
+            </button>
+          </div>
+          {showContentForm && (
+            <div className="mb-4 p-4 bg-lime-50 border border-lime-200 rounded-xl">
+              <p className="text-sm font-medium text-lime-800 mb-3">{editContent ? "依頼内容を編集" : "依頼内容を追加"}</p>
+              <div className="flex gap-2 flex-wrap">
+                <input autoComplete="off" className="flex-1 min-w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="依頼内容（例: 校正カット）" value={contentName} onChange={e => setContentName(e.target.value)} />
+                <input autoComplete="off" type="number" className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="順序" value={contentOrder} onChange={e => setContentOrder(Number(e.target.value))} />
+                <button onClick={saveContent} className="px-4 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800">保存</button>
+                <button onClick={() => { setShowContentForm(false); setEditContent(null) }} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+              </div>
+            </div>
+          )}
+          {contents.length === 0 ? (
+            <p className="text-sm text-gray-400">依頼内容がまだ登録されていません。</p>
+          ) : (
+            <div className="space-y-2">
+              {contents.map(c => (
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
+                  <ClipboardList className="w-4 h-4 text-lime-500 flex-shrink-0" />
+                  <span className="flex-1 font-medium text-gray-900">{c.name}</span>
+                  <span className="text-xs text-gray-300">#{c.sort_order}</span>
+                  <button onClick={() => startEditContent(c)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => deleteContent(c.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>

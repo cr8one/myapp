@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 
 type User = { id: string; name: string | null; department: string | null }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
-const CONTENT_OPTIONS = ["校正カット", "有型 白ダミー", "新規型 白ダミー"]
+type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
+type CadContent = { id: string; name: string; sort_order: number }
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 
@@ -55,6 +56,8 @@ export default function CadRequestDetailPage() {
   const [record, setRecord] = useState<CadRequest | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
+  const [clients, setClients] = useState<CadClient[]>([])
+  const [contents, setContents] = useState<CadContent[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
@@ -90,6 +93,8 @@ export default function CadRequestDetailPage() {
     })
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
     fetch("/api/masters/departments").then(r => r.json()).then(setDepartments)
+    fetch("/api/cad/masters/clients").then(r => r.json()).then(setClients)
+    fetch("/api/cad/masters/contents").then(r => r.json()).then(setContents)
   }, [id])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -237,7 +242,11 @@ export default function CadRequestDetailPage() {
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>クライアント</label>
-                  <Input value={form.client} onChange={e => set("client", e.target.value)} className={inputCls} autoComplete="off" />
+                  <select value={form.client} onChange={e => set("client", e.target.value)}
+                    className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                    <option value="">-- 選択 --</option>
+                    {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>タイトル</label>
@@ -255,7 +264,7 @@ export default function CadRequestDetailPage() {
                       placeholder="依頼内容を入力または選択"
                     />
                     <datalist id="content-list">
-                      {CONTENT_OPTIONS.map(o => <option key={o} value={o} />)}
+                      {contents.map(c => <option key={c.id} value={c.name} />)}
                     </datalist>
                   </div>
                 </div>

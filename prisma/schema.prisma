@@ -1120,6 +1120,15 @@ model MCadClient {
   @@map("m_cad_clients")
 }
 
+model MCadContent {
+  id         String   @id @default(cuid())
+  name       String
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("m_cad_contents")
+}
+
 model MCadPaper {
   id         String   @id @default(cuid())
   name       String
