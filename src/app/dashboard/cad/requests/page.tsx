@@ -338,27 +338,27 @@ export default function CadRequestsPage() {
           <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
             <table className="w-full table-fixed">
               <colgroup>
-                <col className="w-12" />
-                <col className="w-20" />
-                <col className="w-16" />
-                <col className="w-16" />
+                <col className="w-14" />
                 <col className="w-24" />
                 <col className="w-20" />
                 <col className="w-20" />
+                <col className="w-28" />
+                <col className="w-28" />
+                <col className="w-24" />
                 <col />
-                <col className="w-16" />
+                <col className="w-20" />
               </colgroup>
               <thead>
                 <tr className="border-b bg-gray-50 text-xs text-gray-500">
-                  <th className="text-left font-medium px-2 py-2">No.</th>
-                  <th className="text-left font-medium px-2 py-2">ステータス</th>
-                  <th className="text-left font-medium px-2 py-2">作成日時</th>
-                  <th className="text-left font-medium px-2 py-2">納期日時</th>
-                  <th className="text-left font-medium px-1 py-2">依頼内容</th>
-                  <th className="text-left font-medium px-1 py-2">依頼者</th>
-                  <th className="text-left font-medium px-2 py-2">ジャンル/品目</th>
-                  <th className="text-left font-medium px-3 py-2">品番/品名</th>
-                  <th className="text-left font-medium px-2 py-2">操作</th>
+                  <th className="text-left font-medium px-3 py-3">No.</th>
+                  <th className="text-left font-medium px-3 py-3">ステータス</th>
+                  <th className="text-left font-medium px-3 py-3">作成日時</th>
+                  <th className="text-left font-medium px-3 py-3">納期日時</th>
+                  <th className="text-left font-medium px-3 py-3">依頼内容</th>
+                  <th className="text-left font-medium px-3 py-3">依頼者</th>
+                  <th className="text-left font-medium px-3 py-3">ジャンル/品目</th>
+                  <th className="text-left font-medium px-3 py-3">品番/品名</th>
+                  <th className="text-left font-medium px-3 py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -375,35 +375,35 @@ export default function CadRequestsPage() {
                         className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors align-top"
                         onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}
                       >
-                        <td className="px-2 py-3 text-xs text-gray-400">{r.uid}</td>
-                        <td className="px-2 py-3">
+                        <td className="px-3 py-4 text-xs text-gray-400">{r.uid}</td>
+                        <td className="px-3 py-4">
                           <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[r.status] ?? "bg-gray-100 text-gray-600"}`}>
                             {r.status}
                           </span>
                         </td>
-                        <td className="px-2 py-3">
+                        <td className="px-3 py-4">
                           <div className="text-sm text-gray-600">{formatMonthDay(r.request_date)}</div>
                           <div className="text-xs text-gray-400 mt-0.5">{formatTimeNoSec(r.request_time)}</div>
                         </td>
-                        <td className="px-2 py-3">
+                        <td className="px-3 py-4">
                           <div className="text-sm text-gray-600">{formatMonthDay(r.desired_date)}</div>
                           {r.desired_time && <div className="text-xs text-gray-400 mt-0.5">{formatTimeNoSec(r.desired_time)}</div>}
                         </td>
-                        <td className="px-1 py-3">
-                          <span className="text-sm text-gray-600 break-words leading-snug">{r.content ?? ""}</span>
+                        <td className="px-3 py-4">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">{r.content ?? ""}</span>
                         </td>
-                        <td className="px-1 py-3">
+                        <td className="px-3 py-4">
                           <span className="text-sm text-gray-700 break-words leading-snug">{r.requester_name}</span>
                         </td>
-                        <td className="px-2 py-3">
-                          <div className="text-sm text-gray-700 break-words leading-snug">{r.hinmoku ?? ""}</div>
-                          {r.genre && <div className="text-xs text-gray-400 mt-0.5">{r.genre}</div>}
+                        <td className="px-3 py-4">
+                          <div className="text-xs text-gray-400">{r.genre ?? ""}</div>
+                          <div className="text-sm text-gray-700 break-words leading-snug mt-0.5">{r.hinmoku ?? ""}</div>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-4">
                           <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
                           <div className="text-sm text-gray-700 break-words leading-snug mt-0.5">{r.title ?? ""}</div>
                         </td>
-                        <td className="px-2 py-3" onClick={e => e.stopPropagation()}>
+                        <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
                           <Button variant="outline" size="sm"
                             onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
                         </td>
