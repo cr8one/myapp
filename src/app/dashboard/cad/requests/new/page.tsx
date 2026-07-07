@@ -123,12 +123,12 @@ export default function CadRequestNewPage() {
           <Button variant="outline" size="sm" onClick={() => router.back()}>← 戻る</Button>
           <h1 className="text-2xl font-bold">CAD作業依頼書 新規登録</h1>
         </div>
-        <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600 font-semibold">作成中</span>
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm">
-        {/* ヘッダー：依頼日時 */}
+        {/* ヘッダー：ステータス・依頼日時 */}
         <div className="border-b px-6 py-4 flex items-center gap-6">
+          <span className="text-sm px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold">作成中</span>
           <div className={rowCls}>
             <label className={labelCls + " pt-0"}>依頼日 <span className="text-red-500">*</span></label>
             <Input type="date" value={form.request_date} onChange={e => set("request_date", e.target.value)} className="h-8 text-sm w-40" autoComplete="off" />

@@ -177,9 +177,6 @@ export default function CadRequestDetailPage() {
           <h1 className="text-2xl font-bold">CAD作業依頼書 No.{record.uid}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-xs px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[record.status] ?? "bg-gray-100 text-gray-600"}`}>
-            {record.status}
-          </span>
           {editing ? (
             <>
               <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
@@ -195,8 +192,11 @@ export default function CadRequestDetailPage() {
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm">
-        {/* ヘッダー：依頼日時 */}
+        {/* ヘッダー：ステータス・依頼日時 */}
         <div className="border-b px-6 py-4 flex items-center gap-6">
+          <span className={`text-sm px-4 py-1.5 rounded-full font-bold ${STATUS_STYLE[record.status] ?? "bg-gray-100 text-gray-600"}`}>
+            {record.status}
+          </span>
           {editing ? (
             <>
               <div className={rowCls}>
