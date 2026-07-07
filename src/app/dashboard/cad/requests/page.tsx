@@ -218,7 +218,7 @@ export default function CadRequestsPage() {
             <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
           <p className="text-xs text-gray-500">
-            列順：依頼番号・依頼日・依頼時刻・依頼営業名・依頼部署・依頼内容・クライアント・タイトル・ジャンル・品目名・品番・ステータス・型台帳番号・展開天地・展開左右・用紙・仕上個数・希望納期日・希望納期時刻・使用トレイ・デジ仕様・トレイ枚数・ポケット・備考
+            列順：依頼番号・依頼日・依頼時刻・依頼営業名・依頼部署・依頼内容・クライアント・タイトル・ジャンル・品目名・品番・ステータス・型台帳番号・展開天地・展開左右・用紙・仕上個数・希望納期日・希望納期時刻・トレイ仕様flg・使用トレイ・デジ仕様・トレイ枚数・ポケット・備考
           </p>
           {importStatus === "idle" && (
             <div>

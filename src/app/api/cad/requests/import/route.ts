@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       uid, request_date, request_time, requester_name, department, content,
       client, title, genre, hinmoku, hinban, status, dieline_no,
       develop_y, develop_x, paper, finish_count,
-      desired_date, desired_time, tray, degi_spec, tray_count, pocket, remarks
+      desired_date, desired_time, flg_tray_spec, tray, degi_spec, tray_count, pocket, remarks
     ] = cols
 
     const data = {
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
       desired_time: desired_time || null,
       tray: tray || null,
       degi_spec: degi_spec || null,
-      tray_count: tray_count ? parseInt(tray_count) : null,
+      flg_tray_spec: flg_tray_spec === "1" ? 1 : 0,
+      tray_count: tray_count || null,
       pocket: pocket || null,
       remarks: remarks || null,
       flg_del: 0,

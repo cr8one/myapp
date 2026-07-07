@@ -4,12 +4,13 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-type User = { id: string; name: string | null; department: string | null }
+type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
 type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
 type CadContent = { id: string; name: string; sort_order: number }
+type CadOption = { id: string; category: string; value: string; sort_order: number }
+
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
-const HINMOKU_OPTIONS = ["ハコ", "オビ", "ラベル", "スペーサー", "E式ジャケット", "デジ本体", "その他"]
 
 const STATUS_STYLE: Record<string, string> = {
   "作成中": "bg-gray-100 text-gray-600",
@@ -41,9 +42,10 @@ type CadRequest = {
   finish_count: number | null
   desired_date: string | null
   desired_time: string | null
+  flg_tray_spec: number
   tray: string | null
   degi_spec: string | null
-  tray_count: number | null
+  tray_count: string | null
   pocket: string | null
   remarks: string | null
   requester: { id: string; name: string | null; department: string | null } | null
@@ -58,13 +60,16 @@ export default function CadRequestDetailPage() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [clients, setClients] = useState<CadClient[]>([])
   const [contents, setContents] = useState<CadContent[]>([])
+  const [options, setOptions] = useState<CadOption[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
+  const [flgTraySpec, setFlgTraySpec] = useState(false)
 
   useEffect(() => {
     fetch(`/api/cad/requests/${id}`).then(r => r.json()).then((data: CadRequest) => {
       setRecord(data)
+      setFlgTraySpec(!!data.flg_tray_spec)
       setForm({
         request_date: data.request_date?.slice(0, 10) ?? "",
         request_time: data.request_time ?? "",
@@ -86,7 +91,7 @@ export default function CadRequestDetailPage() {
         desired_time: data.desired_time ?? "",
         tray: data.tray ?? "",
         degi_spec: data.degi_spec ?? "",
-        tray_count: data.tray_count?.toString() ?? "",
+        tray_count: data.tray_count ?? "",
         pocket: data.pocket ?? "",
         remarks: data.remarks ?? "",
       })
@@ -95,18 +100,32 @@ export default function CadRequestDetailPage() {
     fetch("/api/masters/departments").then(r => r.json()).then(setDepartments)
     fetch("/api/cad/masters/clients").then(r => r.json()).then(setClients)
     fetch("/api/cad/masters/contents").then(r => r.json()).then(setContents)
+    fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
   }, [id])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const optionsFor = (category: string) => options.filter(o => o.category === category)
+
+  const filteredUsers = form.department
+    ? users.filter(u => u.departmentLabels.includes(form.department))
+    : users
 
   const handleUserSelect = (userId: string) => {
     const user = users.find(u => u.id === userId)
     if (user) {
       set("requester_id", userId)
       set("requester_name", user.name ?? "")
-      set("department", user.department ?? "")
     } else {
       set("requester_id", "")
+    }
+  }
+
+  const handleDepartmentChange = (v: string) => {
+    set("department", v)
+    const stillValid = users.some(u => u.id === form.requester_id && (!v || u.departmentLabels.includes(v)))
+    if (!stillValid) {
+      set("requester_id", "")
+      set("requester_name", "")
     }
   }
 
@@ -118,10 +137,10 @@ export default function CadRequestDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        flg_tray_spec: flgTraySpec ? 1 : 0,
         develop_y: form.develop_y ? parseFloat(form.develop_y) : null,
         develop_x: form.develop_x ? parseFloat(form.develop_x) : null,
         finish_count: form.finish_count ? parseInt(form.finish_count) : null,
-        tray_count: form.tray_count ? parseInt(form.tray_count) : null,
         requester_id: form.requester_id || null,
         desired_date: form.desired_date || null,
         desired_time: form.desired_time || null,
@@ -214,7 +233,7 @@ export default function CadRequestDetailPage() {
                   <div className="flex-1">
                     <Input
                       value={form.department}
-                      onChange={e => set("department", e.target.value)}
+                      onChange={e => handleDepartmentChange(e.target.value)}
                       className={inputCls}
                       autoComplete="off"
                       list="dept-list"
@@ -235,7 +254,7 @@ export default function CadRequestDetailPage() {
                   <select value={form.requester_id} onChange={e => handleUserSelect(e.target.value)}
                     className="flex-1 h-8 border rounded px-2 text-sm bg-white">
                     <option value="">-- 選択してください --</option>
-                    {users.map(u => (
+                    {filteredUsers.map(u => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
@@ -277,10 +296,19 @@ export default function CadRequestDetailPage() {
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>品目名</label>
-                  <select value={form.hinmoku} onChange={e => set("hinmoku", e.target.value)} className="flex-1 h-8 border rounded px-2 text-sm bg-white">
-                    <option value="">-- 選択 --</option>
-                    {HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                  <div className="flex-1">
+                    <Input
+                      value={form.hinmoku}
+                      onChange={e => set("hinmoku", e.target.value)}
+                      className={inputCls}
+                      autoComplete="off"
+                      list="hinmoku-list"
+                      placeholder="品目名を入力または選択"
+                    />
+                    <datalist id="hinmoku-list">
+                      {optionsFor("hinmoku").map(o => <option key={o.id} value={o.value} />)}
+                    </datalist>
+                  </div>
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>品番</label>
@@ -347,33 +375,74 @@ export default function CadRequestDetailPage() {
           {/* 右カラム */}
           <div className="p-6 space-y-6">
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 mb-3">トレイ仕様詳細</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-gray-500">トレイ仕様詳細</h3>
+                {editing ? (
+                  <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={flgTraySpec}
+                      onChange={e => setFlgTraySpec(e.target.checked)}
+                      className="w-3.5 h-3.5"
+                    />
+                    トレイ仕様あり
+                  </label>
+                ) : (
+                  record.flg_tray_spec ? (
+                    <span className="text-xs text-lime-700 font-medium">トレイ仕様あり</span>
+                  ) : null
+                )}
+              </div>
               {editing ? (
-                <div className="space-y-3">
-                  <div className={rowCls}>
-                    <label className={labelCls}>使用トレイ</label>
-                    <Input value={form.tray} onChange={e => set("tray", e.target.value)} className={inputCls} autoComplete="off" />
+                flgTraySpec && (
+                  <div className="space-y-3">
+                    <div className={rowCls}>
+                      <label className={labelCls}>使用トレイ</label>
+                      <div className="flex-1">
+                        <Input value={form.tray} onChange={e => set("tray", e.target.value)} className={inputCls} autoComplete="off" list="tray-list" />
+                        <datalist id="tray-list">
+                          {optionsFor("tray").map(o => <option key={o.id} value={o.value} />)}
+                        </datalist>
+                      </div>
+                    </div>
+                    <div className={rowCls}>
+                      <label className={labelCls}>デジ仕様</label>
+                      <div className="flex-1">
+                        <Input value={form.degi_spec} onChange={e => set("degi_spec", e.target.value)} className={inputCls} autoComplete="off" list="degi-spec-list" />
+                        <datalist id="degi-spec-list">
+                          {optionsFor("degi_spec").map(o => <option key={o.id} value={o.value} />)}
+                        </datalist>
+                      </div>
+                    </div>
+                    <div className={rowCls}>
+                      <label className={labelCls}>トレイ枚数</label>
+                      <div className="flex-1">
+                        <Input value={form.tray_count} onChange={e => set("tray_count", e.target.value)} className={inputCls} autoComplete="off" list="tray-count-list" />
+                        <datalist id="tray-count-list">
+                          {optionsFor("tray_count").map(o => <option key={o.id} value={o.value} />)}
+                        </datalist>
+                      </div>
+                    </div>
+                    <div className={rowCls}>
+                      <label className={labelCls}>ポケット</label>
+                      <div className="flex-1">
+                        <Input value={form.pocket} onChange={e => set("pocket", e.target.value)} className={inputCls} autoComplete="off" list="pocket-list" />
+                        <datalist id="pocket-list">
+                          {optionsFor("pocket").map(o => <option key={o.id} value={o.value} />)}
+                        </datalist>
+                      </div>
+                    </div>
                   </div>
-                  <div className={rowCls}>
-                    <label className={labelCls}>デジ仕様</label>
-                    <Input value={form.degi_spec} onChange={e => set("degi_spec", e.target.value)} className={inputCls} autoComplete="off" />
-                  </div>
-                  <div className={rowCls}>
-                    <label className={labelCls}>トレイ枚数</label>
-                    <Input type="number" value={form.tray_count} onChange={e => set("tray_count", e.target.value)} className={inputCls} autoComplete="off" />
-                  </div>
-                  <div className={rowCls}>
-                    <label className={labelCls}>ポケット</label>
-                    <Input value={form.pocket} onChange={e => set("pocket", e.target.value)} className={inputCls} autoComplete="off" />
-                  </div>
-                </div>
+                )
               ) : (
-                <div className="space-y-3">
-                  <div className={rowCls}><span className={valLabelCls}>使用トレイ</span><span className={valCls}>{record.tray || "—"}</span></div>
-                  <div className={rowCls}><span className={valLabelCls}>デジ仕様</span><span className={valCls}>{record.degi_spec || "—"}</span></div>
-                  <div className={rowCls}><span className={valLabelCls}>トレイ枚数</span><span className={valCls}>{record.tray_count != null ? `${record.tray_count}枚` : "—"}</span></div>
-                  <div className={rowCls}><span className={valLabelCls}>ポケット</span><span className={valCls}>{record.pocket || "—"}</span></div>
-                </div>
+                record.flg_tray_spec ? (
+                  <div className="space-y-3">
+                    <div className={rowCls}><span className={valLabelCls}>使用トレイ</span><span className={valCls}>{record.tray || "—"}</span></div>
+                    <div className={rowCls}><span className={valLabelCls}>デジ仕様</span><span className={valCls}>{record.degi_spec || "—"}</span></div>
+                    <div className={rowCls}><span className={valLabelCls}>トレイ枚数</span><span className={valCls}>{record.tray_count || "—"}</span></div>
+                    <div className={rowCls}><span className={valLabelCls}>ポケット</span><span className={valCls}>{record.pocket || "—"}</span></div>
+                  </div>
+                ) : null
               )}
             </div>
             <div>
@@ -383,7 +452,7 @@ export default function CadRequestDetailPage() {
                   value={form.remarks}
                   onChange={e => set("remarks", e.target.value)}
                   className="w-full border rounded px-3 py-2 text-sm resize-none"
-                  rows={8}
+                  rows={flgTraySpec ? 8 : 16}
                   autoComplete="off"
                 />
               ) : (

@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Users, FileText, ClipboardList } from "lucide-react"
+import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks } from "lucide-react"
 
 type CadClient = {
   id: string
@@ -20,12 +20,28 @@ type CadContent = {
   name: string
   sort_order: number
 }
+type CadOption = {
+  id: string
+  category: string
+  value: string
+  sort_order: number
+}
+
+const OPTION_CATEGORIES = [
+  { key: "hinmoku", label: "品目名" },
+  { key: "tray", label: "使用トレイ" },
+  { key: "degi_spec", label: "デジ仕様" },
+  { key: "tray_count", label: "トレイ枚数" },
+  { key: "pocket", label: "ポケット" },
+]
 
 export default function CadMastersPage() {
-  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents">("clients")
+  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents" | "options">("clients")
   const [clients, setClients] = useState<CadClient[]>([])
   const [papers, setPapers] = useState<CadPaper[]>([])
   const [contents, setContents] = useState<CadContent[]>([])
+  const [options, setOptions] = useState<CadOption[]>([])
+  const [optionCategory, setOptionCategory] = useState(OPTION_CATEGORIES[0].key)
   const [loading, setLoading] = useState(true)
 
   // クライアントフォーム
@@ -49,16 +65,24 @@ export default function CadMastersPage() {
   const [contentName, setContentName] = useState("")
   const [contentOrder, setContentOrder] = useState(0)
 
+  // 入力候補フォーム
+  const [showOptionForm, setShowOptionForm] = useState(false)
+  const [editOption, setEditOption] = useState<CadOption | null>(null)
+  const [optionValue, setOptionValue] = useState("")
+  const [optionOrder, setOptionOrder] = useState(0)
+
   const fetchAll = async () => {
     setLoading(true)
-    const [cRes, pRes, ctRes] = await Promise.all([
+    const [cRes, pRes, ctRes, opRes] = await Promise.all([
       fetch("/api/cad/masters/clients"),
       fetch("/api/cad/masters/papers"),
       fetch("/api/cad/masters/contents"),
+      fetch("/api/cad/masters/options"),
     ])
     setClients(await cRes.json())
     setPapers(await pRes.json())
     setContents(await ctRes.json())
+    setOptions(await opRes.json())
     setLoading(false)
   }
   useEffect(() => { fetchAll() }, [])
@@ -161,6 +185,38 @@ export default function CadMastersPage() {
     setContentOrder(c.sort_order); setShowContentForm(true)
   }
 
+  // 入力候補保存
+  const saveOption = async () => {
+    if (!optionValue.trim()) return
+    if (editOption) {
+      await fetch(`/api/cad/masters/options/${editOption.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: optionCategory, value: optionValue, sort_order: optionOrder }),
+      })
+    } else {
+      await fetch("/api/cad/masters/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: optionCategory, value: optionValue, sort_order: optionOrder }),
+      })
+    }
+    setShowOptionForm(false); setEditOption(null)
+    setOptionValue(""); setOptionOrder(0)
+    fetchAll()
+  }
+  const deleteOption = async (id: string) => {
+    if (!confirm("この入力候補を削除しますか？")) return
+    await fetch(`/api/cad/masters/options/${id}`, { method: "DELETE" })
+    fetchAll()
+  }
+  const startEditOption = (o: CadOption) => {
+    setEditOption(o); setOptionValue(o.value)
+    setOptionOrder(o.sort_order); setShowOptionForm(true)
+  }
+
+  const filteredOptions = options.filter(o => o.category === optionCategory)
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-2 mb-6">
@@ -185,6 +241,12 @@ export default function CadMastersPage() {
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "contents" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <ClipboardList className="w-4 h-4" /> 依頼内容
+        </button>
+        <button
+          onClick={() => setActiveTab("options")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "options" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          <ListChecks className="w-4 h-4" /> 入力候補
         </button>
       </div>
       {loading ? (
@@ -272,7 +334,7 @@ export default function CadMastersPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === "contents" ? (
         <div>
           <div className="flex justify-end mb-4">
             <button
@@ -304,6 +366,58 @@ export default function CadMastersPage() {
                   <span className="text-xs text-gray-300">#{c.sort_order}</span>
                   <button onClick={() => startEditContent(c)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
                   <button onClick={() => deleteContent(c.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {OPTION_CATEGORIES.map(oc => (
+              <button
+                key={oc.key}
+                onClick={() => { setOptionCategory(oc.key); setShowOptionForm(false); setEditOption(null) }}
+                className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                  optionCategory === oc.key ? "bg-lime-700 text-white border-transparent font-semibold" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                {oc.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => { setShowOptionForm(true); setEditOption(null); setOptionValue(""); setOptionOrder(0) }}
+              className="flex items-center gap-1 px-3 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800"
+            >
+              <Plus className="w-4 h-4" /> 候補を追加
+            </button>
+          </div>
+          {showOptionForm && (
+            <div className="mb-4 p-4 bg-lime-50 border border-lime-200 rounded-xl">
+              <p className="text-sm font-medium text-lime-800 mb-3">
+                {editOption ? "候補を編集" : "候補を追加"}（{OPTION_CATEGORIES.find(o => o.key === optionCategory)?.label}）
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <input autoComplete="off" className="flex-1 min-w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="値" value={optionValue} onChange={e => setOptionValue(e.target.value)} />
+                <input autoComplete="off" type="number" className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="順序" value={optionOrder} onChange={e => setOptionOrder(Number(e.target.value))} />
+                <button onClick={saveOption} className="px-4 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800">保存</button>
+                <button onClick={() => { setShowOptionForm(false); setEditOption(null) }} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+              </div>
+            </div>
+          )}
+          {filteredOptions.length === 0 ? (
+            <p className="text-sm text-gray-400">候補がまだ登録されていません。</p>
+          ) : (
+            <div className="space-y-2">
+              {filteredOptions.map(o => (
+                <div key={o.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
+                  <ListChecks className="w-4 h-4 text-lime-500 flex-shrink-0" />
+                  <span className="flex-1 font-medium text-gray-900">{o.value}</span>
+                  <span className="text-xs text-gray-300">#{o.sort_order}</span>
+                  <button onClick={() => startEditOption(o)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => deleteOption(o.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>

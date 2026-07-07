@@ -80,7 +80,7 @@ type Props = {
   desired_time?: string
   tray?: string
   degi_spec?: string
-  tray_count?: number
+  tray_count?: string
   pocket?: string
   remarks?: string
 }

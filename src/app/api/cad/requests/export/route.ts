@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     "依頼番号", "依頼日", "依頼時刻", "依頼営業名", "依頼部署", "依頼内容",
     "クライアント", "タイトル", "ジャンル", "品目名", "品番", "ステータス", "型台帳番号",
     "展開天地", "展開左右", "用紙", "仕上個数", "希望納期日", "希望納期時刻",
-    "使用トレイ", "デジ仕様", "トレイ枚数", "ポケット", "備考",
+    "トレイ仕様flg", "使用トレイ", "デジ仕様", "トレイ枚数", "ポケット", "備考",
   ]
 
   const rows = records.map(r => [
@@ -56,9 +56,10 @@ export async function GET(req: NextRequest) {
     r.finish_count?.toString() ?? "",
     r.desired_date ? new Date(r.desired_date).toISOString().slice(0, 10) : "",
     r.desired_time ?? "",
+    r.flg_tray_spec?.toString() ?? "0",
     r.tray ?? "",
     r.degi_spec ?? "",
-    r.tray_count?.toString() ?? "",
+    r.tray_count ?? "",
     r.pocket ?? "",
     r.remarks ?? "",
   ])
