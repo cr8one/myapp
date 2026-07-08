@@ -1140,6 +1140,22 @@ model MCadOption {
   @@map("m_cad_options")
 }
 
+model MCadMailRecipient {
+  id         String   @id @default(cuid())
+  email      String
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("m_cad_mail_recipients")
+}
+
+model MCadMailTemplate {
+  id         String   @id @default(cuid())
+  body       String
+  updated_at DateTime @updatedAt
+  @@map("m_cad_mail_templates")
+}
+
 model MCadPaper {
   id         String   @id @default(cuid())
   name       String

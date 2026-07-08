@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import RequestMailModal from "@/components/cad/RequestMailModal"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
@@ -156,6 +157,51 @@ export default function CadRequestDetailPage() {
     setSaving(false)
   }
 
+  const [showMailModal, setShowMailModal] = useState(false)
+  const [statusChanging, setStatusChanging] = useState(false)
+
+  const handleOpenRequestMail = () => {
+    if (!record) return
+    const errors: string[] = []
+    if (!record.requester_name) errors.push("依頼営業名")
+    if (!record.title) errors.push("タイトル")
+    if (!record.content) errors.push("依頼内容")
+    if (!record.paper) errors.push("用紙")
+    if (record.finish_count == null) errors.push("仕上個数")
+    if (!record.desired_date) errors.push("希望納期日")
+    if (errors.length > 0) {
+      alert(`以下の必須項目が未入力です:\n${errors.join("、")}`)
+      return
+    }
+    if (record.desired_date) {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const desired = new Date(record.desired_date); desired.setHours(0, 0, 0, 0)
+      if (desired < today) {
+        alert("希望納期日が本日より前になっています。ご確認ください。")
+        return
+      }
+    }
+    setShowMailModal(true)
+  }
+
+  const handleStatusChange = async (nextStatus: string, confirmMsg: string) => {
+    if (!confirm(confirmMsg)) return
+    setStatusChanging(true)
+    const res = await fetch(`/api/cad/requests/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRecord(data)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? "ステータス変更に失敗しました")
+    }
+    setStatusChanging(false)
+  }
+
   const formatDate = (str: string | null) => {
     if (!str) return "—"
     return new Date(str).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
@@ -182,6 +228,24 @@ export default function CadRequestDetailPage() {
               <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
               <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
             </>
+          ) : record.status === "作成中" ? (
+            <>
+              <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
+              <Button variant="outline" onClick={() => setEditing(true)}>編集</Button>
+              <Button onClick={handleOpenRequestMail}>依頼</Button>
+            </>
+          ) : record.status === "依頼済" ? (
+            <>
+              <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
+              <Button variant="outline" disabled={statusChanging}
+                onClick={() => handleStatusChange("作成中", "依頼をキャンセルし、作成中に戻しますか？")}>
+                依頼キャンセル
+              </Button>
+              <Button disabled={statusChanging}
+                onClick={() => handleStatusChange("着手", "着手ステータスに変更しますか？")}>
+                着手
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
@@ -190,6 +254,13 @@ export default function CadRequestDetailPage() {
           )}
         </div>
       </div>
+      {showMailModal && record && (
+        <RequestMailModal
+          record={record}
+          onClose={() => setShowMailModal(false)}
+          onSent={(updated) => setRecord(updated as typeof record)}
+        />
+      )}
 
       <div className="bg-white border rounded-lg shadow-sm">
         {/* ヘッダー：ステータス・依頼日時 */}

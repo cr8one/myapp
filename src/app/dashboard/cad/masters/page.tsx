@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks } from "lucide-react"
+import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks, Mail } from "lucide-react"
 
 type CadClient = {
   id: string
@@ -26,6 +26,11 @@ type CadOption = {
   value: string
   sort_order: number
 }
+type MailRecipient = {
+  id: string
+  email: string
+  sort_order: number
+}
 
 const OPTION_CATEGORIES = [
   { key: "hinmoku", label: "品目名" },
@@ -36,12 +41,15 @@ const OPTION_CATEGORIES = [
 ]
 
 export default function CadMastersPage() {
-  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents" | "options">("clients")
+  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents" | "options" | "mail">("clients")
   const [clients, setClients] = useState<CadClient[]>([])
   const [papers, setPapers] = useState<CadPaper[]>([])
   const [contents, setContents] = useState<CadContent[]>([])
   const [options, setOptions] = useState<CadOption[]>([])
   const [optionCategory, setOptionCategory] = useState(OPTION_CATEGORIES[0].key)
+  const [mailRecipients, setMailRecipients] = useState<MailRecipient[]>([])
+  const [mailTemplateBody, setMailTemplateBody] = useState("")
+  const [mailTemplateSaving, setMailTemplateSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // クライアントフォーム
@@ -71,18 +79,29 @@ export default function CadMastersPage() {
   const [optionValue, setOptionValue] = useState("")
   const [optionOrder, setOptionOrder] = useState(0)
 
+  // メール宛先フォーム
+  const [showMailRecipientForm, setShowMailRecipientForm] = useState(false)
+  const [editMailRecipient, setEditMailRecipient] = useState<MailRecipient | null>(null)
+  const [mailRecipientEmail, setMailRecipientEmail] = useState("")
+  const [mailRecipientOrder, setMailRecipientOrder] = useState(0)
+
   const fetchAll = async () => {
     setLoading(true)
-    const [cRes, pRes, ctRes, opRes] = await Promise.all([
+    const [cRes, pRes, ctRes, opRes, mrRes, mtRes] = await Promise.all([
       fetch("/api/cad/masters/clients"),
       fetch("/api/cad/masters/papers"),
       fetch("/api/cad/masters/contents"),
       fetch("/api/cad/masters/options"),
+      fetch("/api/cad/masters/mail-recipients"),
+      fetch("/api/cad/masters/mail-template"),
     ])
     setClients(await cRes.json())
     setPapers(await pRes.json())
     setContents(await ctRes.json())
     setOptions(await opRes.json())
+    setMailRecipients(await mrRes.json())
+    const template = await mtRes.json()
+    setMailTemplateBody(template.body ?? "")
     setLoading(false)
   }
   useEffect(() => { fetchAll() }, [])
@@ -215,6 +234,45 @@ export default function CadMastersPage() {
     setOptionOrder(o.sort_order); setShowOptionForm(true)
   }
 
+  // メール宛先保存
+  const saveMailRecipient = async () => {
+    if (!mailRecipientEmail.trim()) return
+    if (editMailRecipient) {
+      await fetch(`/api/cad/masters/mail-recipients/${editMailRecipient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mailRecipientEmail, sort_order: mailRecipientOrder }),
+      })
+    } else {
+      await fetch("/api/cad/masters/mail-recipients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mailRecipientEmail, sort_order: mailRecipientOrder }),
+      })
+    }
+    setShowMailRecipientForm(false); setEditMailRecipient(null)
+    setMailRecipientEmail(""); setMailRecipientOrder(0)
+    fetchAll()
+  }
+  const deleteMailRecipient = async (id: string) => {
+    if (!confirm("この宛先を削除しますか？")) return
+    await fetch(`/api/cad/masters/mail-recipients/${id}`, { method: "DELETE" })
+    fetchAll()
+  }
+  const startEditMailRecipient = (r: MailRecipient) => {
+    setEditMailRecipient(r); setMailRecipientEmail(r.email)
+    setMailRecipientOrder(r.sort_order); setShowMailRecipientForm(true)
+  }
+  const saveMailTemplate = async () => {
+    setMailTemplateSaving(true)
+    await fetch("/api/cad/masters/mail-template", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: mailTemplateBody }),
+    })
+    setMailTemplateSaving(false)
+  }
+
   const filteredOptions = options.filter(o => o.category === optionCategory)
 
   return (
@@ -223,7 +281,7 @@ export default function CadMastersPage() {
         <h1 className="text-xl font-bold text-gray-900">CAD/台紙マスタ管理</h1>
       </div>
       {/* タブ */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      <div className="flex gap-2 mb-6 border-b border-gray-200 flex-wrap">
         <button
           onClick={() => setActiveTab("clients")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "clients" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
@@ -247,6 +305,12 @@ export default function CadMastersPage() {
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "options" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <ListChecks className="w-4 h-4" /> 入力候補
+        </button>
+        <button
+          onClick={() => setActiveTab("mail")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "mail" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          <Mail className="w-4 h-4" /> メール設定
         </button>
       </div>
       {loading ? (
@@ -371,7 +435,7 @@ export default function CadMastersPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === "options" ? (
         <div>
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             {OPTION_CATEGORIES.map(oc => (
@@ -422,6 +486,63 @@ export default function CadMastersPage() {
               ))}
             </div>
           )}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">依頼メール送信先（To）</h2>
+            <p className="text-xs text-gray-400 mb-3">CAD依頼のメール送信時、固定の宛先として使用されます。</p>
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={() => { setShowMailRecipientForm(true); setEditMailRecipient(null); setMailRecipientEmail(""); setMailRecipientOrder(0) }}
+                className="flex items-center gap-1 px-3 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800"
+              >
+                <Plus className="w-4 h-4" /> 宛先を追加
+              </button>
+            </div>
+            {showMailRecipientForm && (
+              <div className="mb-3 p-4 bg-lime-50 border border-lime-200 rounded-xl">
+                <p className="text-sm font-medium text-lime-800 mb-3">{editMailRecipient ? "宛先を編集" : "宛先を追加"}</p>
+                <div className="flex gap-2 flex-wrap">
+                  <input autoComplete="off" className="flex-1 min-w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="メールアドレス" value={mailRecipientEmail} onChange={e => setMailRecipientEmail(e.target.value)} />
+                  <input autoComplete="off" type="number" className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="順序" value={mailRecipientOrder} onChange={e => setMailRecipientOrder(Number(e.target.value))} />
+                  <button onClick={saveMailRecipient} className="px-4 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800">保存</button>
+                  <button onClick={() => { setShowMailRecipientForm(false); setEditMailRecipient(null) }} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+                </div>
+              </div>
+            )}
+            {mailRecipients.length === 0 ? (
+              <p className="text-sm text-gray-400">宛先がまだ登録されていません。</p>
+            ) : (
+              <div className="space-y-2">
+                {mailRecipients.map(r => (
+                  <div key={r.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
+                    <Mail className="w-4 h-4 text-lime-500 flex-shrink-0" />
+                    <span className="flex-1 font-medium text-gray-900">{r.email}</span>
+                    <span className="text-xs text-gray-300">#{r.sort_order}</span>
+                    <button onClick={() => startEditMailRecipient(r)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => deleteMailRecipient(r.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">本文テンプレート</h2>
+            <p className="text-xs text-gray-400 mb-3">依頼メール送信時、初期値として入力されます（送信前に編集可能）。</p>
+            <textarea
+              value={mailTemplateBody}
+              onChange={e => setMailTemplateBody(e.target.value)}
+              rows={12}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono resize-none"
+              placeholder="本文テンプレートを入力してください"
+            />
+            <div className="flex justify-end mt-2">
+              <button onClick={saveMailTemplate} disabled={mailTemplateSaving} className="px-4 py-2 bg-lime-700 text-white text-sm rounded-lg hover:bg-lime-800 disabled:opacity-50">
+                {mailTemplateSaving ? "保存中..." : "テンプレートを保存"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

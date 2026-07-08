@@ -8,6 +8,7 @@ export async function GET() {
     select: {
       id: true,
       name: true,
+      email: true,
       position: true,
       departments: { select: { department: { select: { name: true } } } },
       groups: { select: { group: { select: { name: true, department: { select: { name: true } } } } } },
@@ -20,6 +21,7 @@ export async function GET() {
     return {
       id: u.id,
       name: u.name,
+      email: u.email,
       position: u.position,
       departmentLabels: Array.from(new Set([...deptNames, ...groupLabels])),
     }
