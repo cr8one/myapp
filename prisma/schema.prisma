@@ -1336,3 +1336,27 @@ model OutputListItem {
   updated_at           DateTime   @updatedAt
   @@map("t_output_list_items")
 }
+
+model CadWorkLog {
+  id                String    @id @default(cuid())
+  creator           String
+  work_date         DateTime
+  start_time        DateTime
+  end_time          DateTime?
+  request_no        String?
+  department_group  String?
+  person_in_charge  String?
+  customer          String?
+  title             String?
+  content            String?
+  parts_name        String?
+  quantity          Int?
+  paper_name        String?
+  remarks           String?
+  flg_same_day      Int       @default(0)
+  flg_del           Int       @default(0)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@map("t_cad_work_logs")
+}
