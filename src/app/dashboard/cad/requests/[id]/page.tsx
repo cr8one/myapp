@@ -246,6 +246,26 @@ export default function CadRequestDetailPage() {
                 着手
               </Button>
             </>
+          ) : record.status === "着手" ? (
+            <>
+              <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
+              <Button variant="outline" disabled={statusChanging}
+                onClick={() => handleStatusChange("保留", "保留ステータスに変更しますか？")}>
+                保留
+              </Button>
+              <Button disabled={statusChanging}
+                onClick={() => handleStatusChange("完了", "完了ステータスに変更しますか？作業終了時刻が記録されます。")}>
+                完了
+              </Button>
+            </>
+          ) : record.status === "保留" ? (
+            <>
+              <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
+              <Button disabled={statusChanging}
+                onClick={() => handleStatusChange("着手", "着手ステータスに戻しますか？")}>
+                着手に戻す
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
