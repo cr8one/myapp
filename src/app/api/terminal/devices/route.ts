@@ -8,6 +8,24 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
   const status = searchParams.get("status")
+  const location = searchParams.get("location")
+  const deviceType = searchParams.get("deviceType")
+  const sort = searchParams.get("sort") || "updated_desc"
+
+  let modelIdFilter: number[] | undefined
+  if (deviceType) {
+    const matchedModels = await prisma.deviceModel.findMany({
+      where: { deviceType },
+      select: { modelId: true },
+    })
+    modelIdFilter = matchedModels.map(m => m.modelId)
+  }
+
+  const orderBy =
+    sort === "name"
+      ? { deviceName: "asc" as const }
+      : { updatedAt: "desc" as const }
+
   const records = await prisma.device.findMany({
     where: {
       ...(keyword ? { OR: [
@@ -19,13 +37,15 @@ export async function GET(req: NextRequest) {
         { userId: { contains: keyword } },
       ]} : {}),
       ...(status ? { status } : {}),
+      ...(location ? { location } : {}),
+      ...(modelIdFilter ? { modelId: { in: modelIdFilter } } : {}),
     },
     include: {
       ipAddresses: { where: { flgDel: false } },
       lease: true,
       children: { select: { deviceId: true, deviceName: true, status: true } },
     },
-    orderBy: { deviceId: "asc" },
+    orderBy,
   })
   return NextResponse.json(records)
 }
