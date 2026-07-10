@@ -44,6 +44,7 @@ export default function AddressBookPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState("")
+  const [sortMode, setSortMode] = useState<"kana" | "updated">("kana")
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState<string | null>(null)
@@ -54,16 +55,16 @@ export default function AddressBookPage() {
   const [outputRemarks, setOutputRemarks] = useState("")
   const [savingOutput, setSavingOutput] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const fetchRecords = async (p = page) => {
+  const fetchRecords = async (p = page, sm = sortMode) => {
     setLoading(true)
-    const params = new URLSearchParams({ page: String(p), keyword })
+    const params = new URLSearchParams({ page: String(p), keyword, sort: sm })
     const res = await fetch(`/api/address-book?${params}`)
     const data = await res.json()
     setRecords(data.records)
     setTotal(data.total)
     setLoading(false)
   }
-  useEffect(() => { fetchRecords(1); setPage(1) }, [keyword])
+  useEffect(() => { fetchRecords(1); setPage(1) }, [keyword, sortMode])
   const totalPages = Math.ceil(total / 50)
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -214,11 +215,30 @@ export default function AddressBookPage() {
           </button>
         </div>
       </div>
-      <div className="relative mb-4 max-w-md">
+      <div className="relative mb-3 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input type="text" placeholder="会社名・氏名・部門名・住所などで検索..."
           value={keyword} onChange={e => setKeyword(e.target.value)}
           className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm" autoComplete="off" />
+      </div>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs text-gray-400">表示順：</span>
+        <button
+          onClick={() => setSortMode("kana")}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            sortMode === "kana" ? "bg-gray-800 text-white border-transparent font-semibold" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          フリガナ順
+        </button>
+        <button
+          onClick={() => setSortMode("updated")}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            sortMode === "updated" ? "bg-gray-800 text-white border-transparent font-semibold" : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          更新日時順
+        </button>
       </div>
       {loading ? (
         <p className="text-gray-400 text-sm">読み込み中...</p>

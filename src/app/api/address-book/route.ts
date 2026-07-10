@@ -6,6 +6,7 @@ export async function GET(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword") ?? ""
+  const sort = searchParams.get("sort") ?? "kana"
   const page = parseInt(searchParams.get("page") ?? "1")
   const limit = 50
   const offset = (page - 1) * limit
@@ -24,7 +25,9 @@ export async function GET(req: Request) {
   const [records, total] = await Promise.all([
     prisma.addressBook.findMany({
       where,
-      orderBy: { created_at: "desc" },
+      orderBy: sort === "updated"
+        ? { updated_at: "desc" }
+        : { company_name_kana: "asc" },
       skip: offset,
       take: limit,
       include: { contacts: { orderBy: { sort_order: "asc" } } },
