@@ -115,6 +115,7 @@ const baseMenuItems = [
     { label: "依頼書管理", href: "/dashboard/dlms/requests" },
     { label: "図面管理", href: "/dashboard/dlms/drawings" },
     { label: "図面作成", href: "/dashboard/dlms/drawings/editor" },
+    { label: "棚管理", href: "/dashboard/dlms/shelf-stock" },
     { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
   ]},
   { label: "DPP進行管理", href: "/dashboard/dpp", icon: "dpp", children: [

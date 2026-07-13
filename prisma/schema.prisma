@@ -1360,3 +1360,26 @@ model CadWorkLog {
 
   @@map("t_cad_work_logs")
 }
+
+model ShelfStock {
+  id            String    @id @default(cuid())
+  shelf_no      String
+  shelf_rack    String?
+  shelf_row     String?
+  shelf_col     String?
+  shelf_status  String?
+  item_code     String?
+  item_name     String?
+  lot_no        String?
+  remarks       String?
+  category      String?
+  stocked_at    DateTime?
+  stock_count   Int?
+  imported_at   DateTime  @default(now())
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@index([shelf_no])
+  @@index([item_code])
+  @@map("t_shelf_stocks")
+}

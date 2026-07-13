@@ -1,12 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Layers, FileImage, FileText, Settings } from "lucide-react"
+import { Layers, FileImage, FileText, Settings, Archive } from "lucide-react"
 type Stats = {
   dielineCount: number
   drawingCount: number
   requestCount: number
   formatCount: number
+  shelfStockCount: number
 }
 function DlmsIcon({ style }: { style?: React.CSSProperties }) {
   return (
@@ -58,6 +59,16 @@ const cards = [
     text: "text-red-600",
     border: "border-red-100",
     hover: "hover:border-red-300",
+  },
+  {
+    label: "棚管理",
+    key: "shelfStockCount" as keyof Stats,
+    href: "/dashboard/dlms/shelf-stock",
+    icon: Archive,
+    bg: "bg-teal-50",
+    text: "text-teal-600",
+    border: "border-teal-100",
+    hover: "hover:border-teal-300",
   },
 ]
 export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
