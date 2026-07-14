@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { Download, Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
@@ -536,54 +535,71 @@ export default function DielinesPage() {
       ) : (
         <>
           <Pagination />
-          <div className="space-y-3">
-            {parents.map(p => (
-              <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>
-                <CardContent className="pt-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        <span className="font-bold text-lg text-gray-800">{p.uid_ntemp}</span>
-                        {p.kyugataban && <span className="text-sm text-gray-400">旧：{p.kyugataban}</span>}
+          <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "20%" }} />
+              </colgroup>
+              <thead>
+                <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                  <th className="px-3 py-2 text-left font-medium">型番号</th>
+                  <th className="px-3 py-2 text-left font-medium">ジャンル/仕様/品目</th>
+                  <th className="px-3 py-2 text-left font-medium">条件</th>
+                  <th className="px-3 py-2 text-left font-medium">サイズ</th>
+                  <th className="px-3 py-2 text-left font-medium">パーツ/枝番</th>
+                  <th className="px-3 py-2 text-right font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parents.map(p => (
+                  <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>
+                    <td className="px-3 py-2">
+                      <div className="font-bold text-gray-800">{p.uid_ntemp}</div>
+                      {p.kyugataban && <div className="text-xs text-gray-400">旧：{p.kyugataban}</div>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 flex-wrap">
                         {[p.genre, p.spec, p.hinmoku].filter(Boolean).map((v, i) => (
                           <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{v}</span>
                         ))}
                       </div>
-                      <div className="flex gap-4 text-sm text-gray-500 flex-wrap">
-                        {p.parts.length > 0 && p.parts[0].sizey && p.parts[0].sizex && <span>天地×左右：{p.parts[0].sizey}×{p.parts[0].sizex}mm</span>}
-                        {p.parts.length > 0 && p.parts[0].widthy && <span>背幅：{p.parts[0].widthy}mm</span>}
-                        {p.parts.length > 1 && <span className="text-orange-600 font-medium">パーツ{p.parts.length}件</span>}
-                        <span>枝番：{p.children.length}件</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 flex-wrap">
+                        {p.conditions.map(c => (
+                          <span key={c.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c.value}</span>
+                        ))}
+                        {p.conditions.length === 0 && <span className="text-xs text-gray-300">-</span>}
                       </div>
-                      {p.conditions.length > 0 && (
-                        <div className="flex gap-1 mt-2 flex-wrap">
-                          {p.conditions.map(c => (
-                            <span key={c.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c.value}</span>
-                          ))}
-                        </div>
-                      )}
-                      {p.children.length > 0 && (
-                        <div className="mt-2 flex gap-2 flex-wrap">
-                          {p.children.map(c => (
-                            <span key={c.id} className="text-xs border border-gray-200 text-gray-500 px-2 py-0.5 rounded">
-                              {p.uid_ntemp}-{c.edaban} {[c.han, c.me, c.kiri, c.men].filter(Boolean).join("/")}
-                              {c.location && ` [${c.location}]`}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2 ml-4" onClick={e => e.stopPropagation()}>
-                      <Button variant="outline" size="sm"
-                        onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>詳細</Button>
-                      <Button variant="destructive" size="sm"
-                        onClick={e => handleDelete(p.id, e)}>削除</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600 text-xs">
+                      {p.parts.length > 0 && p.parts[0].sizey && p.parts[0].sizex ? (
+                        <div>天地×左右：{p.parts[0].sizey}×{p.parts[0].sizex}mm</div>
+                      ) : <div className="text-gray-300">-</div>}
+                      {p.parts.length > 0 && p.parts[0].widthy && <div>背幅：{p.parts[0].widthy}mm</div>}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-500">
+                      {p.parts.length > 1 && <div className="text-orange-600 font-medium">パーツ{p.parts.length}件</div>}
+                      <div>枝番：{p.children.length}件</div>
+                    </td>
+                    <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm"
+                          onClick={() => router.push(`/dashboard/dlms/dielines/${p.id}?${buildQuery(page).toString()}`)}>詳細</Button>
+                        <Button variant="destructive" size="sm"
+                          onClick={e => handleDelete(p.id, e)}>削除</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <Pagination />
         </>
