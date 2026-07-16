@@ -31,7 +31,7 @@ export default function PosLabelPage() {
 
   useEffect(() => {
     if (svgRef.current && codeValue) {
-      JsBarcode(svgRef.current, `*${codeValue}*`, {
+      JsBarcode(svgRef.current, codeValue, {
         format: "CODE39",
         displayValue: false,
         height: 30,
