@@ -1239,6 +1239,8 @@ model DlmsDielinePart {
   inner_height  Float?
   inner_width   Float?
   inner_depth   Float?
+  tray_thickness Float?
+  tray_sheets    Int?
   sort_order    Int               @default(0)
   dtindt        DateTime          @default(now())
   dtupdt        DateTime          @updatedAt

@@ -60,6 +60,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           inner_height: p.inner_height ? parseFloat(p.inner_height as string) : null,
           inner_width: p.inner_width ? parseFloat(p.inner_width as string) : null,
           inner_depth: p.inner_depth ? parseFloat(p.inner_depth as string) : null,
+          tray_thickness: p.tray_thickness ? parseFloat(p.tray_thickness as string) : null,
+          tray_sheets: p.tray_sheets ? parseInt(p.tray_sheets as string, 10) : null,
           sort_order: i,
         })),
       } : undefined,

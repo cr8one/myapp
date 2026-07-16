@@ -39,6 +39,7 @@ type Part = {
   developy: number | null; developx: number | null; develop_depths: number[]
   sizey: number | null; sizex: number | null; widthy: number | null
   inner_height: number | null; inner_width: number | null; inner_depth: number | null
+  tray_thickness: number | null; tray_sheets: number | null
   sort_order: number
 }
 type Parent = {
@@ -47,11 +48,11 @@ type Parent = {
   conditions: Condition[]; children: Child[]; parts: Part[]
 }
 type ChildForm = { edaban: string; han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
-type PartForm = { part_name: string; developy: string; developx: string; develop_depths: string[]; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string }
+type PartForm = { part_name: string; developy: string; developx: string; develop_depths: string[]; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string; tray_thickness: string; tray_sheets: string }
 
 const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.toFixed(1) : String(v)
 const emptyChildForm: ChildForm = { edaban: "", han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
-const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depths: [], sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "" })
+const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depths: [], sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "", tray_thickness: "", tray_sheets: "" })
 
 function PartSizeEdit({ part, index, partsLength, setPart, removePart, addDepth, setDepth, removeDepth }: { part: PartForm; index: number; partsLength: number; setPart: (index: number, key: keyof PartForm, value: string) => void; removePart: (index: number) => void; addDepth: (index: number) => void; setDepth: (index: number, depthIndex: number, value: string) => void; removeDepth: (index: number, depthIndex: number) => void }) {
   return (
@@ -109,6 +110,13 @@ function PartSizeEdit({ part, index, partsLength, setPart, removePart, addDepth,
           <div><Label className="text-xs">背</Label><Input type="number" value={part.inner_height} onChange={e => setPart(index, "inner_height", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
           <div><Label className="text-xs">高さ</Label><Input type="number" value={part.inner_width} onChange={e => setPart(index, "inner_width", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
           <div><Label className="text-xs">奥行き</Label><Input type="number" value={part.inner_depth} onChange={e => setPart(index, "inner_depth", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs text-gray-500 mb-1 block">デジパック</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label className="text-xs">トレイ厚（mm）</Label><Input type="number" value={part.tray_thickness} onChange={e => setPart(index, "tray_thickness", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
+          <div><Label className="text-xs">枚数</Label><Input type="number" value={part.tray_sheets} onChange={e => setPart(index, "tray_sheets", e.target.value)} autoComplete="off" className="mt-1 h-8 text-sm" /></div>
         </div>
       </div>
     </div>
@@ -184,6 +192,8 @@ export default function DielineDetailPage() {
       inner_height: p.inner_height?.toString() ?? "",
       inner_width: p.inner_width?.toString() ?? "",
       inner_depth: p.inner_depth?.toString() ?? "",
+      tray_thickness: p.tray_thickness?.toString() ?? "",
+      tray_sheets: p.tray_sheets?.toString() ?? "",
     })) : [emptyPartForm()])
     setEditing(true)
   }
@@ -209,6 +219,7 @@ export default function DielineDetailPage() {
           developy: p.developy || null, developx: p.developx || null, develop_depths: p.develop_depths.filter(d => d && !isNaN(parseFloat(d))),
           sizey: p.sizey || null, sizex: p.sizex || null, widthy: p.widthy || null,
           inner_height: p.inner_height || null, inner_width: p.inner_width || null, inner_depth: p.inner_depth || null,
+          tray_thickness: p.tray_thickness || null, tray_sheets: p.tray_sheets || null,
         })),
       }),
     })
@@ -269,6 +280,9 @@ export default function DielineDetailPage() {
       <div><span className="text-gray-400 text-xs">展開サイズ</span><p className="mt-0.5">天地 {fmt(part.developy)} / 左右 {fmt(part.developx)} / 背 {part.develop_depths.length > 0 ? part.develop_depths.map(d => fmt(d)).join(", ") : "—"}</p></div>
       <div><span className="text-gray-400 text-xs">仕上サイズ 外寸</span><p className="mt-0.5">背 {fmt(part.sizey)} / 高さ {fmt(part.sizex)} / 奥行き {fmt(part.widthy)}</p></div>
       <div><span className="text-gray-400 text-xs">内寸</span><p className="mt-0.5">背 {fmt(part.inner_height)} / 高さ {fmt(part.inner_width)} / 奥行き {fmt(part.inner_depth)}</p></div>
+      {(part.tray_thickness || part.tray_sheets) && (
+        <div><span className="text-gray-400 text-xs">デジパック</span><p className="mt-0.5">トレイ厚 {fmt(part.tray_thickness)} / 枚数 {part.tray_sheets ?? "—"}</p></div>
+      )}
     </div>
   )
 
@@ -431,7 +445,7 @@ export default function DielineDetailPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      {["枝番","判","目","切","面","天地","左右","咥え","依頼書","所在",""].map(h => (
+                      {["枝番","判","目","切","面","天地","左右","咥え","依頼書","所在","POS",""].map(h => (
                         <th key={h} className="text-left px-3 py-2 text-gray-500 font-medium">{h}</th>
                       ))}
                     </tr>
@@ -454,6 +468,22 @@ export default function DielineDetailPage() {
                           </button>
                         </td>
                         <td className="px-3 py-2 text-gray-600">{c.location ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => {
+                              const params = new URLSearchParams({
+                                edaban: c.edaban,
+                                genre: parent.genre ?? "",
+                                hinmoku: parent.hinmoku ?? "",
+                                condition: parent.conditions[0]?.value ?? "",
+                              })
+                              router.push(`/dashboard/dlms/dielines/${parent.id}/pos?${params.toString()}`)
+                            }}
+                            className="text-xs font-medium px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
+                          >
+                            POS
+                          </button>
+                        </td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <button onClick={() => openEditChild(c)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-3.5 h-3.5" /></button>
