@@ -495,7 +495,11 @@ export default function DeviceDetailPage() {
             )}
             {deviceForm.procurementType === "リース" && (<>
             <div className="space-y-1"><Label>リース会社</Label>
-              <Input value={deviceForm.leaseCompany} onChange={e => setDeviceForm(f => ({ ...f, leaseCompany: e.target.value }))} autoComplete="off" /></div>
+              <select value={deviceForm.leaseCompany} onChange={e => setDeviceForm(f => ({ ...f, leaseCompany: e.target.value }))}
+                className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">未選択</option>
+                {getMasterValues("リース会社").map(v => <option key={v} value={v}>{v}</option>)}
+              </select></div>
             <div className="space-y-1"><Label>レンタル開始日</Label>
               <Input type="date" value={deviceForm.leaseStart} onChange={e => setDeviceForm(f => ({ ...f, leaseStart: e.target.value }))} /></div>
             <div className="space-y-1"><Label>レンタル終了日</Label>

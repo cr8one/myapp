@@ -126,7 +126,11 @@ export default function DeviceNewPage() {
           {form.procurementType === "リース" && (<>
             <div className="space-y-1">
               <Label>リース会社</Label>
-              <Input value={form.leaseCompany} onChange={e => setForm(f => ({ ...f, leaseCompany: e.target.value }))} autoComplete="off" />
+              <select value={form.leaseCompany} onChange={e => setForm(f => ({ ...f, leaseCompany: e.target.value }))}
+                className="w-full h-10 border rounded px-3 text-sm bg-white">
+                <option value="">未選択</option>
+                {getMasterValues("リース会社").map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
             <div className="space-y-1">
               <Label>レンタル開始日</Label>

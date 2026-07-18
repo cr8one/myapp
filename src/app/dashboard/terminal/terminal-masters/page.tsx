@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react"
 
 type Master = { id: number; category: string; value: string; sortOrder: number; flgDel: boolean }
 
-const CATEGORIES = ["メーカー", "機種種別", "設置場所", "状態", "管理区分"]
+const CATEGORIES = ["メーカー", "機種種別", "設置場所", "状態", "管理区分", "リース会社"]
 
 export default function TerminalMastersPage() {
   const [records, setRecords] = useState<Master[]>([])
