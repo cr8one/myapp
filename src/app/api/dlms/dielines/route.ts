@@ -1,31 +1,68 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { Prisma } from "@/generated/prisma"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
-  const genre = searchParams.get("genre")
-  const spec = searchParams.get("spec")
-  const hinmoku = searchParams.get("hinmoku")
+  const genreList = searchParams.get("genre")?.split(",").filter(Boolean) ?? []
+  const specList = searchParams.get("spec")?.split(",").filter(Boolean) ?? []
+  const hinmokuList = searchParams.get("hinmoku")?.split(",").filter(Boolean) ?? []
   const condition = searchParams.get("condition")
   const keyword = searchParams.get("keyword")
+  const uidFrom = searchParams.get("uidFrom")
+  const uidTo = searchParams.get("uidTo")
+  const dateFrom = searchParams.get("dateFrom")
+  const dateTo = searchParams.get("dateTo")
+  const mode = searchParams.get("mode") === "OR" ? "OR" : "AND"
+  const sort = searchParams.get("sort") ?? "uid_desc"
   const page = parseInt(searchParams.get("page") ?? "1")
   const PAGE_SIZE = 50
-  const where = {
-    flg_del: 0,
-    ...(genre ? { genre } : {}),
-    ...(spec ? { spec } : {}),
-    ...(hinmoku ? { hinmoku } : {}),
-    ...(condition ? { conditions: { some: { value: { contains: condition } } } } : {}),
-    ...(keyword ? {
+
+  const categoryConditions: Prisma.DlmsDielineParentWhereInput[] = []
+  if (genreList.length > 0) categoryConditions.push({ genre: { in: genreList } })
+  if (specList.length > 0) categoryConditions.push({ spec: { in: specList } })
+  if (hinmokuList.length > 0) categoryConditions.push({ hinmoku: { in: hinmokuList } })
+  if (condition) categoryConditions.push({ conditions: { some: { value: { contains: condition } } } })
+
+  const andConditions: Prisma.DlmsDielineParentWhereInput[] = [{ flg_del: 0 }]
+  if (categoryConditions.length > 0) {
+    andConditions.push(mode === "OR" ? { OR: categoryConditions } : { AND: categoryConditions })
+  }
+  if (keyword) {
+    andConditions.push({
       OR: [
         { uid_ntemp: { contains: keyword } },
         { kyugataban: { contains: keyword } },
-      ]
-    } : {}),
+      ],
+    })
   }
+  if (uidFrom || uidTo) {
+    andConditions.push({
+      uid_ntemp: {
+        ...(uidFrom ? { gte: uidFrom.padStart(7, "0") } : {}),
+        ...(uidTo ? { lte: uidTo.padStart(7, "0") } : {}),
+      },
+    })
+  }
+  if (dateFrom || dateTo) {
+    andConditions.push({
+      dtindt: {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59`) } : {}),
+      },
+    })
+  }
+  const where: Prisma.DlmsDielineParentWhereInput = { AND: andConditions }
+
+  const orderBy: Prisma.DlmsDielineParentOrderByWithRelationInput =
+    sort === "uid_asc" ? { uid_ntemp: "asc" } :
+    sort === "date_asc" ? { dtindt: "asc" } :
+    sort === "date_desc" ? { dtindt: "desc" } :
+    { uid_ntemp: "desc" }
+
   const [total, parents] = await Promise.all([
     prisma.dlmsDielineParent.count({ where }),
     prisma.dlmsDielineParent.findMany({
@@ -35,7 +72,7 @@ export async function GET(req: NextRequest) {
         parts: { orderBy: { sort_order: "asc" } },
         children: { where: { flg_del: 0 }, orderBy: { edaban: "asc" } },
       },
-      orderBy: { uid_ntemp: "desc" },
+      orderBy,
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),

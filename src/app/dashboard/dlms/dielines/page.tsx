@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Download, Search, Upload, X, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const SPEC_OPTIONS = ["紙ジャケ", "トレー仕様", "12cmCD", "化粧紙", "その他"]
@@ -29,10 +29,17 @@ export default function DielinesPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
-  const [genre, setGenre] = useState("")
-  const [spec, setSpec] = useState("")
-  const [hinmoku, setHinmoku] = useState("")
+  const [genre, setGenre] = useState<string[]>([])
+  const [spec, setSpec] = useState<string[]>([])
+  const [hinmoku, setHinmoku] = useState<string[]>([])
   const [condition, setCondition] = useState("")
+  const [mode, setMode] = useState<"AND" | "OR">("AND")
+  const [uidFrom, setUidFrom] = useState("")
+  const [uidTo, setUidTo] = useState("")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [sort, setSort] = useState("uid_desc")
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [importFile, setImportFile] = useState<File | null>(null)
@@ -42,20 +49,34 @@ export default function DielinesPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const buildQuery = (p: number, kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition) => {
+const buildQuery = (
+    p: number,
+    kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition,
+    md = mode, uf = uidFrom, ut = uidTo, df = dateFrom, dt = dateTo, sr = sort,
+  ) => {
     const params = new URLSearchParams()
-    if (gn) params.set("genre", gn)
-    if (sp) params.set("spec", sp)
-    if (hn) params.set("hinmoku", hn)
+    if (gn.length > 0) params.set("genre", gn.join(","))
+    if (sp.length > 0) params.set("spec", sp.join(","))
+    if (hn.length > 0) params.set("hinmoku", hn.join(","))
     if (cd) params.set("condition", cd)
     if (kw) params.set("keyword", kw)
+    if (md === "OR") params.set("mode", "OR")
+    if (uf) params.set("uidFrom", uf)
+    if (ut) params.set("uidTo", ut)
+    if (df) params.set("dateFrom", df)
+    if (dt) params.set("dateTo", dt)
+    if (sr && sr !== "uid_desc") params.set("sort", sr)
     params.set("page", String(p))
     return params
   }
-
-  const fetchParents = async (p: number, kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition, syncUrl = true) => {
+  const fetchParents = async (
+    p: number,
+    kw = keyword, gn = genre, sp = spec, hn = hinmoku, cd = condition,
+    md = mode, uf = uidFrom, ut = uidTo, df = dateFrom, dt = dateTo, sr = sort,
+    syncUrl = true,
+  ) => {
     setLoading(true)
-    const params = buildQuery(p, kw, gn, sp, hn, cd)
+    const params = buildQuery(p, kw, gn, sp, hn, cd, md, uf, ut, df, dt, sr)
     if (syncUrl) router.replace(`/dashboard/dlms/dielines?${params.toString()}`)
     const res = await fetch(`/api/dlms/dielines?${params.toString()}`)
     const data = await res.json()
@@ -63,21 +84,28 @@ export default function DielinesPage() {
     setTotal(data.total)
     setLoading(false)
   }
-
   useEffect(() => {
     const p = parseInt(searchParams.get("page") ?? "1")
     const kw = searchParams.get("keyword") ?? ""
-    const gn = searchParams.get("genre") ?? ""
-    const sp = searchParams.get("spec") ?? ""
-    const hn = searchParams.get("hinmoku") ?? ""
+    const gn = searchParams.get("genre")?.split(",").filter(Boolean) ?? []
+    const sp = searchParams.get("spec")?.split(",").filter(Boolean) ?? []
+    const hn = searchParams.get("hinmoku")?.split(",").filter(Boolean) ?? []
     const cd = searchParams.get("condition") ?? ""
+    const md = searchParams.get("mode") === "OR" ? "OR" : "AND"
+    const uf = searchParams.get("uidFrom") ?? ""
+    const ut = searchParams.get("uidTo") ?? ""
+    const df = searchParams.get("dateFrom") ?? ""
+    const dt = searchParams.get("dateTo") ?? ""
+    const sr = searchParams.get("sort") ?? "uid_desc"
     setPage(p); setKeyword(kw); setGenre(gn); setSpec(sp); setHinmoku(hn); setCondition(cd)
-    fetchParents(p, kw, gn, sp, hn, cd, false)
+    setMode(md); setUidFrom(uf); setUidTo(ut); setDateFrom(df); setDateTo(dt); setSort(sr)
+    fetchParents(p, kw, gn, sp, hn, cd, md, uf, ut, df, dt, sr, false)
   }, [searchParams])
-
   const handleClear = () => {
-    setKeyword(""); setGenre(""); setSpec(""); setHinmoku(""); setCondition(""); setPage(1)
-    fetchParents(1, "", "", "", "", "")
+    setKeyword(""); setGenre([]); setSpec([]); setHinmoku([]); setCondition("")
+    setMode("AND"); setUidFrom(""); setUidTo(""); setDateFrom(""); setDateTo(""); setSort("uid_desc")
+    setPage(1)
+    fetchParents(1, "", [], [], [], "", "AND", "", "", "", "", "uid_desc")
   }
 
   const handleSearch = () => {
@@ -494,40 +522,113 @@ export default function DielinesPage() {
       )}
       {/* 検索 */}
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mb-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mb-3">
           <Input value={keyword} onChange={e => setKeyword(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             placeholder="型番号・旧型番" className="h-8 text-sm" autoComplete="off" />
-          <select value={genre} onChange={e => setGenre(e.target.value)}
-            className="h-8 border rounded px-2 text-sm bg-white">
-            <option value="">ジャンル：すべて</option>
-            {GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <select value={spec} onChange={e => setSpec(e.target.value)}
-            className="h-8 border rounded px-2 text-sm bg-white">
-            <option value="">仕様：すべて</option>
-            {SPEC_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <select value={hinmoku} onChange={e => setHinmoku(e.target.value)}
-            className="h-8 border rounded px-2 text-sm bg-white">
-            <option value="">品目：すべて</option>
-            {HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
           <Input value={condition} onChange={e => setCondition(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
             placeholder="条件" className="h-8 text-sm" autoComplete="off" />
+          <div className="flex items-center gap-1 justify-end">
+            <span className="text-xs text-gray-400 mr-1">絞り込み条件：</span>
+            <button
+              onClick={() => setMode("AND")}
+              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${mode === "AND" ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}
+            >AND</button>
+            <button
+              onClick={() => setMode("OR")}
+              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${mode === "OR" ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}
+            >OR</button>
+          </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={handleClear} className="flex items-center gap-1">
-            <X className="w-3 h-3" />クリア
-          </Button>
-          <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
-            <Search className="w-3 h-3" />検索
-          </Button>
-        </div>
-      </div>
 
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-400 w-12">ジャンル</span>
+            {GENRE_OPTIONS.map(o => (
+              <button key={o} onClick={() => setGenre(g => g.includes(o) ? g.filter(v => v !== o) : [...g, o])}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${genre.includes(o) ? "bg-orange-600 text-white border-orange-600" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                {o}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-400 w-12">仕様</span>
+            {SPEC_OPTIONS.map(o => (
+              <button key={o} onClick={() => setSpec(g => g.includes(o) ? g.filter(v => v !== o) : [...g, o])}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${spec.includes(o) ? "bg-orange-600 text-white border-orange-600" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                {o}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-400 w-12">品目</span>
+            {HINMOKU_OPTIONS.map(o => (
+              <button key={o} onClick={() => setHinmoku(g => g.includes(o) ? g.filter(v => v !== o) : [...g, o])}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${hinmoku.includes(o) ? "bg-orange-600 text-white border-orange-600" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                {o}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button onClick={() => setShowAdvanced(v => !v)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            <SlidersHorizontal className="w-3 h-3" />詳細検索{showAdvanced ? "を閉じる" : ""}
+          </button>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={handleClear} className="flex items-center gap-1">
+              <X className="w-3 h-3" />クリア
+            </Button>
+            <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
+              <Search className="w-3 h-3" />検索
+            </Button>
+          </div>
+        </div>
+
+        {showAdvanced && (
+          <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">型番号（範囲）</label>
+              <div className="flex items-center gap-1">
+                <Input value={uidFrom} onChange={e => setUidFrom(e.target.value)}
+                  placeholder="以上" className="h-8 text-sm" autoComplete="off" />
+                <span className="text-xs text-gray-400">〜</span>
+                <Input value={uidTo} onChange={e => setUidTo(e.target.value)}
+                  placeholder="以下" className="h-8 text-sm" autoComplete="off" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">作成日（範囲）</label>
+              <div className="flex items-center gap-1">
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                  className="h-8 text-sm" autoComplete="off" />
+                <span className="text-xs text-gray-400">〜</span>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                  className="h-8 text-sm" autoComplete="off" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">並び順</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { key: "uid_desc", label: "型番号（降順）" },
+                  { key: "uid_asc", label: "型番号（昇順）" },
+                  { key: "date_desc", label: "作成日（新しい順）" },
+                  { key: "date_asc", label: "作成日（古い順）" },
+                ].map(s => (
+                  <button key={s.key} onClick={() => setSort(s.key)}
+                    className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${sort === s.key ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       {/* 一覧 */}
+
       {loading ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : parents.length === 0 ? (
