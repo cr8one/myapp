@@ -22,10 +22,10 @@ type Master = { id: number; category: string; value: string }
 const DEVICE_TYPE_ICONS: Record<string, typeof Monitor> = {
   "サーバー": Server,
   "ノートPC": Laptop,
-  "Mac": Laptop,
-  "デスクトップPC": Cpu,
+  "Mac": Monitor,
+  "デスクトップPC": Monitor,
   "ネットワーク機器": Router,
-  "モニタ": Monitor,
+  "モニタ": Cpu,
   "プリンタ": Printer,
   "NAS": HardDrive,
 }
