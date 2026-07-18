@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Monitor, Server } from "lucide-react"
+import { Plus, Search, Monitor, Server, Laptop, Cpu, Router, Printer, HardDrive } from "lucide-react"
 
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
 type ChildDevice = { deviceId: number; deviceName: string; status: string | null }
@@ -19,6 +19,16 @@ type Device = {
 }
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null; deviceType: string | null; osName: string | null; cpuInfo: string | null; memoryDefault: string | null; storageDefault: string | null }
 type Master = { id: number; category: string; value: string }
+const DEVICE_TYPE_ICONS: Record<string, typeof Monitor> = {
+  "サーバー": Server,
+  "ノートPC": Laptop,
+  "Mac": Laptop,
+  "デスクトップPC": Cpu,
+  "ネットワーク機器": Router,
+  "モニタ": Monitor,
+  "プリンタ": Printer,
+  "NAS": HardDrive,
+}
 type SortMode = "updated_desc" | "name"
 
 const STATUS_COLORS: Record<string, string> = {
@@ -91,6 +101,11 @@ export default function DevicesPage() {
   }
 
   const getModel = (modelId: number | null) => modelId ? models.find(m => m.modelId === modelId) ?? null : null
+  const getDeviceIcon = (r: Device) => {
+    const model = getModel(r.modelId)
+    if (model?.deviceType && DEVICE_TYPE_ICONS[model.deviceType]) return DEVICE_TYPE_ICONS[model.deviceType]
+    return r.children.length > 0 ? Server : Monitor
+  }
   const getModelName = (modelId: number | null) => {
     const m = getModel(modelId)
     return m ? `${m.vendorName ? m.vendorName + " " : ""}${m.modelName}` : null
@@ -199,9 +214,7 @@ export default function DevicesPage() {
                     onClick={() => router.push(`/dashboard/terminal/devices/${r.deviceId}`)}>
                     <td className="px-3 py-3">
                       <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                        {r.children.length > 0
-                          ? <Server className="w-4 h-4 text-slate-500" />
-                          : <Monitor className="w-4 h-4 text-slate-500" />}
+                        {(() => { const Icon = getDeviceIcon(r); return <Icon className="w-4 h-4 text-slate-500" /> })()}
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -214,7 +227,7 @@ export default function DevicesPage() {
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="text-sm text-gray-700 break-words leading-snug">{getModelName(r.modelId) ?? ""}</div>
+                      <div className="text-sm text-gray-700 break-words leading-snug">{model?.modelName ?? ""}</div>
                       {model?.deviceType && <div className="text-xs text-gray-400 mt-0.5">{model.deviceType}</div>}
                     </td>
                     <td className="px-3 py-3">
@@ -236,7 +249,9 @@ export default function DevicesPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-sm text-gray-500 break-words leading-snug">{r.remark ?? ""}</td>
+                    <td className="px-3 py-3 text-sm text-gray-500 leading-snug" title={r.remark ?? ""}>
+                      <div className="line-clamp-2 break-words">{r.remark ?? ""}</div>
+                    </td>
                   </tr>
                 )
               })}
