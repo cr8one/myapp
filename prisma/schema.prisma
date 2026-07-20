@@ -679,6 +679,7 @@ model Device {
   storageSize    String?   @map("storage_size")
   location       String?
   userId         String?   @map("user_id")
+  accountName    String?   @map("account_name")
   purchaseDate      DateTime? @map("purchase_date")
   procurementType String?   @map("procurement_type")
   startDate      DateTime? @map("start_date")

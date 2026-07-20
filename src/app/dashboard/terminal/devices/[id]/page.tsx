@@ -19,7 +19,7 @@ type Device = {
   deviceId: number; assetNo: string | null; deviceName: string; hostname: string | null
   modelId: number | null; serialNo: string | null; osVersion: string | null
   memorySize: string | null; storageSize: string | null; location: string | null
-  userId: string | null; purchaseDate: string | null; startDate: string | null
+  userId: string | null; accountName: string | null; purchaseDate: string | null; startDate: string | null
   status: string | null; managementType: string | null; remark: string | null
   parentDeviceId: number | null; procurementType: string | null
   lease: { lease_company: string | null; lease_start: string | null; lease_end: string | null; contract_no: string | null; lease_item_no: string | null } | null
@@ -39,7 +39,7 @@ const emptySoftwareForm = { softwareId: "", version: "", note: "", userId: "" }
 const emptyRemarkForm = { date: "", title: "", content: "" }
 const emptyDeviceForm = {
   assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
-  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
+  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "", accountName: "",
   purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
   parentDeviceId: "", procurementType: "", leaseCompany: "", leaseStart: "", leaseEnd: "", contractNo: "", leaseItemNo: "",
 }
@@ -133,7 +133,7 @@ export default function DeviceDetailPage() {
       hostname: device.hostname ?? "", modelId: device.modelId?.toString() ?? "",
       serialNo: device.serialNo ?? "", osVersion: device.osVersion ?? "",
       memorySize: device.memorySize ?? "", storageSize: device.storageSize ?? "",
-      location: device.location ?? "", userId: device.userId ?? "",
+      location: device.location ?? "", userId: device.userId ?? "", accountName: device.accountName ?? "",
       purchaseDate: device.purchaseDate ? device.purchaseDate.split("T")[0] : "",
       startDate: device.startDate ? device.startDate.split("T")[0] : "",
       procurementType: device.procurementType ?? "",
@@ -303,6 +303,7 @@ export default function DeviceDetailPage() {
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">実容量</span><span>{val(device.storageSize)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">設置場所</span><span>{val(device.location)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">利用者</span><span>{val(device.userId)}</span></div>
+              <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">アカウント名</span><span>{val(device.accountName)}</span></div>
               <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">調達区分</span><span>{val(device.procurementType)}</span></div>
               {device.procurementType === "購入" && <div className="flex gap-2"><span className="text-gray-400 w-24 flex-shrink-0">購入日</span><span>{device.purchaseDate ? new Date(device.purchaseDate).toLocaleDateString("ja-JP") : <span className="text-gray-300">—</span>}</span></div>}
               {device.procurementType === "リース" && device.lease && (<>
@@ -483,6 +484,8 @@ export default function DeviceDetailPage() {
             </div>
             <div className="space-y-1"><Label>利用者</Label>
               <Input value={deviceForm.userId} onChange={e => setDeviceForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" /></div>
+            <div className="space-y-1"><Label>アカウント名</Label>
+              <Input value={deviceForm.accountName} onChange={e => setDeviceForm(f => ({ ...f, accountName: e.target.value }))} placeholder="例：ログインID" autoComplete="off" /></div>
             <div className="space-y-1"><Label>調達区分</Label>
               <select value={deviceForm.procurementType} onChange={e => setDeviceForm(f => ({ ...f, procurementType: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm bg-white">
                 <option value="">-- 選択 --</option>

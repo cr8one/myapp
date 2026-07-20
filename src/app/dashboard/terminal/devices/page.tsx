@@ -11,7 +11,7 @@ type Device = {
   deviceId: number; assetNo: string | null; deviceName: string; hostname: string | null
   modelId: number | null; serialNo: string | null; osVersion: string | null
   memorySize: string | null; storageSize: string | null; location: string | null
-  userId: string | null; purchaseDate: string | null; startDate: string | null
+  userId: string | null; accountName: string | null; purchaseDate: string | null; startDate: string | null
   status: string | null; managementType: string | null; remark: string | null
   parentDeviceId: number | null
   ipAddresses: DeviceIp[]
@@ -238,7 +238,10 @@ export default function DevicesPage() {
                       )}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-600 break-words leading-snug">{r.location ?? ""}</td>
-                    <td className="px-3 py-3 text-sm text-gray-600 break-words leading-snug">{r.userId ?? ""}</td>
+                    <td className="px-3 py-3 text-sm text-gray-600 break-words leading-snug">
+                      <div>{r.userId ?? ""}</div>
+                      {r.accountName && <div className="text-xs text-gray-400 mt-0.5">{r.accountName}</div>}
+                    </td>
                     <td className="px-3 py-3 text-sm text-gray-500 break-words leading-snug">{r.serialNo ?? ""}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-col gap-1">

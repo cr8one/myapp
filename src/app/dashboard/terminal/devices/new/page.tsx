@@ -11,7 +11,7 @@ type Master = { id: number; category: string; value: string }
 type Device = { deviceId: number; deviceName: string; assetNo: string | null }
 const emptyForm = {
   assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
-  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "",
+  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "", accountName: "",
   purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
   parentDeviceId: "", procurementType: "", leaseCompany: "", leaseStart: "", leaseEnd: "", contractNo: "", leaseItemNo: "",
 }
@@ -108,6 +108,10 @@ export default function DeviceNewPage() {
           <div className="space-y-1">
             <Label>利用者</Label>
             <Input value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" />
+          </div>
+          <div className="space-y-1">
+            <Label>アカウント名</Label>
+            <Input value={form.accountName} onChange={e => setForm(f => ({ ...f, accountName: e.target.value }))} placeholder="例：ログインID" autoComplete="off" />
           </div>
           <div className="space-y-1">
             <Label>調達区分</Label>
