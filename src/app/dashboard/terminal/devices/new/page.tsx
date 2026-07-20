@@ -54,7 +54,7 @@ export default function DeviceNewPage() {
   return (
     <div className="p-6 max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.push("/dashboard/terminal/devices")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="w-4 h-4" />一覧に戻る
         </button>
         <h1 className="text-xl font-bold">端末を追加</h1>

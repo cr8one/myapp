@@ -261,7 +261,7 @@ export default function DeviceDetailPage() {
   return (
     <div className="p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.push("/dashboard/terminal/devices")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <ArrowLeft className="w-4 h-4" />一覧に戻る
         </button>
         <div className="flex items-center gap-2">
