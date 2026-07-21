@@ -651,8 +651,8 @@ const buildQuery = (
                   <th className="px-3 py-2 text-left font-medium">型番号</th>
                   <th className="px-3 py-2 text-left font-medium">ジャンル/仕様/品目</th>
                   <th className="px-3 py-2 text-left font-medium">条件</th>
-                  <th className="px-3 py-2 text-left font-medium">サイズ</th>
-                  <th className="px-3 py-2 text-left font-medium">パーツ/枝番</th>
+                  <th className="px-3 py-2 text-left font-medium">パーツ数:展開サイズ</th>
+                  <th className="px-3 py-2 text-left font-medium">枝番</th>
                   <th className="px-3 py-2 text-right font-medium">操作</th>
                 </tr>
               </thead>
@@ -680,14 +680,25 @@ const buildQuery = (
                       </div>
                     </td>
                     <td className="px-3 py-2 text-gray-600 text-xs">
-                      {p.parts.length > 0 && p.parts[0].sizey && p.parts[0].sizex ? (
-                        <div>天地×左右：{p.parts[0].sizey}×{p.parts[0].sizex}mm</div>
+                      {p.parts.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="text-gray-500">{p.parts.length}パーツ</div>
+                          <div className="flex gap-1 flex-wrap">
+                            {p.parts.map(part => (
+                              part.developy && part.developx ? (
+                                <span key={part.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {part.developy}×{part.developx}mm
+                                </span>
+                              ) : (
+                                <span key={part.id} className="text-xs text-gray-300">-</span>
+                              )
+                            ))}
+                          </div>
+                        </div>
                       ) : <div className="text-gray-300">-</div>}
-                      {p.parts.length > 0 && p.parts[0].widthy && <div>背幅：{p.parts[0].widthy}mm</div>}
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">
-                      {p.parts.length > 1 && <div className="text-orange-600 font-medium">パーツ{p.parts.length}件</div>}
-                      <div>枝番：{p.children.length}件</div>
+                      {p.children.length}件
                     </td>
                     <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex gap-2 justify-end">
