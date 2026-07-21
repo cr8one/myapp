@@ -45,12 +45,14 @@ type Part = {
 type Parent = {
   id: string; uid_ntemp: string; kyugataban: string | null
   genre: string | null; spec: string | null; hinmoku: string | null
+  dtindt: string
   conditions: Condition[]; children: Child[]; parts: Part[]
 }
 type ChildForm = { edaban: string; han: string; me: string; kiri: string; men: string; sizey: string; sizex: string; 咥え: string; location: string }
 type PartForm = { part_name: string; developy: string; developx: string; develop_depths: string[]; sizey: string; sizex: string; widthy: string; inner_height: string; inner_width: string; inner_depth: string; tray_thickness: string; tray_sheets: string }
 
 const fmt = (v: number | null) => v === null ? "—" : Number.isInteger(v) ? v.toFixed(1) : String(v)
+const fmtDate = (v: string) => { const d = new Date(v); return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}` }
 const emptyChildForm: ChildForm = { edaban: "", han: "", me: "", kiri: "", men: "", sizey: "", sizex: "", 咥え: "", location: "" }
 const emptyPartForm = (): PartForm => ({ part_name: "", developy: "", developx: "", develop_depths: [], sizey: "", sizex: "", widthy: "", inner_height: "", inner_width: "", inner_depth: "", tray_thickness: "", tray_sheets: "" })
 
@@ -306,13 +308,16 @@ export default function DielineDetailPage() {
         )}
       </div>
       <div className="space-y-6">
-        {/* 基本情報 */}
-        <Card>
-          <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
-          <CardContent>
-            {!editing ? (
-              <div className="space-y-4">
+          {/* 基本情報 */}
+      <div className="grid grid-cols-2 gap-6">
+          {/* 基本情報 */}
+          <Card>
+            <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
+            <CardContent>
+              {!editing ? (
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  <div><span className="text-gray-400">型番号</span><p className="mt-0.5 font-semibold">{parent.uid_ntemp}</p></div>
+                  <div><span className="text-gray-400">作成日</span><p className="mt-0.5">{fmtDate(parent.dtindt)}</p></div>
                   <div><span className="text-gray-400">旧型番号</span><p className="mt-0.5">{parent.kyugataban ?? "—"}</p></div>
                   <div><span className="text-gray-400">ジャンル</span><p className="mt-0.5">{parent.genre ?? "—"}</p></div>
                   <div><span className="text-gray-400">仕様</span><p className="mt-0.5">{parent.spec ?? "—"}</p></div>
@@ -328,14 +333,99 @@ export default function DielineDetailPage() {
                     </div>
                   )}
                 </div>
-                {/* パーツ表示 */}
-                {parent.parts.length === 0 ? (
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                    <div><span className="text-gray-400">型番号</span><p className="mt-0.5 font-semibold">{parent.uid_ntemp}</p></div>
+                    <div><span className="text-gray-400">作成日</span><p className="mt-0.5">{fmtDate(parent.dtindt)}</p></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label>ジャンル</Label>
+                      <select value={genre} onChange={e => setGenre(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
+                        <option value="">未選択</option>{GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2"><Label>仕様</Label>
+                      <select value={spec} onChange={e => setSpec(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
+                        <option value="">未選択</option>{SPEC_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2"><Label>品目</Label>
+                      <select value={hinmoku} onChange={e => setHinmoku(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
+                        <option value="">未選択</option>{HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-2"><Label>旧型番号</Label>
+                    <Input value={kyugataban} onChange={e => setKyugataban(e.target.value)} autoComplete="off" className="max-w-xs" />
+                  </div>
+                  {/* 条件 */}
+                  <div>
+                    <Label className="text-sm text-gray-500 mb-2 block">条件</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-gray-400">{filteredTags.length > 0 ? `${genre || ""}${spec || ""}${hinmoku || ""}に対応する候補` : "全条件"}</span>
+                        <button type="button" onClick={() => setShowAllConditions(v => !v)} className="text-xs text-blue-500 hover:text-blue-700 underline">
+                          {showAllConditions ? "絞り込む" : "全件表示"}
+                        </button>
+                      </div>
+                      {displayTags.length === 0 ? <p className="text-sm text-gray-400">条件候補がありません。</p> : (
+                        <div className="flex flex-wrap gap-2">
+                          {displayTags.map(tag => (
+                            <button key={tag} type="button" onClick={() => toggleCondition(tag)}
+                              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${selectedConditions.includes(tag) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"}`}>
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input type="text" placeholder="手入力で追加" autoComplete="off"
+                          className="px-2 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                          onKeyDown={e => { if (e.key === "Enter") { const val = (e.target as HTMLInputElement).value.trim(); if (val) { toggleCondition(val); (e.target as HTMLInputElement).value = "" } } }}
+                        />
+                        <span className="text-xs text-gray-400">Enterで追加</span>
+                      </div>
+                      {selectedConditions.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-2 border-t">
+                          <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
+                          {selectedConditions.map(c => (
+                            <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              {c}<button onClick={() => toggleCondition(c)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
+                    <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {/* パーツ情報 */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>パーツ情報</CardTitle>
+                {editing && (
+                  <Button variant="outline" size="sm" onClick={() => setEditParts(prev => [...prev, emptyPartForm()])}>
+                    <Plus className="w-4 h-4 mr-1" />パーツ追加
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!editing ? (
+                parent.parts.length === 0 ? (
                   <p className="text-sm text-gray-400">パーツ情報なし</p>
                 ) : parent.parts.length === 1 ? (
                   <PartSizeDisplay part={parent.parts[0]} />
                 ) : (
-                  <div className="space-y-3 border-t pt-3">
-                    <p className="text-xs font-medium text-orange-600">複数パーツあり</p>
+                  <div className="space-y-3">
                     {parent.parts.map((part, i) => (
                       <div key={part.id} className="border border-orange-100 rounded-lg p-3 bg-orange-50">
                         <p className="text-sm font-semibold text-orange-700 mb-1">パーツ {i + 1}{part.part_name ? `：${part.part_name}` : ""}</p>
@@ -343,87 +433,84 @@ export default function DielineDetailPage() {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>ジャンル</Label>
-                    <select value={genre} onChange={e => setGenre(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
-                      <option value="">未選択</option>{GENRE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2"><Label>仕様</Label>
-                    <select value={spec} onChange={e => setSpec(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
-                      <option value="">未選択</option>{SPEC_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2"><Label>品目</Label>
-                    <select value={hinmoku} onChange={e => setHinmoku(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm bg-white">
-                      <option value="">未選択</option>{HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-2"><Label>旧型番号</Label>
-                  <Input value={kyugataban} onChange={e => setKyugataban(e.target.value)} autoComplete="off" className="max-w-xs" />
-                </div>
-                {/* パーツ編集 */}
-                <div className="border rounded-xl p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">パーツ情報</Label>
-                    <Button variant="outline" size="sm" onClick={() => setEditParts(prev => [...prev, emptyPartForm()])}>
-                      <Plus className="w-4 h-4 mr-1" />パーツ追加
-                    </Button>
-                  </div>
+                )
+              ) : (
+                <div className="space-y-4">
                   {editParts.map((part, index) => (
                     <div key={index} className={editParts.length > 1 ? "border border-orange-200 rounded-lg p-3 bg-orange-50" : ""}>
                       <PartSizeEdit part={part} index={index} partsLength={editParts.length} setPart={setPart} removePart={(i) => setEditParts(prev => prev.filter((_, idx) => idx !== i))} addDepth={addDepth} setDepth={setDepth} removeDepth={removeDepth} />
                     </div>
                   ))}
                 </div>
-                {/* 条件 */}
-                <div>
-                  <Label className="text-sm text-gray-500 mb-2 block">条件</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-gray-400">{filteredTags.length > 0 ? `${genre || ""}${spec || ""}${hinmoku || ""}に対応する候補` : "全条件"}</span>
-                      <button type="button" onClick={() => setShowAllConditions(v => !v)} className="text-xs text-blue-500 hover:text-blue-700 underline">
-                        {showAllConditions ? "絞り込む" : "全件表示"}
-                      </button>
-                    </div>
-                    {displayTags.length === 0 ? <p className="text-sm text-gray-400">条件候補がありません。</p> : (
-                      <div className="flex flex-wrap gap-2">
-                        {displayTags.map(tag => (
-                          <button key={tag} type="button" onClick={() => toggleCondition(tag)}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${selectedConditions.includes(tag) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600"}`}>
-                            {tag}
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        {/* 抜型情報 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>抜型情報</CardTitle>
+              <Button size="sm" onClick={openCreateChild} className="flex items-center gap-1"><Plus className="w-4 h-4" />枝番追加</Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {parent.children.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">枝番がありません</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {["枝番","判","目","切","面","天地","左右","咥え","依頼書","所在","POS",""].map(h => (
+                        <th key={h} className="text-left px-3 py-2 text-gray-500 font-medium">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {parent.children.map(c => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 font-medium">{parent.uid_ntemp}-{c.edaban}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.han ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.me ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.kiri ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.men ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.sizey ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.sizex ?? "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{c.咥え ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => setRequestModalChild(c)}
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full border transition-colors ${c.requests.length > 0 ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"}`}>
+                            {c.requests.length > 0 ? `発行済 ${c.requests.length}件` : "未発行"}
                           </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 pt-1">
-                      <input type="text" placeholder="手入力で追加" autoComplete="off"
-                        className="px-2 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
-                        onKeyDown={e => { if (e.key === "Enter") { const val = (e.target as HTMLInputElement).value.trim(); if (val) { toggleCondition(val); (e.target as HTMLInputElement).value = "" } } }}
-                      />
-                      <span className="text-xs text-gray-400">Enterで追加</span>
-                    </div>
-                    {selectedConditions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-2 border-t">
-                        <span className="text-xs text-gray-400 mr-1 self-center">選択中：</span>
-                        {selectedConditions.map(c => (
-                          <span key={c} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            {c}<button onClick={() => toggleCondition(c)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
-                  <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
-                </div>
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">{c.location ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => {
+                              const params = new URLSearchParams({
+                                edaban: c.edaban,
+                                genre: parent.genre ?? "",
+                                hinmoku: parent.hinmoku ?? "",
+                                condition: parent.conditions[0]?.value ?? "",
+                              })
+                              router.push(`/dashboard/dlms/dielines/${parent.id}/pos?${params.toString()}`)
+                            }}
+                            className="text-xs font-medium px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
+                          >
+                            POS
+                          </button>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1">
+                            <button onClick={() => openEditChild(c)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => handleDeleteChild(c.id)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </CardContent>
