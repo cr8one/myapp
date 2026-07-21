@@ -300,10 +300,15 @@ export default function DielineDetailPage() {
             <Button variant="outline" size="sm" disabled={!nextId} onClick={() => nextId && goToId(nextId)}>次 →</Button>
           </div>
         )}
-        {!editing && (
+        {!editing ? (
           <div className="ml-auto flex gap-2">
             <Button variant="outline" onClick={startEdit} className="flex items-center gap-1"><Pencil className="w-4 h-4" />編集</Button>
             <Button variant="destructive" onClick={handleDeleteParent}>削除</Button>
+          </div>
+        ) : (
+          <div className="ml-auto flex gap-2">
+            <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
+            <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
           </div>
         )}
       </div>
@@ -394,10 +399,6 @@ export default function DielineDetailPage() {
                         </div>
                       )}
                     </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button onClick={handleSaveParent} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
-                    <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
                   </div>
                 </div>
               )}
