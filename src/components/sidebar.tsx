@@ -111,12 +111,12 @@ const baseMenuItems = [
     { label: "CAD/台紙マスタ", href: "/dashboard/cad/masters" },
   ]},
   { label: "抜き型/図面", href: "/dashboard/dlms", icon: "dlms", children: [
-    { label: "抜き型管理", href: "/dashboard/dlms/dielines" },
-    { label: "依頼書管理", href: "/dashboard/dlms/requests" },
+    { label: "型管理", href: "/dashboard/dlms/dielines" },
+    { label: "手配管理", href: "/dashboard/dlms/requests" },
+    { label: "棚管理", href: "/dashboard/dlms/shelf-stock" },
     { label: "図面管理", href: "/dashboard/dlms/drawings" },
     { label: "図面作成", href: "/dashboard/dlms/drawings/editor" },
-    { label: "棚管理", href: "/dashboard/dlms/shelf-stock" },
-    { label: "DLMSマスタ管理", href: "/dashboard/dlms/masters" },
+    { label: "型図面マスタ管理", href: "/dashboard/dlms/masters" },
   ]},
   { label: "DPP進行管理", href: "/dashboard/dpp", icon: "dpp", children: [
     { label: "予定表", href: "/dashboard/dpp/schedule" },

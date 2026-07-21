@@ -21,7 +21,7 @@ function DlmsIcon({ style }: { style?: React.CSSProperties }) {
 }
 const cards = [
   {
-    label: "抜き型管理",
+    label: "型管理",
     key: "dielineCount" as keyof Stats,
     href: "/dashboard/dlms/dielines",
     icon: Layers,
@@ -29,6 +29,26 @@ const cards = [
     text: "text-orange-600",
     border: "border-orange-100",
     hover: "hover:border-orange-300",
+  },
+  {
+    label: "手配管理",
+    key: "requestCount" as keyof Stats,
+    href: "/dashboard/dlms/requests",
+    icon: FileText,
+    bg: "bg-yellow-50",
+    text: "text-yellow-600",
+    border: "border-yellow-100",
+    hover: "hover:border-yellow-300",
+  },
+  {
+    label: "棚管理",
+    key: "shelfStockCount" as keyof Stats,
+    href: "/dashboard/dlms/shelf-stock",
+    icon: Archive,
+    bg: "bg-teal-50",
+    text: "text-teal-600",
+    border: "border-teal-100",
+    hover: "hover:border-teal-300",
   },
   {
     label: "図面管理",
@@ -41,17 +61,7 @@ const cards = [
     hover: "hover:border-amber-300",
   },
   {
-    label: "手配依頼書管理",
-    key: "requestCount" as keyof Stats,
-    href: "/dashboard/dlms/requests",
-    icon: FileText,
-    bg: "bg-yellow-50",
-    text: "text-yellow-600",
-    border: "border-yellow-100",
-    hover: "hover:border-yellow-300",
-  },
-  {
-    label: "マスタ管理",
+    label: "型図面マスタ管理",
     key: "formatCount" as keyof Stats,
     href: "/dashboard/dlms/masters",
     icon: Settings,
@@ -59,16 +69,6 @@ const cards = [
     text: "text-red-600",
     border: "border-red-100",
     hover: "hover:border-red-300",
-  },
-  {
-    label: "棚管理",
-    key: "shelfStockCount" as keyof Stats,
-    href: "/dashboard/dlms/shelf-stock",
-    icon: Archive,
-    bg: "bg-teal-50",
-    text: "text-teal-600",
-    border: "border-teal-100",
-    hover: "hover:border-teal-300",
   },
 ]
 export default function DlmsDashboardClient({ stats }: { stats: Stats }) {
