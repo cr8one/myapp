@@ -278,12 +278,12 @@ export default function DielineDetailPage() {
   const displayTags = showAllConditions ? allTags : filteredTags
 
   const PartSizeDisplay = ({ part }: { part: Part }) => (
-    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mt-2">
-      <div><span className="text-gray-400 text-xs">展開サイズ</span><p className="mt-0.5">天地 {fmt(part.developy)} / 左右 {fmt(part.developx)} / 背 {part.develop_depths.length > 0 ? part.develop_depths.map(d => fmt(d)).join(", ") : "—"}</p></div>
-      <div><span className="text-gray-400 text-xs">仕上サイズ 外寸</span><p className="mt-0.5">背 {fmt(part.sizey)} / 高さ {fmt(part.sizex)} / 奥行き {fmt(part.widthy)}</p></div>
-      <div><span className="text-gray-400 text-xs">内寸</span><p className="mt-0.5">背 {fmt(part.inner_height)} / 高さ {fmt(part.inner_width)} / 奥行き {fmt(part.inner_depth)}</p></div>
+    <div className="space-y-1.5 text-sm mt-2">
+      <div className="flex justify-between gap-4"><span className="text-gray-400 text-xs shrink-0">展開サイズ</span><p className="text-right">天地 {fmt(part.developy)} / 左右 {fmt(part.developx)} / 背 {part.develop_depths.length > 0 ? part.develop_depths.map(d => fmt(d)).join(", ") : "—"}</p></div>
+      <div className="flex justify-between gap-4"><span className="text-gray-400 text-xs shrink-0">仕上サイズ 外寸</span><p className="text-right">背 {fmt(part.sizey)} / 高さ {fmt(part.sizex)} / 奥行き {fmt(part.widthy)}</p></div>
+      <div className="flex justify-between gap-4"><span className="text-gray-400 text-xs shrink-0">内寸</span><p className="text-right">背 {fmt(part.inner_height)} / 高さ {fmt(part.inner_width)} / 奥行き {fmt(part.inner_depth)}</p></div>
       {(part.tray_thickness || part.tray_sheets) && (
-        <div><span className="text-gray-400 text-xs">デジパック</span><p className="mt-0.5">トレイ厚 {fmt(part.tray_thickness)} / 枚数 {part.tray_sheets ?? "—"}</p></div>
+        <div className="flex justify-between gap-4"><span className="text-gray-400 text-xs shrink-0">デジパック</span><p className="text-right">トレイ厚 {fmt(part.tray_thickness)} / 枚数 {part.tray_sheets ?? "—"}</p></div>
       )}
     </div>
   )
@@ -314,17 +314,17 @@ export default function DielineDetailPage() {
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent>
               {!editing ? (
-                <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                  <div><span className="text-gray-400">型番号</span><p className="mt-0.5 font-semibold">{parent.uid_ntemp}</p></div>
-                  <div><span className="text-gray-400">作成日</span><p className="mt-0.5">{fmtDate(parent.dtindt)}</p></div>
-                  <div><span className="text-gray-400">旧型番号</span><p className="mt-0.5">{parent.kyugataban ?? "—"}</p></div>
-                  <div><span className="text-gray-400">ジャンル</span><p className="mt-0.5">{parent.genre ?? "—"}</p></div>
-                  <div><span className="text-gray-400">仕様</span><p className="mt-0.5">{parent.spec ?? "—"}</p></div>
-                  <div><span className="text-gray-400">品目</span><p className="mt-0.5">{parent.hinmoku ?? "—"}</p></div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">型番号</span><p className="font-semibold text-right">{parent.uid_ntemp}</p></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">旧型番号</span><p className="text-right">{parent.kyugataban ?? "—"}</p></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">作成日</span><p className="text-right">{fmtDate(parent.dtindt)}</p></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">ジャンル</span><p className="text-right">{parent.genre ?? "—"}</p></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">仕様</span><p className="text-right">{parent.spec ?? "—"}</p></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-400">品目</span><p className="text-right">{parent.hinmoku ?? "—"}</p></div>
                   {parent.conditions.length > 0 && (
-                    <div className="col-span-2">
+                    <div className="pt-1">
                       <span className="text-gray-400">条件</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
+                      <div className="flex flex-wrap gap-1 mt-1 justify-end">
                         {parent.conditions.map(c => (
                           <span key={c.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{c.value}</span>
                         ))}
@@ -334,9 +334,10 @@ export default function DielineDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <div><span className="text-gray-400">型番号</span><p className="mt-0.5 font-semibold">{parent.uid_ntemp}</p></div>
-                    <div><span className="text-gray-400">作成日</span><p className="mt-0.5">{fmtDate(parent.dtindt)}</p></div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center gap-4"><span className="text-gray-400">型番号</span><p className="font-semibold">{parent.uid_ntemp}</p></div>
+                    <div className="flex justify-between items-center gap-4"><Label className="shrink-0">旧型番号</Label><Input value={kyugataban} onChange={e => setKyugataban(e.target.value)} autoComplete="off" className="max-w-xs" /></div>
+                    <div className="flex justify-between items-center gap-4"><span className="text-gray-400">作成日</span><p>{fmtDate(parent.dtindt)}</p></div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>ジャンル</Label>
@@ -354,9 +355,6 @@ export default function DielineDetailPage() {
                         <option value="">未選択</option>{HINMOKU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
-                  </div>
-                  <div className="space-y-2"><Label>旧型番号</Label>
-                    <Input value={kyugataban} onChange={e => setKyugataban(e.target.value)} autoComplete="off" className="max-w-xs" />
                   </div>
                   {/* 条件 */}
                   <div>
