@@ -308,7 +308,6 @@ export default function DielineDetailPage() {
         )}
       </div>
       <div className="space-y-6">
-          {/* 基本情報 */}
       <div className="grid grid-cols-2 gap-6">
           {/* 基本情報 */}
           <Card>
@@ -451,76 +450,6 @@ export default function DielineDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>抜型情報</CardTitle>
-              <Button size="sm" onClick={openCreateChild} className="flex items-center gap-1"><Plus className="w-4 h-4" />枝番追加</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {parent.children.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">枝番がありません</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {["枝番","判","目","切","面","天地","左右","咥え","依頼書","所在","POS",""].map(h => (
-                        <th key={h} className="text-left px-3 py-2 text-gray-500 font-medium">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {parent.children.map(c => (
-                      <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-medium">{parent.uid_ntemp}-{c.edaban}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.han ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.me ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.kiri ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.men ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.sizey ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.sizex ?? "—"}</td>
-                        <td className="px-3 py-2 text-gray-600">{c.咥え ?? "—"}</td>
-                        <td className="px-3 py-2">
-                          <button onClick={() => setRequestModalChild(c)}
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full border transition-colors ${c.requests.length > 0 ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"}`}>
-                            {c.requests.length > 0 ? `発行済 ${c.requests.length}件` : "未発行"}
-                          </button>
-                        </td>
-                        <td className="px-3 py-2 text-gray-600">{c.location ?? "—"}</td>
-                        <td className="px-3 py-2">
-                          <button
-                            onClick={() => {
-                              const params = new URLSearchParams({
-                                edaban: c.edaban,
-                                genre: parent.genre ?? "",
-                                hinmoku: parent.hinmoku ?? "",
-                                condition: parent.conditions[0]?.value ?? "",
-                              })
-                              router.push(`/dashboard/dlms/dielines/${parent.id}/pos?${params.toString()}`)
-                            }}
-                            className="text-xs font-medium px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
-                          >
-                            POS
-                          </button>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex gap-1">
-                            <button onClick={() => openEditChild(c)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => handleDeleteChild(c.id)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 枝番一覧 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>枝番一覧</CardTitle>
               <Button size="sm" onClick={openCreateChild} className="flex items-center gap-1"><Plus className="w-4 h-4" />枝番追加</Button>
             </div>
           </CardHeader>
