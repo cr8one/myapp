@@ -40,6 +40,7 @@ type UserGroup = {
 }
 type User = {
   id: string; name: string; email: string
+  lastName?: string; firstName?: string; furiganaLastName?: string; furiganaFirstName?: string
   position?: string; phone?: string; employeeNo?: string; gender?: string; employmentType?: string
   role: "ADMIN" | "USER"; createdAt: string
   permission?: Permission
@@ -108,7 +109,10 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
 
-  const [name, setName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [furiganaLastName, setFuriganaLastName] = useState("")
+  const [furiganaFirstName, setFuriganaFirstName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [position, setPosition] = useState("")
@@ -141,7 +145,7 @@ export default function UsersPage() {
   })
 
   const resetForm = () => {
-    setName(""); setEmail(""); setPassword("")
+    setLastName(""); setFirstName(""); setFuriganaLastName(""); setFuriganaFirstName(""); setEmail(""); setPassword("")
     setPosition(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
@@ -149,7 +153,10 @@ export default function UsersPage() {
   }
 
   const handleEdit = (user: User) => {
-    setEditUser(user); setName(user.name ?? ""); setEmail(user.email)
+    setEditUser(user)
+    setLastName(user.lastName ?? ""); setFirstName(user.firstName ?? "")
+    setFuriganaLastName(user.furiganaLastName ?? ""); setFuriganaFirstName(user.furiganaFirstName ?? "")
+    setEmail(user.email)
     setPosition(user.position ?? "")
     setEmployeeNo(user.employeeNo ?? "")
     setGender(user.gender ?? "")
@@ -164,7 +171,8 @@ export default function UsersPage() {
   const handleSubmit = async () => {
     setLoading(true); setError("")
     const body = {
-      name, email, password: password || undefined, position, phone, employeeNo, gender, employmentType, role,
+      lastName, firstName, furiganaLastName, furiganaFirstName,
+      email, password: password || undefined, position, phone, employeeNo, gender, employmentType, role,
       permission: role === "ADMIN" ? undefined : permission,
       departments: selectedDepts,
       groups: selectedGroups,
@@ -253,9 +261,18 @@ export default function UsersPage() {
           <CardHeader><CardTitle>{editUser ? "ユーザー編集" : "ユーザー登録"}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>名前</Label><Input autoComplete="off" value={name} onChange={e => setName(e.target.value)} /></div>
-              {!editUser && <div className="space-y-2"><Label>メールアドレス</Label><Input autoComplete="off" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>}
+              <div className="space-y-2"><Label>姓</Label><Input autoComplete="off" value={lastName} onChange={e => setLastName(e.target.value)} /></div>
+              <div className="space-y-2"><Label>名</Label><Input autoComplete="off" value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>フリガナ姓</Label><Input autoComplete="off" value={furiganaLastName} onChange={e => setFuriganaLastName(e.target.value)} /></div>
+              <div className="space-y-2"><Label>フリガナ名</Label><Input autoComplete="off" value={furiganaFirstName} onChange={e => setFuriganaFirstName(e.target.value)} /></div>
+            </div>
+            {!editUser && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>メールアドレス</Label><Input autoComplete="off" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{editUser ? "新しいパスワード（変更する場合のみ）" : "パスワード"}</Label>
