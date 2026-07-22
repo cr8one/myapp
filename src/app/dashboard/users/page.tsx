@@ -166,6 +166,7 @@ export default function UsersPage() {
     setSelectedDepts(user.departments.map(d => ({ department_id: d.department_id, is_primary: d.is_primary })))
     setSelectedGroups(user.groups.map(g => ({ group_id: g.group_id, is_primary: g.is_primary })))
     setShowForm(true)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleSubmit = async () => {
