@@ -415,26 +415,41 @@ export default function UsersPage() {
         <Input placeholder="名前・メール・部署・グループ・役職で検索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
 
-      <div className="space-y-4">
-        {filteredUsers.map(user => (
-          <Card key={user.id}>
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold">{user.name}</p>
-                    {user.role === "ADMIN" && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">ADMIN</span>}
-                  </div>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <div className="flex flex-wrap gap-3 mt-0.5">
-                    {user.position && <p className="text-sm text-gray-500">役職: {user.position}</p>}
-                    {user.phone && <p className="text-sm text-gray-500">電話: {user.phone}</p>}
-                    {user.employeeNo && <p className="text-sm text-gray-500">社員番号: {user.employeeNo}</p>}
-                    {user.gender && <p className="text-sm text-gray-500">性別: {user.gender}</p>}
-                    {user.employmentType && <p className="text-sm text-gray-500">雇用形態: {user.employmentType}</p>}
-                  </div>
-                  {user.departments.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
+      {filteredUsers.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">{searchQuery ? "検索結果がありません" : "ユーザーが登録されていません"}</p>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "10%" }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                <th className="px-3 py-2 text-left font-medium">名前</th>
+                <th className="px-3 py-2 text-left font-medium">メール</th>
+                <th className="px-3 py-2 text-left font-medium">部署・グループ</th>
+                <th className="px-3 py-2 text-left font-medium">役職・連絡先</th>
+                <th className="px-3 py-2 text-left font-medium">権限</th>
+                <th className="px-3 py-2 text-right font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(user => (
+                <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-800">{user.name}</span>
+                      {user.role === "ADMIN" && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full shrink-0">ADMIN</span>}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 truncate" title={user.email}>{user.email}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1">
                       {user.departments.map(d => (
                         <span key={d.department_id} className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 ${d.is_primary ? "bg-slate-100 text-slate-700 font-medium" : "bg-gray-50 text-gray-500"}`}>
                           <Building2 className="w-3 h-3" />{d.department.name}{d.is_primary && " ★"}
@@ -445,36 +460,44 @@ export default function UsersPage() {
                           {g.group.name}{g.is_primary && " ★"}
                         </span>
                       ))}
+                      {user.departments.length === 0 && user.groups.length === 0 && <span className="text-xs text-gray-300">-</span>}
                     </div>
-                  )}
-                  {user.role === "USER" && user.permission && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {permissionGroups.map(({ group, color, items }) => {
-                        const active = items.filter(({ key }) => user.permission![key])
-                        if (active.length === 0) return null
-                        return active.map(({ key, label }) => (
-                          <span key={key} className={`text-xs px-2 py-0.5 rounded font-medium ${color}`}>
-                            {group}:{label}
-                          </span>
-                        ))
-                      })}
-                    </div>
-                  )}
-                </div>
-                {isAdmin && (
-                  <div className="flex gap-2 ml-4">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>編集</Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(user.id)}>削除</Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {filteredUsers.length === 0 && (
-          <p className="text-center text-gray-500">{searchQuery ? "検索結果がありません" : "ユーザーが登録されていません"}</p>
-        )}
-      </div>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-500 space-y-0.5">
+                    {user.position && <p>役職: {user.position}</p>}
+                    {user.phone && <p>電話: {user.phone}</p>}
+                    {user.employeeNo && <p>社員番号: {user.employeeNo}</p>}
+                    {!user.position && !user.phone && !user.employeeNo && <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    {user.role === "USER" && user.permission ? (
+                      <div className="flex flex-wrap gap-1">
+                        {permissionGroups.map(({ group, color, items }) => {
+                          const active = items.filter(({ key }) => user.permission![key])
+                          if (active.length === 0) return null
+                          return active.map(({ key, label }) => (
+                            <span key={key} className={`text-xs px-2 py-0.5 rounded font-medium ${color}`}>
+                              {group}:{label}
+                            </span>
+                          ))
+                        })}
+                      </div>
+                    ) : <span className="text-xs text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {isAdmin && (
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>編集</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(user.id)}>削除</Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
