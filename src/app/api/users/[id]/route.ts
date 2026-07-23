@@ -6,7 +6,8 @@ import bcrypt from "bcryptjs"
 const userSelect = {
   id: true, name: true, email: true,
   lastName: true, firstName: true, furiganaLastName: true, furiganaFirstName: true,
-  position: true, phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, permission: true,
+  position: true, positionId: true, positionRef: { select: { id: true, name: true, sort_order: true } },
+  phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true,
   departments: {
     include: { department: { select: { id: true, name: true } } },
   },
@@ -24,12 +25,14 @@ export async function PUT(
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const { id } = await params
   const body = await request.json()
-  const { lastName, firstName, furiganaLastName, furiganaFirstName, position, phone, employeeNo, gender, employmentType, password, role, permission, departments, groups } = body
+  const { lastName, firstName, furiganaLastName, furiganaFirstName, positionId, phone, employeeNo, gender, employmentType, password, role, permission, departments, groups } = body
   const name = [lastName, firstName].filter(Boolean).join(" ")
+  const positionMaster = positionId ? await prisma.mPosition.findUnique({ where: { id: positionId } }) : null
   const data: Record<string, unknown> = {
     name, lastName: lastName || null, firstName: firstName || null,
     furiganaLastName: furiganaLastName || null, furiganaFirstName: furiganaFirstName || null,
-    position, phone, role, employeeNo: employeeNo || null, gender: gender || null, employmentType: employmentType || null,
+    position: positionMaster?.name ?? null, positionId: positionId || null,
+    phone, role, employeeNo: employeeNo || null, gender: gender || null, employmentType: employmentType || null,
   }
   if (password) data.password = await bcrypt.hash(password, 10)
 

@@ -41,7 +41,8 @@ type UserGroup = {
 type User = {
   id: string; name: string; email: string
   lastName?: string; firstName?: string; furiganaLastName?: string; furiganaFirstName?: string
-  position?: string; phone?: string; employeeNo?: string; gender?: string; employmentType?: string
+  position?: string; positionId?: string; positionRef?: { id: string; name: string; sort_order: number } | null
+  phone?: string; employeeNo?: string; gender?: string; employmentType?: string
   role: "ADMIN" | "USER"; createdAt: string
   permission?: Permission
   departments: UserDept[]
@@ -115,7 +116,8 @@ export default function UsersPage() {
   const [furiganaFirstName, setFuriganaFirstName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [position, setPosition] = useState("")
+  const [positionId, setPositionId] = useState("")
+  const [positions, setPositions] = useState<{ id: string; name: string; sort_order: number }[]>([])
   const [employeeNo, setEmployeeNo] = useState("")
   const [gender, setGender] = useState("")
   const [employmentType, setEmploymentType] = useState("")
@@ -134,19 +136,23 @@ export default function UsersPage() {
     const res = await fetch("/api/masters/departments")
     setDepartments(await res.json())
   }
-  useEffect(() => { fetchUsers(); fetchDepartments() }, [])
+  const fetchPositions = async () => {
+    const res = await fetch("/api/masters/positions")
+    setPositions(await res.json())
+  }
+  useEffect(() => { fetchUsers(); fetchDepartments(); fetchPositions() }, [])
 
   const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase()
     const deptNames = u.departments.map(d => d.department.name.toLowerCase()).join(" ")
     const groupNames = u.groups.map(g => g.group.name.toLowerCase()).join(" ")
     return u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) ||
-      u.position?.toLowerCase().includes(q) || deptNames.includes(q) || groupNames.includes(q)
+      u.positionRef?.name.toLowerCase().includes(q) || deptNames.includes(q) || groupNames.includes(q)
   })
 
   const resetForm = () => {
     setLastName(""); setFirstName(""); setFuriganaLastName(""); setFuriganaFirstName(""); setEmail(""); setPassword("")
-    setPosition(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
+    setPositionId(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
     setError(""); setEditUser(null); setShowForm(false)
@@ -157,7 +163,7 @@ export default function UsersPage() {
     setLastName(user.lastName ?? ""); setFirstName(user.firstName ?? "")
     setFuriganaLastName(user.furiganaLastName ?? ""); setFuriganaFirstName(user.furiganaFirstName ?? "")
     setEmail(user.email)
-    setPosition(user.position ?? "")
+    setPositionId(user.positionId ?? "")
     setEmployeeNo(user.employeeNo ?? "")
     setGender(user.gender ?? "")
     setEmploymentType(user.employmentType ?? "")
@@ -173,7 +179,7 @@ export default function UsersPage() {
     setLoading(true); setError("")
     const body = {
       lastName, firstName, furiganaLastName, furiganaFirstName,
-      email, password: password || undefined, position, phone, employeeNo, gender, employmentType, role,
+      email, password: password || undefined, positionId: positionId || null, phone, employeeNo, gender, employmentType, role,
       permission: role === "ADMIN" ? undefined : permission,
       departments: selectedDepts,
       groups: selectedGroups,
@@ -282,7 +288,12 @@ export default function UsersPage() {
               <div className="space-y-2"><Label>電話番号</Label><Input autoComplete="off" value={phone} onChange={e => setPhone(e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>役職</Label><Input autoComplete="off" value={position} onChange={e => setPosition(e.target.value)} /></div>
+              <div className="space-y-2"><Label>役職</Label>
+                <select className="w-full border rounded-md px-3 py-2 text-sm bg-white" value={positionId} onChange={e => setPositionId(e.target.value)}>
+                  <option value="">未選択</option>
+                  {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
               <div className="space-y-2">
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -465,10 +476,10 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-500 space-y-0.5">
-                    {user.position && <p>役職: {user.position}</p>}
+                    {user.positionRef && <p>役職: {user.positionRef.name}</p>}
                     {user.phone && <p>電話: {user.phone}</p>}
                     {user.employeeNo && <p>社員番号: {user.employeeNo}</p>}
-                    {!user.position && !user.phone && !user.employeeNo && <span className="text-gray-300">-</span>}
+                    {!user.positionRef && !user.phone && !user.employeeNo && <span className="text-gray-300">-</span>}
                   </td>
                   <td className="px-3 py-2">
                     {user.role === "USER" && user.permission ? (
