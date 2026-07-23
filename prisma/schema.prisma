@@ -21,6 +21,8 @@ model User {
   departments UserDepartment[]
   groups      UserGroup[]
   position    String?
+  positionId  String?  @map("position_id")
+  positionRef MPosition? @relation(fields: [positionId], references: [id])
   phone       String?
   employeeNo  String?  @map("employee_no")
   gender      String?
@@ -1105,6 +1107,15 @@ model UserGroup {
   @@map("user_groups")
 }
 
+model MPosition {
+  id          String   @id @default(cuid())
+  name        String
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  users       User[]
+  @@map("m_positions")
+}
 model MBase {
   id          String        @id @default(cuid())
   name        String

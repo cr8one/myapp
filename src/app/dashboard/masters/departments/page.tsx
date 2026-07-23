@@ -24,18 +24,30 @@ type Department = {
   _count: { users: number }
 }
 
+type Position = {
+  id: string
+  name: string
+  sort_order: number
+  _count: { users: number }
+}
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [bases, setBases] = useState<Base[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [activeTab, setActiveTab] = useState<"departments" | "bases">("departments")
+  const [positions, setPositions] = useState<Position[]>([])
+  const [activeTab, setActiveTab] = useState<"bases" | "departments" | "positions">("bases")
 
   // 拠点フォーム
   const [showBaseForm, setShowBaseForm] = useState(false)
   const [editBase, setEditBase] = useState<Base | null>(null)
   const [baseName, setBaseName] = useState("")
   const [baseOrder, setBaseOrder] = useState(0)
+  // 役職フォーム
+  const [showPositionForm, setShowPositionForm] = useState(false)
+  const [editPosition, setEditPosition] = useState<Position | null>(null)
+  const [positionName, setPositionName] = useState("")
+  const [positionOrder, setPositionOrder] = useState(0)
 
   // 部署フォーム
   const [showDeptForm, setShowDeptForm] = useState(false)
@@ -54,12 +66,14 @@ export default function DepartmentsPage() {
 
   const fetchAll = async () => {
     setLoading(true)
-    const [deptRes, baseRes] = await Promise.all([
+    const [deptRes, baseRes, positionRes] = await Promise.all([
       fetch("/api/masters/departments"),
       fetch("/api/masters/bases"),
+      fetch("/api/masters/positions"),
     ])
     setDepartments(await deptRes.json())
     setBases(await baseRes.json())
+    setPositions(await positionRes.json())
     setLoading(false)
   }
 
@@ -99,6 +113,33 @@ export default function DepartmentsPage() {
   const deleteBase = async (id: string) => {
     if (!confirm("この拠点を削除しますか？")) return
     await fetch(`/api/masters/bases/${id}`, { method: "DELETE" })
+    fetchAll()
+  }
+  // 役職保存
+  const savePosition = async () => {
+    if (!positionName.trim()) return
+    if (editPosition) {
+      await fetch(`/api/masters/positions/${editPosition.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: positionName, sort_order: positionOrder }),
+      })
+    } else {
+      await fetch("/api/masters/positions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: positionName, sort_order: positionOrder }),
+      })
+    }
+    setShowPositionForm(false)
+    setEditPosition(null)
+    setPositionName("")
+    setPositionOrder(0)
+    fetchAll()
+  }
+  const deletePosition = async (id: string) => {
+    if (!confirm("この役職を削除しますか？")) return
+    await fetch(`/api/masters/positions/${id}`, { method: "DELETE" })
     fetchAll()
   }
 
@@ -205,12 +246,17 @@ export default function DepartmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Building2 className="w-6 h-6 text-slate-600" />
-          <h1 className="text-xl font-bold text-gray-900">部署・グループマスタ</h1>
+          <h1 className="text-xl font-bold text-gray-900">所属マスタ</h1>
         </div>
       </div>
-
       {/* タブ */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab("bases")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "bases" ? "border-slate-700 text-slate-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          拠点マスタ
+        </button>
         <button
           onClick={() => setActiveTab("departments")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "departments" ? "border-slate-700 text-slate-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
@@ -218,10 +264,10 @@ export default function DepartmentsPage() {
           部署・グループ
         </button>
         <button
-          onClick={() => setActiveTab("bases")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "bases" ? "border-slate-700 text-slate-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          onClick={() => setActiveTab("positions")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "positions" ? "border-slate-700 text-slate-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
-          拠点マスタ
+          役職マスタ
         </button>
       </div>
 
@@ -265,7 +311,7 @@ export default function DepartmentsPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === "departments" ? (
         /* 部署・グループタブ */
         <div>
           <div className="flex justify-end mb-4">
@@ -356,6 +402,43 @@ export default function DepartmentsPage() {
                       )}
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 役職タブ */
+        <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => { setShowPositionForm(true); setEditPosition(null); setPositionName(""); setPositionOrder(0) }}
+              className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800"
+            >
+              <Plus className="w-4 h-4" /> 役職追加
+            </button>
+          </div>
+          {showPositionForm && (
+            <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <p className="text-sm font-medium text-slate-700 mb-3">{editPosition ? "役職を編集" : "役職を追加"}</p>
+              <div className="flex gap-2">
+                <input autoComplete="off" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="役職名" value={positionName} onChange={e => setPositionName(e.target.value)} />
+                <input autoComplete="off" type="number" className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="順序" value={positionOrder} onChange={e => setPositionOrder(Number(e.target.value))} />
+                <button onClick={savePosition} className="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800">保存</button>
+                <button onClick={() => { setShowPositionForm(false); setEditPosition(null) }} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+              </div>
+            </div>
+          )}
+          {positions.length === 0 ? (
+            <p className="text-sm text-gray-400">役職がまだ登録されていません。</p>
+          ) : (
+            <div className="space-y-2">
+              {positions.map(position => (
+                <div key={position.id} className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
+                  <span className="flex-1 font-medium text-gray-900">{position.name}</span>
+                  <span className="text-xs text-gray-400">{position._count.users}人</span>
+                  <button onClick={() => { setEditPosition(position); setPositionName(position.name); setPositionOrder(position.sort_order); setShowPositionForm(true) }} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => deletePosition(position.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
