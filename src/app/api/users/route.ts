@@ -9,20 +9,60 @@ const userSelect = {
   position: true, positionId: true, positionRef: { select: { id: true, name: true, sort_order: true } },
   phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true,
   departments: {
-    include: { department: { select: { id: true, name: true } } },
+    include: { department: { select: { id: true, name: true, sort_order: true, base: { select: { id: true, name: true, sort_order: true } } } } },
   },
   groups: {
-    include: { group: { select: { id: true, name: true } } },
+    include: { group: { select: { id: true, name: true, sort_order: true, base: { select: { id: true, name: true, sort_order: true } } } } },
   },
+}
+
+const LATE_EMPLOYMENT_TYPES = ["嘱託", "業務委託", "派遣", "パート"]
+
+function orgSortKey(u: Awaited<ReturnType<typeof prisma.user.findMany<{ select: typeof userSelect }>>>[number]) {
+  const noOrg = u.departments.length === 0 && u.groups.length === 0 ? 0 : 1
+  const primaryDept = u.departments.find(d => d.is_primary) ?? u.departments[0]
+  const primaryGroup = u.groups.find(g => g.is_primary) ?? u.groups[0]
+  const baseOrder = primaryGroup?.group.base?.sort_order ?? primaryDept?.department.base?.sort_order ?? Infinity
+  const deptOrder = primaryDept?.department.sort_order ?? Infinity
+  const groupOrder = primaryGroup?.group.sort_order ?? Infinity
+  const employmentRank = u.employmentType && LATE_EMPLOYMENT_TYPES.includes(u.employmentType) ? 1 : 0
+  const positionOrder = u.positionRef?.sort_order ?? Infinity
+  const employeeNoNum = u.employeeNo && /^\d+$/.test(u.employeeNo) ? Number(u.employeeNo) : Infinity
+  return [noOrg, baseOrder, deptOrder, groupOrder, employmentRank, positionOrder, employeeNoNum, u.employeeNo ?? ""] as const
+}
+
+function compareOrgKey(a: ReturnType<typeof orgSortKey>, b: ReturnType<typeof orgSortKey>) {
+  for (let i = 0; i < a.length - 1; i++) {
+    const av = a[i] as number, bv = b[i] as number
+    if (av !== bv) return av - bv
+  }
+  return String(a[a.length - 1]).localeCompare(String(b[b.length - 1]))
 }
 
 export async function GET(request: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { searchParams } = new URL(request.url)
+  const sort = searchParams.get("sort") ?? "org"
+
+  const prismaOrderBy: Record<string, "asc" | "desc"> | undefined =
+    sort === "email_asc" ? { email: "asc" } :
+    sort === "email_desc" ? { email: "desc" } :
+    sort === "created_asc" ? { createdAt: "asc" } :
+    sort === "created_desc" ? { createdAt: "desc" } :
+    sort === "updated_asc" ? { updatedAt: "asc" } :
+    sort === "updated_desc" ? { updatedAt: "desc" } :
+    undefined
+
   const users = await prisma.user.findMany({
     select: userSelect,
-    orderBy: { name: "asc" },
+    orderBy: prismaOrderBy ?? { name: "asc" },
   })
+
+  if (!prismaOrderBy) {
+    users.sort((a, b) => compareOrgKey(orgSortKey(a), orgSortKey(b)))
+  }
+
   return NextResponse.json(users)
 }
 
