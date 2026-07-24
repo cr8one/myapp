@@ -24,11 +24,12 @@ function orgSortKey(u: Awaited<ReturnType<typeof prisma.user.findMany<{ select: 
   const primaryGroup = u.groups.find(g => g.is_primary) ?? u.groups[0]
   const baseOrder = primaryGroup?.group.base?.sort_order ?? primaryDept?.department.base?.sort_order ?? Infinity
   const deptOrder = primaryDept?.department.sort_order ?? Infinity
-  const groupOrder = primaryGroup?.group.sort_order ?? Infinity
+  const hasGroup = primaryGroup ? 1 : 0
+  const groupOrder = primaryGroup?.group.sort_order ?? 0
   const employmentRank = u.employmentType && LATE_EMPLOYMENT_TYPES.includes(u.employmentType) ? 1 : 0
   const positionOrder = u.positionRef?.sort_order ?? Infinity
   const employeeNoNum = u.employeeNo && /^\d+$/.test(u.employeeNo) ? Number(u.employeeNo) : Infinity
-  return [noOrg, baseOrder, deptOrder, groupOrder, employmentRank, positionOrder, employeeNoNum, u.employeeNo ?? ""] as const
+  return [noOrg, baseOrder, deptOrder, hasGroup, groupOrder, employmentRank, positionOrder, employeeNoNum, u.employeeNo ?? ""] as const
 }
 
 function compareOrgKey(a: ReturnType<typeof orgSortKey>, b: ReturnType<typeof orgSortKey>) {
