@@ -128,8 +128,9 @@ export default function UsersPage() {
   const [selectedDepts, setSelectedDepts] = useState<{ department_id: string; is_primary: boolean }[]>([])
   const [selectedGroups, setSelectedGroups] = useState<{ group_id: string; is_primary: boolean }[]>([])
 
-  const fetchUsers = async () => {
-    const res = await fetch("/api/users")
+  const [sort, setSort] = useState("org")
+  const fetchUsers = async (sortValue?: string) => {
+    const res = await fetch(`/api/users?sort=${sortValue ?? sort}`)
     setUsers(await res.json())
   }
   const fetchDepartments = async () => {
@@ -141,6 +142,7 @@ export default function UsersPage() {
     setPositions(await res.json())
   }
   useEffect(() => { fetchUsers(); fetchDepartments(); fetchPositions() }, [])
+  const changeSort = (value: string) => { setSort(value); fetchUsers(value) }
 
   const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase()
@@ -425,6 +427,25 @@ export default function UsersPage() {
 
       <div className="mb-4">
         <Input placeholder="名前・メール・部署・グループ・役職で検索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+      </div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[
+          { value: "org", label: "組織順" },
+          { value: "email_asc", label: "メール昇順" },
+          { value: "email_desc", label: "メール降順" },
+          { value: "created_asc", label: "作成日昇順" },
+          { value: "created_desc", label: "作成日降順" },
+          { value: "updated_asc", label: "更新日昇順" },
+          { value: "updated_desc", label: "更新日降順" },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => changeSort(opt.value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${sort === opt.value ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {filteredUsers.length === 0 ? (
