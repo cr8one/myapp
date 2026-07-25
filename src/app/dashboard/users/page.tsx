@@ -277,13 +277,13 @@ export default function UsersPage() {
             </div>
             {!editUser && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>メールアドレス</Label><Input autoComplete="off" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                <div className="space-y-2"><Label>メールアドレス</Label><Input name="new_user_email_addr" autoComplete="off" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{editUser ? "新しいパスワード（変更する場合のみ）" : "パスワード"}</Label>
-                <Input autoComplete="off" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+                <Input name="new_user_password_val" autoComplete="new-password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
               <div className="space-y-2"><Label>電話番号</Label><Input autoComplete="off" value={phone} onChange={e => setPhone(e.target.value)} /></div>
             </div>
