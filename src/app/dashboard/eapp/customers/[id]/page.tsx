@@ -159,12 +159,12 @@ export default function EAppCustomerDetailPage() {
       <div className="bg-white border rounded-lg shadow-sm p-6 mb-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">お得意先状況（テンプレート）</h3>
         <div className="flex gap-2">
-          <a href="/templates/otokuisaki-jokyo.pdf" download>
+          <a href="/templates/お得意様先状況.pdf" download="お得意様先状況.pdf">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <Download className="w-4 h-4" />PDF形式
             </Button>
           </a>
-          <a href="/templates/otokuisaki-jokyo.xls" download>
+          <a href="/templates/お得意様先状況.xls" download="お得意様先状況.xls">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <Download className="w-4 h-4" />Excel形式
             </Button>

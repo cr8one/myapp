@@ -100,12 +100,12 @@ export default function EAppCustomersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">得意先申請</h1>
         <div className="flex gap-2">
-          <a href="/templates/otokuisaki-jokyo.pdf" download>
+          <a href="/templates/お得意様先状況.pdf" download="お得意様先状況.pdf">
             <Button variant="outline" className="flex items-center gap-1">
               <Download className="w-4 h-4" />お得意先状況(PDF)
             </Button>
           </a>
-          <a href="/templates/otokuisaki-jokyo.xls" download>
+          <a href="/templates/お得意様先状況.xls" download="お得意様先状況.xls">
             <Button variant="outline" className="flex items-center gap-1">
               <Download className="w-4 h-4" />お得意先状況(Excel)
             </Button>
