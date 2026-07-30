@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Download } from "lucide-react"
 
 type TokuiCreditRequest = {
   id: string
@@ -99,7 +99,19 @@ export default function EAppCustomersPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">得意先申請</h1>
-        <Button onClick={() => router.push("/dashboard/eapp/customers/new")}>新規登録</Button>
+        <div className="flex gap-2">
+          <a href="/templates/otokuisaki-jokyo.pdf" download>
+            <Button variant="outline" className="flex items-center gap-1">
+              <Download className="w-4 h-4" />お得意先状況(PDF)
+            </Button>
+          </a>
+          <a href="/templates/otokuisaki-jokyo.xls" download>
+            <Button variant="outline" className="flex items-center gap-1">
+              <Download className="w-4 h-4" />お得意先状況(Excel)
+            </Button>
+          </a>
+          <Button onClick={() => router.push("/dashboard/eapp/customers/new")}>新規登録</Button>
+        </div>
       </div>
 
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm space-y-3">
