@@ -47,6 +47,9 @@ model User {
   auditLogs                   AuditLog[]
   cadRequests                 CadRequest[]
   addressBookChangeRequests    AddressBookChangeRequest[]
+  approvalRouteSteps           MApprovalRoute[] @relation("ApprovalRouteApprover")
+  approverSettingsOwned        UserApproverSetting[] @relation("UserApproverOwner")
+  approverSettingsAsApprover   UserApproverSetting[] @relation("UserApproverTarget")
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -1108,12 +1111,14 @@ model UserGroup {
 }
 
 model MPosition {
-  id          String   @id @default(cuid())
-  name        String
-  sort_order  Int      @default(0)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  users       User[]
+  id                     String   @id @default(cuid())
+  name                   String
+  sort_order             Int      @default(0)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+  users                  User[]
+  approvalRouteSteps     MApprovalRoute[]
+  approverSettingSteps   UserApproverSetting[] @relation("UserApproverPosition")
   @@map("m_positions")
 }
 model MBase {
@@ -1450,4 +1455,28 @@ model TokuiCreditRequestFile {
   uploaded_at DateTime @default(now())
   request     TokuiCreditRequest @relation(fields: [request_id], references: [id])
   @@map("t_tokui_credit_request_files")
+}
+model MApprovalRoute {
+  id                String   @id @default(cuid())
+  step_order        Int
+  position_id       String?
+  position          MPosition? @relation(fields: [position_id], references: [id])
+  approver_user_id  String?
+  approver          User?    @relation("ApprovalRouteApprover", fields: [approver_user_id], references: [id])
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  @@map("t_m_approval_routes")
+}
+model UserApproverSetting {
+  id                String   @id @default(cuid())
+  user_id           String
+  user              User     @relation("UserApproverOwner", fields: [user_id], references: [id])
+  step_order        Int
+  position_id       String?
+  position          MPosition? @relation("UserApproverPosition", fields: [position_id], references: [id])
+  approver_user_id  String?
+  approver          User?    @relation("UserApproverTarget", fields: [approver_user_id], references: [id])
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  @@map("t_user_approver_settings")
 }
