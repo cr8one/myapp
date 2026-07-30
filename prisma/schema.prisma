@@ -1401,3 +1401,53 @@ model ShelfStock {
   @@index([item_code])
   @@map("t_shelf_stocks")
 }
+
+model TokuiCreditRequest {
+  id                     String    @id @default(cuid())
+  uid                    String    @unique
+  request_type           String
+  status                 String    @default("下書き")
+  company_name           String?
+  industry               String?
+  representative_name    String?
+  capital                String?
+  established_year_month String?
+  annual_revenue         String?
+  employee_count         String?
+  main_bank_name         String?
+  main_bank_branch       String?
+  postal_code            String?
+  address                String?
+  tel                    String?
+  fax                    String?
+  payment_terms          String?
+  order_contact_dept     String?
+  order_contact_name     String?
+  sales_rep_name         String?
+  order_items            String?
+  order_amount           String?
+  future_prospects       String?
+  requested_credit_limit String?
+  requested_date         DateTime?
+  manager_comment        String?
+  division_head_comment  String?
+  accounting_comment     String?
+  approved_credit_limit  String?
+  approved_date          DateTime?
+  remarks                String?
+  tokui_ref_id           String?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+  files                  TokuiCreditRequestFile[]
+  @@map("t_tokui_credit_requests")
+}
+model TokuiCreditRequestFile {
+  id          String   @id @default(cuid())
+  request_id  String
+  file_key    String
+  file_name   String
+  file_type   String
+  uploaded_at DateTime @default(now())
+  request     TokuiCreditRequest @relation(fields: [request_id], references: [id])
+  @@map("t_tokui_credit_request_files")
+}
