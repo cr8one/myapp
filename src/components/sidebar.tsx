@@ -75,6 +75,7 @@ const baseMenuItems = [
     { label: "納品先", href: "/dashboard/eapp/deliveries" },
     { label: "仕入先", href: "/dashboard/eapp/suppliers" },
     { label: "用紙", href: "/dashboard/eapp/papers" },
+    { label: "得意先共通承認者設定", href: "/dashboard/eapp/masters/approval-routes" },
   ]},
   { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [
     { label: "精算一覧", href: "/dashboard/travel" },

@@ -127,6 +127,18 @@ export default function UsersPage() {
   // 部署・グループ選択: { department_id, is_primary }[]
   const [selectedDepts, setSelectedDepts] = useState<{ department_id: string; is_primary: boolean }[]>([])
   const [selectedGroups, setSelectedGroups] = useState<{ group_id: string; is_primary: boolean }[]>([])
+  type ApproverSetting = {
+    id: string
+    step_order: number
+    position: { id: string; name: string } | null
+    approver: { id: string; name: string | null; email: string } | null
+  }
+  const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
+  const [showApproverForm, setShowApproverForm] = useState(false)
+  const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
+  const [approverStepOrder, setApproverStepOrder] = useState(0)
+  const [approverPositionId, setApproverPositionId] = useState("")
+  const [approverUserId, setApproverUserId] = useState("")
 
   const [sort, setSort] = useState("org")
   const fetchUsers = async (sortValue?: string) => {
@@ -157,11 +169,17 @@ export default function UsersPage() {
     setPositionId(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
+    setApproverSettings([]); setShowApproverForm(false); setEditApprover(null)
     setError(""); setEditUser(null); setShowForm(false)
   }
 
+  const fetchApproverSettings = async (userId: string) => {
+    const res = await fetch(`/api/users/${userId}/approver-settings`)
+    setApproverSettings(await res.json())
+  }
   const handleEdit = (user: User) => {
     setEditUser(user)
+    fetchApproverSettings(user.id)
     setLastName(user.lastName ?? ""); setFirstName(user.firstName ?? "")
     setFuriganaLastName(user.furiganaLastName ?? ""); setFuriganaFirstName(user.furiganaFirstName ?? "")
     setEmail(user.email)
@@ -396,6 +414,71 @@ export default function UsersPage() {
               </div>
             </div>
 
+            {editUser && (
+              <div className="space-y-2 border rounded p-3">
+                <div className="flex items-center justify-between">
+                  <Label>承認者設定（このユーザーが得意先申請を作成した場合の承認ルート）</Label>
+                  <button
+                    onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
+                    className="text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800"
+                  >
+                    + ステップ追加
+                  </button>
+                </div>
+                {showApproverForm && (
+                  <div className="flex gap-2 flex-wrap p-2 bg-slate-50 rounded">
+                    <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={approverStepOrder} onChange={e => setApproverStepOrder(Number(e.target.value))} />
+                    <select className="border rounded px-2 h-8 text-sm bg-white" value={approverPositionId} onChange={e => setApproverPositionId(e.target.value)}>
+                      <option value="">-- 役職 --</option>
+                      {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <select className="flex-1 min-w-32 border rounded px-2 h-8 text-sm bg-white" value={approverUserId} onChange={e => setApproverUserId(e.target.value)}>
+                      <option value="">-- 承認者(氏名) --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                    <button
+                      onClick={async () => {
+                        const body = JSON.stringify({ step_order: approverStepOrder, position_id: approverPositionId || null, approver_user_id: approverUserId || null })
+                        if (editApprover) {
+                          await fetch(`/api/users/${editUser.id}/approver-settings/${editApprover.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
+                        } else {
+                          await fetch(`/api/users/${editUser.id}/approver-settings`, { method: "POST", headers: { "Content-Type": "application/json" }, body })
+                        }
+                        setShowApproverForm(false)
+                        fetchApproverSettings(editUser.id)
+                      }}
+                      className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800"
+                    >保存</button>
+                    <button onClick={() => setShowApproverForm(false)} className="text-xs px-2 py-1 text-gray-500">キャンセル</button>
+                  </div>
+                )}
+                {approverSettings.length === 0 ? (
+                  <p className="text-xs text-gray-400">承認者設定がまだありません</p>
+                ) : (
+                  <div className="space-y-1">
+                    {approverSettings.map(s => (
+                      <div key={s.id} className="flex items-center gap-2 text-sm border-b py-1">
+                        <span className="text-xs text-slate-500 w-6">{s.step_order}</span>
+                        <span className="text-xs text-gray-400 w-20">{s.position?.name ?? "-"}</span>
+                        <span className="flex-1">{s.approver?.name ?? "-"}</span>
+                        <button
+                          onClick={() => { setEditApprover(s); setApproverStepOrder(s.step_order); setApproverPositionId(s.position?.id ?? ""); setApproverUserId(s.approver?.id ?? ""); setShowApproverForm(true) }}
+                          className="text-xs text-blue-500 hover:text-blue-700"
+                        >編集</button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("このステップを削除しますか？")) return
+                            await fetch(`/api/users/${editUser.id}/approver-settings/${s.id}`, { method: "DELETE" })
+                            fetchApproverSettings(editUser.id)
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700"
+                        >削除</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {role === "USER" && (
               <div className="space-y-2">
                 <Label>権限設定</Label>
