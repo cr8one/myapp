@@ -61,5 +61,36 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  // 承認ルートのスナップショット生成：①申請者の承認者設定 → ②得意先共通承認者設定 の順
+  if (body.requester_user_id) {
+    const userSteps = await prisma.userApproverSetting.findMany({
+      where: { user_id: body.requester_user_id },
+      orderBy: { step_order: "asc" },
+      include: {
+        position: { select: { name: true } },
+        approver: { select: { name: true, email: true } },
+      },
+    })
+    const commonSteps = await prisma.mApprovalRoute.findMany({
+      orderBy: { step_order: "asc" },
+      include: {
+        position: { select: { name: true } },
+        approver: { select: { name: true, email: true } },
+      },
+    })
+    const combined = [...userSteps, ...commonSteps]
+    if (combined.length > 0) {
+      await prisma.tokuiCreditRequestApprovalStep.createMany({
+        data: combined.map((s, idx) => ({
+          request_id: record.id,
+          step_order: idx + 1,
+          position_name: s.position?.name ?? null,
+          approver_name: s.approver?.name ?? null,
+          approver_email: s.approver?.email ?? null,
+        })),
+      })
+    }
+  }
+
   return NextResponse.json(record)
 }

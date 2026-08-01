@@ -50,6 +50,7 @@ model User {
   approvalRouteSteps           MApprovalRoute[] @relation("ApprovalRouteApprover")
   approverSettingsOwned        UserApproverSetting[] @relation("UserApproverOwner")
   approverSettingsAsApprover   UserApproverSetting[] @relation("UserApproverTarget")
+  tokuiCreditRequestsAsRequester TokuiCreditRequest[] @relation("TokuiCreditRequester")
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -1441,10 +1442,26 @@ model TokuiCreditRequest {
   approved_date          DateTime?
   remarks                String?
   tokui_ref_id           String?
+  requester_user_id      String?
+  requester              User?     @relation("TokuiCreditRequester", fields: [requester_user_id], references: [id])
   created_at             DateTime  @default(now())
   updated_at             DateTime  @updatedAt
   files                  TokuiCreditRequestFile[]
+  approval_steps         TokuiCreditRequestApprovalStep[]
   @@map("t_tokui_credit_requests")
+}
+model TokuiCreditRequestApprovalStep {
+  id             String    @id @default(cuid())
+  request_id     String
+  request        TokuiCreditRequest @relation(fields: [request_id], references: [id])
+  step_order     Int
+  position_name  String?
+  approver_name  String?
+  approver_email String?
+  status         String    @default("未承認")
+  approved_at    DateTime?
+  created_at     DateTime  @default(now())
+  @@map("t_tokui_credit_request_approval_steps")
 }
 model TokuiCreditRequestFile {
   id          String   @id @default(cuid())

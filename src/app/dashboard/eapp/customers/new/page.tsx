@@ -1,14 +1,24 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+
+type UserOption = { id: string; name: string | null }
 
 function today() { return new Date().toISOString().slice(0, 10) }
 
 export default function EAppCustomerNewPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [users, setUsers] = useState<UserOption[]>([])
+  const [requesterUserId, setRequesterUserId] = useState("")
+  useEffect(() => {
+    fetch("/api/users/list").then(r => r.json()).then(setUsers)
+    fetch("/api/auth/session").then(r => r.json()).then(s => {
+      if (s?.user?.id) setRequesterUserId(s.user.id)
+    })
+  }, [])
   const [form, setForm] = useState({
     request_type: "NEW",
     company_name: "",
@@ -38,12 +48,14 @@ export default function EAppCustomerNewPage() {
 
   const handleSubmit = async (asDraft: boolean) => {
     if (!form.sales_rep_name) { alert("営業担当者を入力してください"); return }
+    if (!requesterUserId) { alert("申請者を選択してください"); return }
     setSaving(true)
     const res = await fetch("/api/eapp/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        requester_user_id: requesterUserId,
         status: asDraft ? "下書き" : "申請済み",
         requested_date: form.requested_date || null,
       }),
@@ -83,6 +95,14 @@ export default function EAppCustomerNewPage() {
           <div className={rowCls}>
             <label className={labelCls + " pt-0"}>申請日</label>
             <Input type="date" value={form.requested_date} onChange={e => set("requested_date", e.target.value)} className="h-8 text-sm w-40" autoComplete="off" />
+          </div>
+          <div className={rowCls}>
+            <label className={labelCls + " pt-0"}>申請者</label>
+            <select value={requesterUserId} onChange={e => setRequesterUserId(e.target.value)}
+              className="h-8 border rounded px-2 text-sm bg-white w-40">
+              <option value="">-- 選択してください --</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
           </div>
         </div>
         {/* 本体：2カラム */}
