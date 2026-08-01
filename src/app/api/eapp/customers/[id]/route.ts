@@ -8,7 +8,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const record = await prisma.tokuiCreditRequest.findUnique({
     where: { id },
-    include: { files: { orderBy: { uploaded_at: "desc" } } },
+    include: {
+      files: { orderBy: { uploaded_at: "desc" } },
+      approval_steps: { orderBy: { step_order: "asc" } },
+    },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(record)

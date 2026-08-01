@@ -12,6 +12,15 @@ type FileRecord = {
   file_type: string
   uploaded_at: string
 }
+type ApprovalStep = {
+  id: string
+  step_order: number
+  position_name: string | null
+  approver_name: string | null
+  approver_email: string | null
+  status: string
+  approved_at: string | null
+}
 type TokuiCreditRequest = {
   id: string
   uid: string
@@ -40,6 +49,7 @@ type TokuiCreditRequest = {
   requested_credit_limit: string | null
   requested_date: string | null
   files: FileRecord[]
+  approval_steps: ApprovalStep[]
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -197,6 +207,26 @@ export default function EAppCustomerDetailPage() {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      {/* 承認ステップ */}
+      <div className="bg-white border rounded-lg shadow-sm p-6 mt-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">承認ステップ</h3>
+        {record.approval_steps.length === 0 ? (
+          <p className="text-sm text-gray-400">承認ステップが設定されていません（申請者・得意先共通のどちらにも承認者設定が未登録です）</p>
+        ) : (
+          <ol className="space-y-2">
+            {record.approval_steps.map(s => (
+              <li key={s.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">
+                <span className="text-xs font-bold text-slate-500 w-6">{s.step_order}</span>
+                <span className="text-xs text-gray-400 w-24">{s.position_name ?? "-"}</span>
+                <span className="flex-1 text-sm text-gray-700">{s.approver_name ?? "-"}</span>
+                <span className="text-xs text-gray-400">{s.approver_email ?? ""}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{s.status}</span>
+              </li>
+            ))}
+          </ol>
         )}
       </div>
     </div>
