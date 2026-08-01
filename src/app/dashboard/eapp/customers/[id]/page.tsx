@@ -108,6 +108,19 @@ export default function EAppCustomerDetailPage() {
     window.open(url, "_blank")
   }
 
+  const [approving, setApproving] = useState(false)
+  const handleApprove = async (stepId: string) => {
+    setApproving(true)
+    const res = await fetch(`/api/eapp/customers/${id}/approval-steps/${stepId}/approve`, { method: "POST" })
+    if (res.ok) {
+      await fetchRecord()
+    } else {
+      const data = await res.json()
+      alert(data.error ?? "承認に失敗しました")
+    }
+    setApproving(false)
+  }
+
   const labelCls = "text-xs font-medium text-gray-500 w-28 shrink-0"
   const valueCls = "text-sm text-gray-700 flex-1"
   const rowCls = "flex items-center gap-3 py-1.5"
@@ -217,15 +230,23 @@ export default function EAppCustomerDetailPage() {
           <p className="text-sm text-gray-400">承認ステップが設定されていません（申請者・得意先共通のどちらにも承認者設定が未登録です）</p>
         ) : (
           <ol className="space-y-2">
-            {record.approval_steps.map(s => (
-              <li key={s.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">
-                <span className="text-xs font-bold text-slate-500 w-6">{s.step_order}</span>
-                <span className="text-xs text-gray-400 w-24">{s.position_name ?? "-"}</span>
-                <span className="flex-1 text-sm text-gray-700">{s.approver_name ?? "-"}</span>
-                <span className="text-xs text-gray-400">{s.approver_email ?? ""}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{s.status}</span>
-              </li>
-            ))}
+            {record.approval_steps.map((s, idx) => {
+              const isNextPending = s.status === "未承認" && record.approval_steps.slice(0, idx).every(p => p.status !== "未承認")
+              return (
+                <li key={s.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">
+                  <span className="text-xs font-bold text-slate-500 w-6">{s.step_order}</span>
+                  <span className="text-xs text-gray-400 w-24">{s.position_name ?? "-"}</span>
+                  <span className="flex-1 text-sm text-gray-700">{s.approver_name ?? "-"}</span>
+                  <span className="text-xs text-gray-400">{s.approver_email ?? ""}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${s.status === "承認済み" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>{s.status}</span>
+                  {isNextPending && (
+                    <Button size="sm" onClick={() => handleApprove(s.id)} disabled={approving}>
+                      {approving ? "処理中..." : "承認"}
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
           </ol>
         )}
       </div>
