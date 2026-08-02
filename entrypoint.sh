@@ -16,5 +16,11 @@ if [ -n "$DB_HOST" ]; then
 fi
 echo "Running prisma migrate deploy..."
 npx prisma migrate deploy
+echo "=== schema.prisma requester_user_id check ==="
+grep -n "requester_user_id" prisma/schema.prisma || echo "NOT FOUND in schema.prisma"
+echo "=== generated client check ==="
+grep -rn "requester_user_id" src/generated/prisma/*.d.ts 2>/dev/null | head -3 || echo "NOT FOUND in generated client"
+echo "=== git commit info ==="
+cat .git-commit 2>/dev/null || echo "no .git-commit file"
 echo "Migration done. Starting app..."
 exec npm start

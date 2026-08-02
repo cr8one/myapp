@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN git rev-parse HEAD > .git-commit || echo "unknown" > .git-commit
 RUN npx prisma generate
 RUN npm run build
 COPY entrypoint.sh ./
