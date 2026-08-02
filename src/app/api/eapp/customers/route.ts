@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const sendMailOnCreate = body.send_mail !== false
+  const { send_mail, ...requestBody } = body
+  const sendMailOnCreate = send_mail !== false
 
   // uid採番：TK10001から
   const last = await prisma.tokuiCreditRequest.findFirst({
@@ -67,9 +68,9 @@ export async function POST(req: NextRequest) {
 
   const record = await prisma.tokuiCreditRequest.create({
     data: {
-      ...body,
+      ...requestBody,
       uid: `TK${nextNum}`,
-      requested_date: body.requested_date ? new Date(body.requested_date) : null,
+      requested_date: requestBody.requested_date ? new Date(requestBody.requested_date) : null,
     },
   })
 
