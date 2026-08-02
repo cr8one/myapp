@@ -69,15 +69,6 @@ export default function EAppCustomerNewPage() {
       setSaving(false)
     }
   }
-    if (res.ok) {
-      const data = await res.json()
-      router.push(`/dashboard/eapp/customers/${data.id}`)
-    } else {
-      alert("登録に失敗しました")
-      setSaving(false)
-    }
-  }
-
   const labelCls = "text-xs font-medium text-gray-500 w-28 shrink-0 pt-2"
   const inputCls = "h-8 text-sm flex-1"
   const rowCls = "flex items-center gap-3"
@@ -238,7 +229,6 @@ export default function EAppCustomerNewPage() {
           </div>
         </div>
       )}
-      </div>
     </div>
   )
 }
