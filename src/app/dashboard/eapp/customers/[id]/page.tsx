@@ -109,9 +109,20 @@ export default function EAppCustomerDetailPage() {
   }
 
   const [approving, setApproving] = useState(false)
-  const handleApprove = async (stepId: string) => {
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [approveTarget, setApproveTarget] = useState<string | null>(null)
+  useEffect(() => {
+    fetch("/api/auth/session").then(r => r.json()).then(s => {
+      if (s?.user?.role === "ADMIN") setIsAdmin(true)
+    })
+  }, [])
+  const handleApprove = async (stepId: string, sendMail: boolean) => {
     setApproving(true)
-    const res = await fetch(`/api/eapp/customers/${id}/approval-steps/${stepId}/approve`, { method: "POST" })
+    const res = await fetch(`/api/eapp/customers/${id}/approval-steps/${stepId}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ send_mail: sendMail }),
+    })
     if (res.ok) {
       await fetchRecord()
     } else {
@@ -119,6 +130,17 @@ export default function EAppCustomerDetailPage() {
       alert(data.error ?? "承認に失敗しました")
     }
     setApproving(false)
+    setApproveTarget(null)
+  }
+  const handleRevoke = async (stepId: string) => {
+    if (!confirm("この承認を取り消しますか？")) return
+    const res = await fetch(`/api/eapp/customers/${id}/approval-steps/${stepId}/revoke`, { method: "POST" })
+    if (res.ok) {
+      await fetchRecord()
+    } else {
+      const data = await res.json()
+      alert(data.error ?? "取り消しに失敗しました")
+    }
   }
 
   const labelCls = "text-xs font-medium text-gray-500 w-28 shrink-0"
@@ -240,9 +262,14 @@ export default function EAppCustomerDetailPage() {
                   <span className="text-xs text-gray-400">{s.approver_email ?? ""}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${s.status === "承認済み" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>{s.status}</span>
                   {isNextPending && (
-                    <Button size="sm" onClick={() => handleApprove(s.id)} disabled={approving}>
+                    <Button size="sm" onClick={() => setApproveTarget(s.id)} disabled={approving}>
                       {approving ? "処理中..." : "承認"}
                     </Button>
+                  )}
+                  {isAdmin && s.status === "承認済み" && (
+                    <button onClick={() => handleRevoke(s.id)} className="text-xs text-red-500 hover:text-red-700">
+                      取り消し
+                    </button>
                   )}
                 </li>
               )
@@ -250,6 +277,19 @@ export default function EAppCustomerDetailPage() {
           </ol>
         )}
       </div>
+      {approveTarget && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">承認の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者（または申請者）にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => handleApprove(approveTarget, true)} disabled={approving}>送信して承認する</Button>
+              <Button variant="outline" onClick={() => handleApprove(approveTarget, false)} disabled={approving}>送信せず承認する</Button>
+              <button onClick={() => setApproveTarget(null)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

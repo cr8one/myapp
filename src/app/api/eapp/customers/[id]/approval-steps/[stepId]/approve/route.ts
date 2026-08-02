@@ -17,6 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id, stepId } = await params
+  const { send_mail } = await req.json().catch(() => ({ send_mail: true }))
 
   const steps = await prisma.tokuiCreditRequestApprovalStep.findMany({
     where: { request_id: id },
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: { status: "承認完了" },
     })
     // 申請者本人へ完了通知
-    if (request?.requester_user_id) {
+    if (send_mail && request?.requester_user_id) {
       const requester = await prisma.user.findUnique({ where: { id: request.requester_user_id } })
       if (requester?.email) {
         try {
@@ -65,9 +66,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       }
     }
-  } else {
+  } else if (send_mail) {
     // 次の承認者へ通知
     const nextStep = remaining.sort((a, b) => a.step_order - b.step_order)[0]
+    console.log("[approve] 次承認者への通知対象:", nextStep.approver_email)
     if (nextStep.approver_email) {
       try {
         await transporter.sendMail({
@@ -76,9 +78,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           subject: `【得意先申請】承認依頼: ${request?.company_name ?? ""}（${request?.uid ?? ""}）`,
           text: `${nextStep.approver_name ?? ""} 様\n\n得意先申請（${request?.uid ?? ""}）の承認をお願いします。\n\n会社名: ${request?.company_name ?? ""}\n\nhttps://japansleevesystem.com/dashboard/eapp/customers/${id}`,
         })
+        console.log("[approve] 次承認者への通知メール送信成功")
       } catch (e) {
-        console.error("次承認者への通知メール送信エラー:", e)
+        console.error("[approve] 次承認者への通知メール送信エラー:", e)
       }
+    } else {
+      console.log("[approve] 次承認者のapprover_emailが空のため送信スキップ")
     }
   }
 

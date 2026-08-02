@@ -46,9 +46,9 @@ export default function EAppCustomerNewPage() {
   })
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = async (asDraft: boolean) => {
-    if (!form.sales_rep_name) { alert("営業担当者を入力してください"); return }
-    if (!requesterUserId) { alert("申請者を選択してください"); return }
+  const [confirmDialog, setConfirmDialog] = useState(false)
+  const submit = async (asDraft: boolean, sendMail: boolean) => {
+    setConfirmDialog(false)
     setSaving(true)
     const res = await fetch("/api/eapp/customers", {
       method: "POST",
@@ -58,8 +58,17 @@ export default function EAppCustomerNewPage() {
         requester_user_id: requesterUserId,
         status: asDraft ? "下書き" : "申請済み",
         requested_date: form.requested_date || null,
+        send_mail: sendMail,
       }),
     })
+    if (res.ok) {
+      const data = await res.json()
+      router.push(`/dashboard/eapp/customers/${data.id}`)
+    } else {
+      alert("登録に失敗しました")
+      setSaving(false)
+    }
+  }
     if (res.ok) {
       const data = await res.json()
       router.push(`/dashboard/eapp/customers/${data.id}`)
@@ -209,12 +218,26 @@ export default function EAppCustomerNewPage() {
       </div>
       <div className="flex justify-end gap-3 mt-6">
         <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
-        <Button variant="outline" onClick={() => handleSubmit(true)} disabled={saving}>
+        <Button variant="outline" onClick={() => submit(true, false)} disabled={saving}>
           {saving ? "保存中..." : "下書き保存"}
         </Button>
-        <Button onClick={() => handleSubmit(false)} disabled={saving}>
+        <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
           {saving ? "登録中..." : "申請する"}
         </Button>
+      </div>
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">申請の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">最初の承認者にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => submit(false, true)}>送信して申請する</Button>
+              <Button variant="outline" onClick={() => submit(false, false)}>送信せず申請する</Button>
+              <button onClick={() => setConfirmDialog(false)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

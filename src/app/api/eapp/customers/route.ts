@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
+  const sendMailOnCreate = body.send_mail !== false
 
   // uid採番：TK10001から
   const last = await prisma.tokuiCreditRequest.findFirst({
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
         })),
       })
       const firstStep = combined[0]
-      if (firstStep.approver?.email) {
+      if (sendMailOnCreate && firstStep.approver?.email) {
         try {
           await transporter.sendMail({
             from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
