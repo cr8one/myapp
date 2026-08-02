@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import nodemailer from "nodemailer"
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT ?? "465"),
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+})
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -89,6 +100,19 @@ export async function POST(req: NextRequest) {
           approver_email: s.approver?.email ?? null,
         })),
       })
+      const firstStep = combined[0]
+      if (firstStep.approver?.email) {
+        try {
+          await transporter.sendMail({
+            from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
+            to: firstStep.approver.email,
+            subject: `【得意先申請】承認依頼: ${record.company_name ?? ""}（${record.uid}）`,
+            text: `${firstStep.approver.name ?? ""} 様\n\n得意先申請（${record.uid}）の承認をお願いします。\n\n会社名: ${record.company_name ?? ""}\n申請種別: ${record.request_type === "NEW" ? "登録依頼" : "修正依頼"}\n\n以下のURLから確認・承認してください。\nhttps://japansleevesystem.com/dashboard/eapp/customers/${record.id}`,
+          })
+        } catch (e) {
+          console.error("承認依頼メール送信エラー:", e)
+        }
+      }
     }
   }
 
