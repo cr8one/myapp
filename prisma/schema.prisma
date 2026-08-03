@@ -51,6 +51,7 @@ model User {
   approverSettingsOwned        UserApproverSetting[] @relation("UserApproverOwner")
   approverSettingsAsApprover   UserApproverSetting[] @relation("UserApproverTarget")
   tokuiCreditRequestsAsRequester TokuiCreditRequest[] @relation("TokuiCreditRequester")
+  eappSystemStaffEntries          MEappSystemStaff[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -1462,6 +1463,14 @@ model TokuiCreditRequestApprovalStep {
   approved_at    DateTime?
   created_at     DateTime  @default(now())
   @@map("t_tokui_credit_request_approval_steps")
+}
+model MEappSystemStaff {
+  id          String   @id @default(cuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  @@map("m_eapp_system_staff")
 }
 model TokuiCreditRequestFile {
   id          String   @id @default(cuid())

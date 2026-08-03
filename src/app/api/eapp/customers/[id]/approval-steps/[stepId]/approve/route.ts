@@ -50,19 +50,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { id },
       data: { status: "承認完了" },
     })
-    // 申請者本人へ完了通知
-    if (send_mail && request?.requester_user_id) {
-      const requester = await prisma.user.findUnique({ where: { id: request.requester_user_id } })
-      if (requester?.email) {
+    // システム担当者マスタへPRINSER登録依頼メール
+    if (send_mail) {
+      const systemStaff = await prisma.mEappSystemStaff.findMany({
+        include: { user: { select: { name: true, email: true } } },
+      })
+      const to = systemStaff.map(s => s.user.email).filter(Boolean)
+      if (to.length > 0) {
         try {
           await transporter.sendMail({
             from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
-            to: requester.email,
-            subject: `【得意先申請】承認完了: ${request.company_name ?? ""}（${request.uid}）`,
-            text: `${requester.name ?? ""} 様\n\n得意先申請（${request.uid}）が全ての承認ステップを完了しました。\n\nhttps://japansleevesystem.com/dashboard/eapp/customers/${id}`,
+            to: to.join(","),
+            subject: `【得意先申請】PRINSER登録依頼: ${request?.company_name ?? ""}（${request?.uid ?? ""}）`,
+            text: `得意先申請（${request?.uid ?? ""}）が全ての承認ステップを完了しました。\n\n会社名: ${request?.company_name ?? ""}\n\nPRINSERへの登録をお願いします。\nhttps://japansleevesystem.com/dashboard/eapp/customers/${id}`,
           })
         } catch (e) {
-          console.error("承認完了メール送信エラー:", e)
+          console.error("PRINSER登録依頼メール送信エラー:", e)
         }
       }
     }

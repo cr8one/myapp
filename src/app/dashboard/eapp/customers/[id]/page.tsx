@@ -67,14 +67,48 @@ export default function EAppCustomerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
+  const [form, setForm] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [submitDialog, setSubmitDialog] = useState(false)
+  const editableFields = [
+    "company_name", "industry", "representative_name", "capital", "established_year_month",
+    "annual_revenue", "employee_count", "main_bank_name", "main_bank_branch", "postal_code",
+    "address", "tel", "fax", "payment_terms", "order_contact_dept", "order_contact_name",
+    "sales_rep_name", "order_items", "order_amount", "future_prospects", "requested_credit_limit",
+  ]
   const fetchRecord = async () => {
     setLoading(true)
     const res = await fetch(`/api/eapp/customers/${id}`)
     const data = await res.json()
     setRecord(data)
+    const initial: Record<string, string> = {}
+    editableFields.forEach(k => { initial[k] = (data as Record<string, unknown>)[k] as string ?? "" })
+    setForm(initial)
     setLoading(false)
   }
   useEffect(() => { fetchRecord() }, [id])
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const saveDraft = async () => {
+    setSaving(true)
+    await fetch(`/api/eapp/customers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    })
+    await fetchRecord()
+    setSaving(false)
+  }
+  const submitRequest = async (sendMail: boolean) => {
+    setSubmitDialog(false)
+    setSaving(true)
+    await fetch(`/api/eapp/customers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, status: "申請済み", send_mail: sendMail }),
+    })
+    await fetchRecord()
+    setSaving(false)
+  }
 
   const handleFileSelect = async (file: File | undefined) => {
     if (!file) return
@@ -110,12 +144,36 @@ export default function EAppCustomerDetailPage() {
 
   const [approving, setApproving] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isSystemStaff, setIsSystemStaff] = useState(false)
   const [approveTarget, setApproveTarget] = useState<string | null>(null)
+  const [registerDialog, setRegisterDialog] = useState(false)
+  const [registering, setRegistering] = useState(false)
   useEffect(() => {
     fetch("/api/auth/session").then(r => r.json()).then(s => {
       if (s?.user?.role === "ADMIN") setIsAdmin(true)
+      if (s?.user?.id) {
+        fetch("/api/eapp/masters/system-staff").then(r => r.json()).then((staff: { user: { id: string } }[]) => {
+          if (staff.some(st => st.user.id === s.user.id)) setIsSystemStaff(true)
+        })
+      }
     })
   }, [])
+  const handleRegister = async (notifyRequester: boolean) => {
+    setRegistering(true)
+    const res = await fetch(`/api/eapp/customers/${id}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notify_requester: notifyRequester }),
+    })
+    if (res.ok) {
+      await fetchRecord()
+    } else {
+      const data = await res.json()
+      alert(data.error ?? "登録済み更新に失敗しました")
+    }
+    setRegistering(false)
+    setRegisterDialog(false)
+  }
   const handleApprove = async (stepId: string, sendMail: boolean) => {
     setApproving(true)
     const res = await fetch(`/api/eapp/customers/${id}/approval-steps/${stepId}/approve`, {
@@ -149,7 +207,7 @@ export default function EAppCustomerDetailPage() {
 
   if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">読み込み中...</div>
   if (!record) return <div className="p-8 text-center text-gray-500">データが見つかりません</div>
-
+  const isDraft = record.status === "下書き"
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -168,34 +226,81 @@ export default function EAppCustomerDetailPage() {
           <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
             {REQUEST_TYPE_LABEL[record.request_type] ?? record.request_type}
           </span>
+          {isSystemStaff && record.status === "承認完了" && (
+            <Button size="sm" onClick={() => setRegisterDialog(true)} disabled={registering}>
+              {registering ? "処理中..." : "登録済みにする"}
+            </Button>
+          )}
         </div>
         <div className="grid grid-cols-2 divide-x">
           <div className="p-6">
             <h3 className="text-xs font-semibold text-gray-500 mb-2">基本情報</h3>
-            <div className={rowCls}><span className={labelCls}>会社名</span><span className={valueCls}>{record.company_name ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>業種</span><span className={valueCls}>{record.industry ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>代表者</span><span className={valueCls}>{record.representative_name ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>資本金</span><span className={valueCls}>{record.capital ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>設立年月</span><span className={valueCls}>{record.established_year_month ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>年商</span><span className={valueCls}>{record.annual_revenue ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>従業員数</span><span className={valueCls}>{record.employee_count ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>主取引銀行</span><span className={valueCls}>{record.main_bank_name ?? "-"} {record.main_bank_branch ?? ""}</span></div>
-            <div className={rowCls}><span className={labelCls}>所在地</span><span className={valueCls}>〒{record.postal_code ?? ""} {record.address ?? ""}</span></div>
-            <div className={rowCls}><span className={labelCls}>TEL / FAX</span><span className={valueCls}>{record.tel ?? "-"} / {record.fax ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>支払条件</span><span className={valueCls}>{record.payment_terms ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>発注担当者</span><span className={valueCls}>{record.order_contact_dept ?? ""} {record.order_contact_name ?? ""}</span></div>
+            {isDraft ? (
+              <>
+                <div className={rowCls}><span className={labelCls}>会社名</span><Input value={form.company_name ?? ""} onChange={e => set("company_name", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>業種</span><Input value={form.industry ?? ""} onChange={e => set("industry", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>代表者</span><Input value={form.representative_name ?? ""} onChange={e => set("representative_name", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>資本金</span><Input value={form.capital ?? ""} onChange={e => set("capital", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>設立年月</span><Input value={form.established_year_month ?? ""} onChange={e => set("established_year_month", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>年商</span><Input value={form.annual_revenue ?? ""} onChange={e => set("annual_revenue", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>従業員数</span><Input value={form.employee_count ?? ""} onChange={e => set("employee_count", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>主取引銀行</span><Input value={form.main_bank_name ?? ""} onChange={e => set("main_bank_name", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>支店</span><Input value={form.main_bank_branch ?? ""} onChange={e => set("main_bank_branch", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>郵便番号</span><Input value={form.postal_code ?? ""} onChange={e => set("postal_code", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>所在地</span><Input value={form.address ?? ""} onChange={e => set("address", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>TEL</span><Input value={form.tel ?? ""} onChange={e => set("tel", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>FAX</span><Input value={form.fax ?? ""} onChange={e => set("fax", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>支払条件</span><Input value={form.payment_terms ?? ""} onChange={e => set("payment_terms", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>発注担当部署</span><Input value={form.order_contact_dept ?? ""} onChange={e => set("order_contact_dept", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>発注担当者</span><Input value={form.order_contact_name ?? ""} onChange={e => set("order_contact_name", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+              </>
+            ) : (
+              <>
+                <div className={rowCls}><span className={labelCls}>会社名</span><span className={valueCls}>{record.company_name ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>業種</span><span className={valueCls}>{record.industry ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>代表者</span><span className={valueCls}>{record.representative_name ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>資本金</span><span className={valueCls}>{record.capital ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>設立年月</span><span className={valueCls}>{record.established_year_month ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>年商</span><span className={valueCls}>{record.annual_revenue ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>従業員数</span><span className={valueCls}>{record.employee_count ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>主取引銀行</span><span className={valueCls}>{record.main_bank_name ?? "-"} {record.main_bank_branch ?? ""}</span></div>
+                <div className={rowCls}><span className={labelCls}>所在地</span><span className={valueCls}>〒{record.postal_code ?? ""} {record.address ?? ""}</span></div>
+                <div className={rowCls}><span className={labelCls}>TEL / FAX</span><span className={valueCls}>{record.tel ?? "-"} / {record.fax ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>支払条件</span><span className={valueCls}>{record.payment_terms ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>発注担当者</span><span className={valueCls}>{record.order_contact_dept ?? ""} {record.order_contact_name ?? ""}</span></div>
+              </>
+            )}
           </div>
           <div className="p-6">
             <h3 className="text-xs font-semibold text-gray-500 mb-2">申請情報</h3>
-            <div className={rowCls}><span className={labelCls}>営業担当者</span><span className={valueCls}>{record.sales_rep_name ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>受注品目</span><span className={valueCls}>{record.order_items ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>受注金額</span><span className={valueCls}>{record.order_amount ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>取引限度申請額</span><span className={valueCls}>{record.requested_credit_limit ?? "-"}</span></div>
-            <div className={rowCls}><span className={labelCls}>申請日</span><span className={valueCls}>{record.requested_date?.slice(0, 10) ?? "-"}</span></div>
-            <div className="mt-3">
-              <span className="text-xs font-medium text-gray-500 block mb-1">今後の見込み</span>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.future_prospects ?? "-"}</p>
-            </div>
+            {isDraft ? (
+              <>
+                <div className={rowCls}><span className={labelCls}>営業担当者</span><Input value={form.sales_rep_name ?? ""} onChange={e => set("sales_rep_name", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>受注品目</span><Input value={form.order_items ?? ""} onChange={e => set("order_items", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>受注金額</span><Input value={form.order_amount ?? ""} onChange={e => set("order_amount", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className={rowCls}><span className={labelCls}>取引限度申請額</span><Input value={form.requested_credit_limit ?? ""} onChange={e => set("requested_credit_limit", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" /></div>
+                <div className="mt-3">
+                  <span className="text-xs font-medium text-gray-500 block mb-1">今後の見込み</span>
+                  <textarea value={form.future_prospects ?? ""} onChange={e => set("future_prospects", e.target.value)} className="w-full border rounded px-3 py-2 text-sm resize-none" rows={6} autoComplete="off" />
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" size="sm" onClick={saveDraft} disabled={saving}>{saving ? "保存中..." : "下書き保存"}</Button>
+                  <Button size="sm" onClick={() => setSubmitDialog(true)} disabled={saving}>申請する</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={rowCls}><span className={labelCls}>営業担当者</span><span className={valueCls}>{record.sales_rep_name ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>受注品目</span><span className={valueCls}>{record.order_items ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>受注金額</span><span className={valueCls}>{record.order_amount ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>取引限度申請額</span><span className={valueCls}>{record.requested_credit_limit ?? "-"}</span></div>
+                <div className={rowCls}><span className={labelCls}>申請日</span><span className={valueCls}>{record.requested_date?.slice(0, 10) ?? "-"}</span></div>
+                <div className="mt-3">
+                  <span className="text-xs font-medium text-gray-500 block mb-1">今後の見込み</span>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.future_prospects ?? "-"}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -281,11 +386,37 @@ export default function EAppCustomerDetailPage() {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
             <h3 className="text-sm font-semibold text-gray-800 mb-2">承認の確認</h3>
-            <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者（または申請者）にメールで通知しますか？</p>
+            <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者（またはシステム担当者）にメールで通知しますか？</p>
             <div className="flex flex-col gap-2">
               <Button onClick={() => handleApprove(approveTarget, true)} disabled={approving}>送信して承認する</Button>
               <Button variant="outline" onClick={() => handleApprove(approveTarget, false)} disabled={approving}>送信せず承認する</Button>
               <button onClick={() => setApproveTarget(null)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {registerDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">登録済みへの変更確認</h3>
+            <p className="text-sm text-gray-600 mb-4">PRINSERへの登録が完了しました。申請者にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => handleRegister(true)} disabled={registering}>送信して登録済みにする</Button>
+              <Button variant="outline" onClick={() => handleRegister(false)} disabled={registering}>送信せず登録済みにする</Button>
+              <button onClick={() => setRegisterDialog(false)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {submitDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">申請の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">最初の承認者にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => submitRequest(true)} disabled={saving}>送信して申請する</Button>
+              <Button variant="outline" onClick={() => submitRequest(false)} disabled={saving}>送信せず申請する</Button>
+              <button onClick={() => setSubmitDialog(false)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
             </div>
           </div>
         </div>

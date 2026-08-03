@@ -75,9 +75,10 @@ export async function POST(req: NextRequest) {
   })
 
   // 承認ルートのスナップショット生成：①申請者の承認者設定 → ②得意先共通承認者設定 の順
-  if (body.requester_user_id) {
+  // 「申請する」時のみ生成（下書き保存では生成しない）
+  if (requestBody.status === "申請済み" && requestBody.requester_user_id) {
     const userSteps = await prisma.userApproverSetting.findMany({
-      where: { user_id: body.requester_user_id },
+      where: { user_id: requestBody.requester_user_id },
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
