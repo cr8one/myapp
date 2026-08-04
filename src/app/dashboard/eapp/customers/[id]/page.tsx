@@ -48,6 +48,11 @@ type TokuiCreditRequest = {
   future_prospects: string | null
   requested_credit_limit: string | null
   requested_date: string | null
+  manager_comment: string | null
+  division_head_comment: string | null
+  accounting_comment: string | null
+  approved_credit_limit: string | null
+  remarks: string | null
   files: FileRecord[]
   approval_steps: ApprovalStep[]
 }
@@ -76,6 +81,9 @@ export default function EAppCustomerDetailPage() {
     "address", "tel", "fax", "payment_terms", "order_contact_dept", "order_contact_name",
     "sales_rep_name", "order_items", "order_amount", "future_prospects", "requested_credit_limit",
   ]
+  const approvalCommentFields = [
+    "manager_comment", "division_head_comment", "accounting_comment", "approved_credit_limit", "remarks",
+  ]
   const fetchRecord = async () => {
     setLoading(true)
     const res = await fetch(`/api/eapp/customers/${id}`)
@@ -83,6 +91,7 @@ export default function EAppCustomerDetailPage() {
     setRecord(data)
     const initial: Record<string, string> = {}
     editableFields.forEach(k => { initial[k] = (data as Record<string, unknown>)[k] as string ?? "" })
+    approvalCommentFields.forEach(k => { initial[k] = (data as Record<string, unknown>)[k] as string ?? "" })
     setForm(initial)
     setLoading(false)
   }
@@ -108,6 +117,19 @@ export default function EAppCustomerDetailPage() {
     })
     await fetchRecord()
     setSaving(false)
+  }
+  const [savingComments, setSavingComments] = useState(false)
+  const saveApprovalComments = async () => {
+    setSavingComments(true)
+    const data: Record<string, string> = {}
+    approvalCommentFields.forEach(k => { data[k] = form[k] ?? "" })
+    await fetch(`/api/eapp/customers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    await fetchRecord()
+    setSavingComments(false)
   }
 
   const handleFileSelect = async (file: File | undefined) => {
@@ -349,6 +371,57 @@ export default function EAppCustomerDetailPage() {
           </ul>
         )}
       </div>
+
+      {/* 承認記入欄 */}
+      {record.status !== "下書き" && (
+        <div className="bg-white border rounded-lg shadow-sm p-6 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">承認記入欄</h3>
+            {(record.status === "承認完了" || record.status === "登録済み") && (
+              <span className="text-xs text-gray-400">承認完了のため編集ロック中</span>
+            )}
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">マネージャー所感</label>
+              <textarea value={form.manager_comment ?? ""} onChange={e => setForm(f => ({ ...f, manager_comment: e.target.value }))}
+                disabled={record.status === "承認完了" || record.status === "登録済み"}
+                className="w-full border rounded px-3 py-2 text-sm resize-none disabled:bg-gray-50 disabled:text-gray-400" rows={2} autoComplete="off" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">事業部長及び部長所感</label>
+              <textarea value={form.division_head_comment ?? ""} onChange={e => setForm(f => ({ ...f, division_head_comment: e.target.value }))}
+                disabled={record.status === "承認完了" || record.status === "登録済み"}
+                className="w-full border rounded px-3 py-2 text-sm resize-none disabled:bg-gray-50 disabled:text-gray-400" rows={2} autoComplete="off" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">経理部所感</label>
+              <textarea value={form.accounting_comment ?? ""} onChange={e => setForm(f => ({ ...f, accounting_comment: e.target.value }))}
+                disabled={record.status === "承認完了" || record.status === "登録済み"}
+                className="w-full border rounded px-3 py-2 text-sm resize-none disabled:bg-gray-50 disabled:text-gray-400" rows={2} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <span className={labelCls}>取引限度設定額</span>
+              <Input value={form.approved_credit_limit ?? ""} onChange={e => setForm(f => ({ ...f, approved_credit_limit: e.target.value }))}
+                disabled={record.status === "承認完了" || record.status === "登録済み"}
+                className="flex-1 h-8 text-sm disabled:bg-gray-50 disabled:text-gray-400" autoComplete="off" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">備考</label>
+              <textarea value={form.remarks ?? ""} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
+                disabled={record.status === "承認完了" || record.status === "登録済み"}
+                className="w-full border rounded px-3 py-2 text-sm resize-none disabled:bg-gray-50 disabled:text-gray-400" rows={2} autoComplete="off" />
+            </div>
+            {record.status !== "承認完了" && record.status !== "登録済み" && (
+              <div className="flex justify-end">
+                <Button size="sm" onClick={saveApprovalComments} disabled={savingComments}>
+                  {savingComments ? "保存中..." : "保存"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 承認ステップ */}
       <div className="bg-white border rounded-lg shadow-sm p-6 mt-6">

@@ -17,6 +17,7 @@ export default function EAppCustomerNewPage() {
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
     fetch("/api/auth/session").then(r => r.json()).then(s => {
       if (s?.user?.id) setRequesterUserId(s.user.id)
+      if (s?.user?.name) setForm(f => ({ ...f, sales_rep_name: s.user.name }))
     })
   }, [])
   const [form, setForm] = useState({
@@ -180,7 +181,11 @@ export default function EAppCustomerNewPage() {
             <h3 className="text-xs font-semibold text-gray-500 mb-1">申請情報</h3>
             <div className={rowCls}>
               <label className={labelCls}>営業担当者 <span className="text-red-500">*</span></label>
-              <Input value={form.sales_rep_name} onChange={e => set("sales_rep_name", e.target.value)} className={inputCls} autoComplete="off" />
+              <select value={form.sales_rep_name} onChange={e => set("sales_rep_name", e.target.value)}
+                className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                <option value="">-- 選択してください --</option>
+                {users.map(u => <option key={u.id} value={u.name ?? ""}>{u.name}</option>)}
+              </select>
             </div>
             <div className={rowCls}>
               <label className={labelCls}>受注品目</label>
