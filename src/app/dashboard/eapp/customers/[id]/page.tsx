@@ -222,6 +222,16 @@ export default function EAppCustomerDetailPage() {
       alert(data.error ?? "取り消しに失敗しました")
     }
   }
+  const handleDelete = async () => {
+    if (!confirm("この申請を削除しますか？この操作は取り消せません。")) return
+    const res = await fetch(`/api/eapp/customers/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      router.push("/dashboard/eapp/customers")
+    } else {
+      const data = await res.json()
+      alert(data.error ?? "削除に失敗しました")
+    }
+  }
 
   const labelCls = "text-xs font-medium text-gray-500 w-28 shrink-0"
   const valueCls = "text-sm text-gray-700 flex-1"
@@ -237,6 +247,11 @@ export default function EAppCustomerDetailPage() {
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/eapp/customers")}>← 一覧に戻る</Button>
           <h1 className="text-2xl font-bold">得意先申請 詳細</h1>
         </div>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 border-red-200 hover:bg-red-50">
+            削除
+          </Button>
+        )}
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm mb-6">

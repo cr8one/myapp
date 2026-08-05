@@ -90,3 +90,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json(record)
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "管理者のみ削除できます" }, { status: 403 })
+  }
+  const { id } = await params
+  await prisma.tokuiCreditRequestFile.deleteMany({ where: { request_id: id } })
+  await prisma.tokuiCreditRequestApprovalStep.deleteMany({ where: { request_id: id } })
+  await prisma.tokuiCreditRequest.delete({ where: { id } })
+  return NextResponse.json({ ok: true })
+}
