@@ -1442,6 +1442,7 @@ model TokuiCreditRequest {
   approved_credit_limit  String?
   approved_date          DateTime?
   remarks                String?
+  ocr_extracted_text     String?   @db.Text
   tokui_ref_id           String?
   requester_user_id      String?
   requester              User?     @relation("TokuiCreditRequester", fields: [requester_user_id], references: [id])

@@ -110,6 +110,7 @@ export default function EAppCustomersPage() {
               <Download className="w-4 h-4" />お得意先状況(Excel)
             </Button>
           </a>
+          <Button variant="outline" onClick={() => router.push("/dashboard/eapp/customers/new?archive=1")}>アーカイブ登録</Button>
           <Button onClick={() => router.push("/dashboard/eapp/customers/new")}>新規登録</Button>
         </div>
       </div>
