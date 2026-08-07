@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -10,6 +10,82 @@ function today() { return new Date().toISOString().slice(0, 10) }
 
 export default function EAppCustomerNewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isArchiveMode = searchParams.get("archive") === "1"
+  const [archiveFile, setArchiveFile] = useState<File | null>(null)
+  const [archiveKey, setArchiveKey] = useState("")
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [archiveRecordId, setArchiveRecordId] = useState("")
+  const handleArchiveFileChange = async (file: File) => {
+    setArchiveFile(file)
+    setOcrLoading(true)
+    try {
+      const createRes = await fetch("/api/eapp/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_type: "ARCHIVE", status: "下書き", send_mail: false }),
+      })
+      if (!createRes.ok) throw new Error("レコード作成に失敗")
+      const created = await createRes.json()
+      setArchiveRecordId(created.id)
+
+      const presignRes = await fetch(`/api/eapp/customers/${created.id}/presign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name }),
+      })
+      const { url, key } = await presignRes.json()
+      await fetch(url, { method: "PUT", body: file })
+      setArchiveKey(key)
+
+      await fetch(`/api/eapp/customers/${created.id}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileKey: key, fileName: file.name, fileType: "pdf" }),
+      })
+
+      const ocrRes = await fetch(`/api/eapp/customers/${created.id}/ocr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      })
+      if (ocrRes.ok) {
+        const { extracted } = await ocrRes.json()
+        setForm(f => ({ ...f, ...extracted }))
+      } else {
+        alert("OCR処理に失敗しました。内容を手入力してください。")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("アップロードに失敗しました")
+    } finally {
+      setOcrLoading(false)
+    }
+  }
+
+  const submitArchive = async () => {
+    if (!archiveRecordId) {
+      alert("先にPDFをアップロードしてください")
+      return
+    }
+    setSaving(true)
+    const res = await fetch(`/api/eapp/customers/${archiveRecordId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        status: "登録済み",
+        requested_date: form.requested_date || null,
+        send_mail: false,
+      }),
+    })
+    if (res.ok) {
+      router.push(`/dashboard/eapp/customers/${archiveRecordId}`)
+    } else {
+      alert("登録に失敗しました")
+      setSaving(false)
+    }
+  }
   const [saving, setSaving] = useState(false)
   const [users, setUsers] = useState<UserOption[]>([])
   const [requesterUserId, setRequesterUserId] = useState("")
@@ -83,6 +159,22 @@ export default function EAppCustomerNewPage() {
         </div>
       </div>
       <div className="bg-white border rounded-lg shadow-sm">
+        {isArchiveMode && (
+          <div className="border-b px-6 py-4 bg-amber-50">
+            <label className="text-xs font-medium text-gray-500 block mb-1">アーカイブPDFアップロード</label>
+            <input
+              type="file"
+              accept="application/pdf"
+              disabled={ocrLoading || !!archiveKey}
+              onChange={e => e.target.files?.[0] && handleArchiveFileChange(e.target.files[0])}
+              className="text-sm"
+            />
+            {ocrLoading && <p className="text-xs text-amber-700 mt-2">アップロード・OCR処理中です...少々お待ちください</p>}
+            {archiveKey && !ocrLoading && (
+              <p className="text-xs text-green-700 mt-2">アップロード・OCR読み取り完了。下記の内容を確認・修正してください（手書きの場合は誤読の可能性があります）</p>
+            )}
+          </div>
+        )}
         {/* ヘッダー：種別・申請日 */}
         <div className="border-b px-6 py-4 flex items-center gap-6">
           <div className={rowCls}>
@@ -214,14 +306,22 @@ export default function EAppCustomerNewPage() {
       </div>
       <div className="flex justify-end gap-3 mt-6">
         <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
-        <Button variant="outline" onClick={() => submit(true, false)} disabled={saving}>
-          {saving ? "保存中..." : "下書き保存"}
-        </Button>
-        <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
-          {saving ? "登録中..." : "申請する"}
-        </Button>
+        {isArchiveMode ? (
+          <Button onClick={submitArchive} disabled={saving || !archiveKey}>
+            {saving ? "登録中..." : "登録する"}
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={() => submit(true, false)} disabled={saving}>
+              {saving ? "保存中..." : "下書き保存"}
+            </Button>
+            <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
+              {saving ? "登録中..." : "申請する"}
+            </Button>
+          </>
+        )}
       </div>
-      {confirmDialog && (
+      {!isArchiveMode && confirmDialog && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
             <h3 className="text-sm font-semibold text-gray-800 mb-2">申請の確認</h3>
