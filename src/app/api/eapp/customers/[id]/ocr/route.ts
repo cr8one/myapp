@@ -12,7 +12,7 @@ const s3 = new S3Client({
 })
 const bedrock = new BedrockRuntimeClient({ region: "ap-northeast-1" })
 const BUCKET = "japan-sleeve-system-files-936533876784"
-const MODEL_ID = "anthropic.claude-sonnet-5"
+const MODEL_ID = "global.anthropic.claude-sonnet-5"
 
 const FIELDS: Record<string, string> = {
   company_name: "会社名",
