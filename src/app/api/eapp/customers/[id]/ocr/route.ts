@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime"
 import path from "path"
 import sharp from "sharp"
@@ -94,6 +94,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "PDFの画像化に失敗しました" }, { status: 500 })
   }
   const base64Image = pngBuffer.toString("base64")
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: `eapp/customers/debug-ocr-preview.png`,
+    Body: pngBuffer,
+    ContentType: "image/png",
+  }))
 
   const fieldList = Object.entries(FIELDS).map(([k, label]) => `- ${k}: ${label}`).join("\n")
   const prompt = `これは「取引限度設定書」という日本語の帳票をスキャンした画像です。手書き記入の場合があります。
