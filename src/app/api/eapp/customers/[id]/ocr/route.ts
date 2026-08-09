@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime"
-import path from "path"
 import sharp from "sharp"
+import { execFile } from "child_process"
+import { promisify } from "util"
+import { writeFile, readFile, mkdtemp, rm } from "fs/promises"
+import { tmpdir } from "os"
+import { join } from "path"
+const execFileAsync = promisify(execFile)
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -43,37 +48,20 @@ const FIELDS: Record<string, string> = {
 }
 
 async function pdfFirstPageToPngBuffer(pdfBuffer: Buffer): Promise<Buffer> {
-  const { createCanvas, Path2D, DOMMatrix, ImageData } = await import("@napi-rs/canvas")
-  ;(globalThis as unknown as { Path2D: unknown }).Path2D = Path2D
-  ;(globalThis as unknown as { DOMMatrix: unknown }).DOMMatrix = DOMMatrix
-  ;(globalThis as unknown as { ImageData: unknown }).ImageData = ImageData
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
-  pdfjsLib.GlobalWorkerOptions.workerSrc = path.join(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")
-  class NodeCanvasFactory {
-    create(width: number, height: number) {
-      const canvas = createCanvas(width, height)
-      const context = canvas.getContext("2d")
-      return { canvas, context }
-    }
-    reset(canvasAndContext: { canvas: import("@napi-rs/canvas").Canvas; context: unknown }, width: number, height: number) {
-      canvasAndContext.canvas.width = width
-      canvasAndContext.canvas.height = height
-    }
-    destroy(canvasAndContext: { canvas: import("@napi-rs/canvas").Canvas | null; context: unknown }) {
-      canvasAndContext.canvas!.width = 0
-      canvasAndContext.canvas!.height = 0
-      canvasAndContext.canvas = null
-      canvasAndContext.context = null
-    }
+  const dir = await mkdtemp(join(tmpdir(), "ocr-pdf-"))
+  const pdfPath = join(dir, "input.pdf")
+  const outPrefix = join(dir, "out")
+  try {
+    await writeFile(pdfPath, pdfBuffer)
+    // pdftoppm（poppler-utils）はCCITTFaxDecode（白黒二値スキャン）・DCTDecode（カラーJPEGスキャン）
+    // いずれも安定して画像化できるため、pdfjs-distより互換性が高い
+    await execFileAsync("pdftoppm", ["-png", "-r", "200", "-f", "1", "-l", "1", pdfPath, outPrefix])
+    const pngPath = `${outPrefix}-1.png`
+    const pngBuffer = await readFile(pngPath)
+    return sharp(pngBuffer).resize(1600, null, { withoutEnlargement: true }).toBuffer()
+  } finally {
+    await rm(dir, { recursive: true, force: true })
   }
-  const canvasFactory = new NodeCanvasFactory()
-  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer), CanvasFactory: NodeCanvasFactory }).promise
-  const page = await pdf.getPage(1)
-  const viewport = page.getViewport({ scale: 2.0 })
-  const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
-  await page.render({ canvasContext: canvasAndContext.context as unknown as CanvasRenderingContext2D, canvas: canvasAndContext.canvas as unknown as HTMLCanvasElement, viewport }).promise
-  const pngBuffer = canvasAndContext.canvas.toBuffer("image/png")
-  return sharp(pngBuffer).resize(1600, null, { withoutEnlargement: true }).toBuffer()
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

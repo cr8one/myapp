@@ -1,6 +1,6 @@
 FROM node:20-alpine
 RUN apk add --no-cache aws-cli jq
-RUN apk add --no-cache aws-cli jq python3 make g++ cairo-dev pango-dev jpeg-dev giflib-dev librsvg-dev
+RUN apk add --no-cache aws-cli jq python3 make g++ cairo-dev pango-dev jpeg-dev giflib-dev librsvg-dev poppler-utilslibrsvg-dev
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
