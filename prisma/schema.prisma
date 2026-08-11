@@ -1459,6 +1459,7 @@ model TokuiCreditRequestApprovalStep {
   step_order     Int
   position_name  String?
   approver_name  String?
+  approver_last_name String?
   approver_email String?
   status         String    @default("未承認")
   approved_at    DateTime?

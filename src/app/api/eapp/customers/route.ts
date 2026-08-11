@@ -82,14 +82,14 @@ export async function POST(req: NextRequest) {
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
-        approver: { select: { name: true, email: true } },
+        approver: { select: { name: true, lastName: true, email: true } },
       },
     })
     const commonSteps = await prisma.mApprovalRoute.findMany({
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
-        approver: { select: { name: true, email: true } },
+        approver: { select: { name: true, lastName: true, email: true } },
       },
     })
     const combined = [...userSteps, ...commonSteps]
@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           step_order: idx + 1,
           position_name: s.position?.name ?? null,
           approver_name: s.approver?.name ?? null,
+          approver_last_name: s.approver?.lastName ?? null,
           approver_email: s.approver?.email ?? null,
         })),
       })

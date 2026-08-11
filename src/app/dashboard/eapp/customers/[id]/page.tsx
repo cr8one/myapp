@@ -247,11 +247,16 @@ export default function EAppCustomerDetailPage() {
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/eapp/customers")}>← 一覧に戻る</Button>
           <h1 className="text-2xl font-bold">得意先申請 詳細</h1>
         </div>
-        {isAdmin && (
-          <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 border-red-200 hover:bg-red-50">
-            削除
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <a href={`/api/eapp/customers/pdf?id=${record.id}`} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm">PDF出力</Button>
+          </a>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={handleDelete} className="text-red-500 border-red-200 hover:bg-red-50">
+              削除
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm mb-6">
