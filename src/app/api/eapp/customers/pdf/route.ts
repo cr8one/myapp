@@ -11,8 +11,8 @@ Font.register({
   src: path.join(process.cwd(), "public/NotoSansJP.otf"),
 })
 Font.register({
-  family: "YujiSyuku",
-  src: path.join(process.cwd(), "public/YujiSyuku-Regular.ttf"),
+  family: "YujiBoku",
+  src: path.join(process.cwd(), "public/YujiBoku-Regular.ttf"),
 })
 
 const n = (v: string | null | undefined) => v ?? undefined

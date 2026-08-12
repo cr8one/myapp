@@ -56,15 +56,19 @@ const F = StyleSheet.create({
     width: "9mm",
     height: "9mm",
     borderRadius: "4.5mm",
-    border: "0.6pt solid #c0392b",
+    border: "0.6pt solid #C7000B",
     alignItems: "center",
     justifyContent: "center",
-    transform: "rotate(-6deg)",
   },
-  stampText: {
-    fontFamily: "YujiSyuku",
-    fontSize: 11,
-    color: "#c0392b",
+  stampTextCol: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  stampChar: {
+    fontFamily: "YujiBoku",
+    fontSize: 7,
+    color: "#C7000B",
+    lineHeight: 1,
   },
   stampEmpty: {
     width: "9mm",
@@ -143,7 +147,11 @@ function ApprovalStamp({ step }: { step: ApprovalStepProps }) {
       <Text style={F.approvalName}>{step.approver_name ?? ""}</Text>
       {approved && step.approver_last_name ? (
         <View style={F.stampCircle}>
-          <Text style={F.stampText}>{step.approver_last_name}</Text>
+          <View style={F.stampTextCol}>
+            {step.approver_last_name.split("").map((ch, i) => (
+              <Text key={i} style={F.stampChar}>{ch}</Text>
+            ))}
+          </View>
         </View>
       ) : (
         <View style={F.stampEmpty} />
