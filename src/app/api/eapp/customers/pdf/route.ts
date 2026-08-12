@@ -10,10 +10,6 @@ Font.register({
   family: "NotoSansJP",
   src: path.join(process.cwd(), "public/NotoSansJP.otf"),
 })
-Font.register({
-  family: "YujiBoku",
-  src: path.join(process.cwd(), "public/YujiBoku-Regular.ttf"),
-})
 
 const n = (v: string | null | undefined) => v ?? undefined
 
@@ -68,7 +64,6 @@ export async function GET(req: NextRequest) {
         step_order: s.step_order,
         position_name: n(s.position_name),
         approver_name: n(s.approver_name),
-        approver_last_name: n(s.approver_last_name),
         status: s.status,
         approved_at: s.approved_at?.toISOString() ?? undefined,
       })),

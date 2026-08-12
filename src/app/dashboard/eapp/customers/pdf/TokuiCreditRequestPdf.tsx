@@ -1,5 +1,4 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
-
 const F = StyleSheet.create({
   page: {
     width: "210mm",
@@ -41,63 +40,25 @@ const F = StyleSheet.create({
     marginTop: "2mm",
     borderTop: "0.5pt solid #999",
     paddingTop: "3mm",
+  },
+  approvalRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  approvalStep: {
-    width: "24mm",
     alignItems: "center",
-    marginRight: "3mm",
-    marginBottom: "3mm",
+    borderBottom: "0.3pt solid #ddd",
+    paddingVertical: "1.2mm",
   },
-  approvalPosition: { fontSize: 6.5, color: "#555", marginBottom: "1mm" },
-  approvalName: { fontSize: 7, marginBottom: "1mm" },
-  stampCircle: {
-    width: "11mm",
-    height: "11mm",
-    borderRadius: "5.5mm",
-    border: "1.4pt solid #C7000B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stampTextCol: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stampCharWrap: {
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stampChar: {
-    fontFamily: "YujiBoku",
-    fontSize: 12,
-    color: "#C7000B",
-    lineHeight: 0.95,
-  },
-  stampCharOverlay: {
-    position: "absolute",
-    top: "0.15mm",
-    left: "0.15mm",
-  },
-  stampEmpty: {
-    width: "9mm",
-    height: "9mm",
-    borderRadius: "4.5mm",
-    border: "0.5pt dashed #ccc",
-  },
+  approvalPosition: { width: "30mm", fontSize: 7.5, color: "#555" },
+  approvalName: { width: "30mm", fontSize: 8 },
+  approvalStatus: { width: "20mm", fontSize: 7.5 },
+  approvalDate: { flex: 1, fontSize: 7, color: "#777" },
 })
-
 type ApprovalStepProps = {
   step_order: number
   position_name?: string
   approver_name?: string
-  approver_last_name?: string
   status: string
   approved_at?: string
 }
-
 type Props = {
   uid: string
   requested_date?: string
@@ -130,13 +91,11 @@ type Props = {
   remarks?: string
   approval_steps: ApprovalStepProps[]
 }
-
 function formatDate(str?: string) {
   if (!str) return ""
   const d = new Date(str)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
-
 function Field({ label, value, tall }: { label: string; value?: string; tall?: boolean }) {
   return (
     <View style={F.field}>
@@ -145,35 +104,9 @@ function Field({ label, value, tall }: { label: string; value?: string; tall?: b
     </View>
   )
 }
-
 function SectionTitle({ children }: { children: string }) {
   return <Text style={F.sectionTitle}>{children}</Text>
 }
-
-function ApprovalStamp({ step }: { step: ApprovalStepProps }) {
-  const approved = step.status === "承認済み" || step.status === "登録済み"
-  return (
-    <View style={F.approvalStep}>
-      <Text style={F.approvalPosition}>{step.position_name ?? ""}</Text>
-      <Text style={F.approvalName}>{step.approver_name ?? ""}</Text>
-      {approved && step.approver_last_name ? (
-        <View style={F.stampCircle}>
-          <View style={F.stampTextCol}>
-            {step.approver_last_name.split("").map((ch, i) => (
-              <View key={i} style={F.stampCharWrap}>
-                <Text style={F.stampChar}>{ch}</Text>
-                <Text style={[F.stampChar, F.stampCharOverlay]}>{ch}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : (
-        <View style={F.stampEmpty} />
-      )}
-    </View>
-  )
-}
-
 export default function TokuiCreditRequestPdf(props: Props) {
   return (
     <Document>
@@ -185,7 +118,6 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Text style={F.headerDate}>申請日　{formatDate(props.requested_date)}</Text>
           </View>
         </View>
-
         <View style={F.section}>
           <SectionTitle>会社概要</SectionTitle>
           <View style={F.row}>
@@ -216,7 +148,6 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Field label="FAX" value={props.fax} />
           </View>
         </View>
-
         <View style={F.section}>
           <SectionTitle>取引条件</SectionTitle>
           <View style={F.row}>
@@ -237,7 +168,6 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Field label="将来展望" value={props.future_prospects} tall />
           </View>
         </View>
-
         <View style={F.section}>
           <SectionTitle>申請内容</SectionTitle>
           <View style={F.row}>
@@ -247,7 +177,6 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Field label="備考" value={props.remarks} tall />
           </View>
         </View>
-
         <View style={F.section}>
           <SectionTitle>所感</SectionTitle>
           <View style={F.commentBlock}>
@@ -263,7 +192,6 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Text style={F.commentBox}>{props.accounting_comment ?? ""}</Text>
           </View>
         </View>
-
         <View style={F.section}>
           <SectionTitle>決裁</SectionTitle>
           <View style={F.row}>
@@ -271,10 +199,15 @@ export default function TokuiCreditRequestPdf(props: Props) {
             <Field label="承認日" value={formatDate(props.approved_date)} />
           </View>
         </View>
-
         <View style={F.approvalArea}>
+          <SectionTitle>承認状況</SectionTitle>
           {props.approval_steps.map(step => (
-            <ApprovalStamp key={step.step_order} step={step} />
+            <View key={step.step_order} style={F.approvalRow}>
+              <Text style={F.approvalPosition}>{step.position_name ?? ""}</Text>
+              <Text style={F.approvalName}>{step.approver_name ?? ""}</Text>
+              <Text style={F.approvalStatus}>{step.status}</Text>
+              <Text style={F.approvalDate}>{step.approved_at ? formatDate(step.approved_at) : ""}</Text>
+            </View>
           ))}
         </View>
       </Page>
