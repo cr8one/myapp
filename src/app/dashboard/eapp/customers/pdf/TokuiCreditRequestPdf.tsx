@@ -53,22 +53,33 @@ const F = StyleSheet.create({
   approvalPosition: { fontSize: 6.5, color: "#555", marginBottom: "1mm" },
   approvalName: { fontSize: 7, marginBottom: "1mm" },
   stampCircle: {
-    width: "9mm",
-    height: "9mm",
-    borderRadius: "4.5mm",
-    border: "0.6pt solid #C7000B",
+    width: "11mm",
+    height: "11mm",
+    borderRadius: "5.5mm",
+    border: "1.4pt solid #C7000B",
     alignItems: "center",
     justifyContent: "center",
   },
   stampTextCol: {
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
+  },
+  stampCharWrap: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   stampChar: {
     fontFamily: "YujiBoku",
-    fontSize: 7,
+    fontSize: 12,
     color: "#C7000B",
-    lineHeight: 1,
+    lineHeight: 0.95,
+  },
+  stampCharOverlay: {
+    position: "absolute",
+    top: "0.15mm",
+    left: "0.15mm",
   },
   stampEmpty: {
     width: "9mm",
@@ -149,7 +160,10 @@ function ApprovalStamp({ step }: { step: ApprovalStepProps }) {
         <View style={F.stampCircle}>
           <View style={F.stampTextCol}>
             {step.approver_last_name.split("").map((ch, i) => (
-              <Text key={i} style={F.stampChar}>{ch}</Text>
+              <View key={i} style={F.stampCharWrap}>
+                <Text style={F.stampChar}>{ch}</Text>
+                <Text style={[F.stampChar, F.stampCharOverlay]}>{ch}</Text>
+              </View>
             ))}
           </View>
         </View>
