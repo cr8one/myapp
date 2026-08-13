@@ -45,3 +45,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ ok: true, key, inkanImageKey: updated.inkanImageKey })
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { id } = await params
+  const user = await prisma.user.findUnique({ where: { id } })
+  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  await prisma.user.update({
+    where: { id },
+    data: { inkanImageKey: null },
+  })
+
+  return NextResponse.json({ ok: true })
+}

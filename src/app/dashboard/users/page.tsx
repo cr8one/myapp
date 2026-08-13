@@ -224,6 +224,21 @@ export default function UsersPage() {
     }
     setInkanUploading(false)
   }
+
+const handleInkanDelete = async () => {
+    if (!editUser) return
+    if (!confirm("印影画像を削除しますか？")) return
+    setInkanUploading(true)
+    const res = await fetch(`/api/users/${editUser.id}/inkan`, { method: "DELETE" })
+    if (res.ok) {
+      setInkanImageKey(null)
+      setInkanPreviewUrl(null)
+    } else {
+      setError("印影画像の削除に失敗しました")
+    }
+    setInkanUploading(false)
+  }
+
   const handleSubmit = async () => {
     setLoading(true); setError("")
     const body = {
@@ -348,11 +363,31 @@ export default function UsersPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2"><Label>社員番号</Label><Input autoComplete="off" value={employeeNo} onChange={e => setEmployeeNo(e.target.value)} /></div>
               {editUser && (
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <Label>印影画像</Label>
                   <div className="flex items-center gap-3">
-                    {inkanPreviewUrl && (
-                      <img src={inkanPreviewUrl} alt="印影プレビュー" className="w-12 h-12 object-contain border rounded" />
+                    {inkanImageKey ? (
+                      <>
+                        {inkanPreviewUrl && (
+                          <img src={inkanPreviewUrl} alt="印影プレビュー" className="w-12 h-12 object-contain border rounded" />
+                        )}
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">登録済み</span>
+                        {inkanPreviewUrl && (
+                          <a href={inkanPreviewUrl} download target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:text-blue-700">
+                            ダウンロード
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleInkanDelete}
+                          disabled={inkanUploading}
+                          className="text-xs text-red-500 hover:text-red-700"
+                        >
+                          削除
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">未登録</span>
                     )}
                     <input
                       type="file"
