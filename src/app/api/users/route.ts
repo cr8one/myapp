@@ -7,7 +7,7 @@ const userSelect = {
   id: true, name: true, email: true,
   lastName: true, firstName: true, furiganaLastName: true, furiganaFirstName: true,
   position: true, positionId: true, positionRef: { select: { id: true, name: true, sort_order: true } },
-  phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true,
+  phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true, inkanImageKey: true,
   departments: {
     include: { department: { select: { id: true, name: true, sort_order: true, base: { select: { id: true, name: true, sort_order: true } } } } },
   },
