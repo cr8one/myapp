@@ -25,6 +25,7 @@ model User {
   positionRef MPosition? @relation(fields: [positionId], references: [id])
   phone       String?
   employeeNo  String?  @map("employee_no")
+  inkanImageKey String? @map("inkan_image_key")
   gender      String?
   employmentType String? @map("employment_type")
   role        Role                   @default(USER)

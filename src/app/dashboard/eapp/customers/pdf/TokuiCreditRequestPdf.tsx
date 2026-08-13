@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer"
 const F = StyleSheet.create({
   page: {
     width: "210mm",
@@ -51,6 +51,7 @@ const F = StyleSheet.create({
   approvalName: { width: "30mm", fontSize: 8 },
   approvalStatus: { width: "20mm", fontSize: 7.5 },
   approvalDate: { flex: 1, fontSize: 7, color: "#777" },
+  inkanImage: { width: "8mm", height: "8mm", marginLeft: "2mm" },
 })
 type ApprovalStepProps = {
   step_order: number
@@ -58,6 +59,7 @@ type ApprovalStepProps = {
   approver_name?: string
   status: string
   approved_at?: string
+  inkan_image_url?: string
 }
 type Props = {
   uid: string
@@ -207,6 +209,9 @@ export default function TokuiCreditRequestPdf(props: Props) {
               <Text style={F.approvalName}>{step.approver_name ?? ""}</Text>
               <Text style={F.approvalStatus}>{step.status}</Text>
               <Text style={F.approvalDate}>{step.approved_at ? formatDate(step.approved_at) : ""}</Text>
+              {step.inkan_image_url && (
+                <Image src={step.inkan_image_url} style={F.inkanImage} />
+              )}
             </View>
           ))}
         </View>

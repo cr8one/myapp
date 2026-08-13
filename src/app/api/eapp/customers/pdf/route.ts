@@ -5,6 +5,15 @@ import { renderToBuffer, Font } from "@react-pdf/renderer"
 import { createElement } from "react"
 import TokuiCreditRequestPdf from "@/app/dashboard/eapp/customers/pdf/TokuiCreditRequestPdf"
 import path from "path"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+
+const s3 = new S3Client({
+  region: "ap-northeast-1",
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
+})
+const BUCKET = "japan-sleeve-system-files-936533876784"
 
 Font.register({
   family: "NotoSansJP",
@@ -28,6 +37,18 @@ export async function GET(req: NextRequest) {
     },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  // 承認者のemailからUserを引き当て、印影画像があれば署名付きURLを取得
+  const approverEmails = record.approval_steps.map(s => s.approver_email).filter((e): e is string => !!e)
+  const approverUsers = approverEmails.length > 0
+    ? await prisma.user.findMany({ where: { email: { in: approverEmails } }, select: { email: true, inkanImageKey: true } })
+    : []
+  const inkanUrlByEmail: Record<string, string> = {}
+  for (const u of approverUsers) {
+    if (u.inkanImageKey) {
+      inkanUrlByEmail[u.email] = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: u.inkanImageKey }), { expiresIn: 300 })
+    }
+  }
 
   const buf = await renderToBuffer(
     createElement(TokuiCreditRequestPdf, {
@@ -66,6 +87,7 @@ export async function GET(req: NextRequest) {
         approver_name: n(s.approver_name),
         status: s.status,
         approved_at: s.approved_at?.toISOString() ?? undefined,
+        inkan_image_url: s.approver_email ? inkanUrlByEmail[s.approver_email] : undefined,
       })),
     }) as any
   )

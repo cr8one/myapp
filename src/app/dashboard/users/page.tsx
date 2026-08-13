@@ -43,6 +43,7 @@ type User = {
   lastName?: string; firstName?: string; furiganaLastName?: string; furiganaFirstName?: string
   position?: string; positionId?: string; positionRef?: { id: string; name: string; sort_order: number } | null
   phone?: string; employeeNo?: string; gender?: string; employmentType?: string
+  inkanImageKey?: string | null
   role: "ADMIN" | "USER"; createdAt: string
   permission?: Permission
   departments: UserDept[]
@@ -122,6 +123,9 @@ export default function UsersPage() {
   const [gender, setGender] = useState("")
   const [employmentType, setEmploymentType] = useState("")
   const [phone, setPhone] = useState("")
+  const [inkanImageKey, setInkanImageKey] = useState<string | null>(null)
+  const [inkanPreviewUrl, setInkanPreviewUrl] = useState<string | null>(null)
+  const [inkanUploading, setInkanUploading] = useState(false)
   const [role, setRole] = useState<"ADMIN" | "USER">("USER")
   const [permission, setPermission] = useState<Permission>(defaultPermission)
   // 部署・グループ選択: { department_id, is_primary }[]
@@ -177,6 +181,13 @@ export default function UsersPage() {
     const res = await fetch(`/api/users/${userId}/approver-settings`)
     setApproverSettings(await res.json())
   }
+  const fetchInkanPreview = async (key: string) => {
+    const res = await fetch(`/api/cad/daishi-db/signed-url?key=${encodeURIComponent(key)}`)
+    if (res.ok) {
+      const data = await res.json()
+      setInkanPreviewUrl(data.url)
+    }
+  }
   const handleEdit = (user: User) => {
     setEditUser(user)
     fetchApproverSettings(user.id)
@@ -188,6 +199,9 @@ export default function UsersPage() {
     setGender(user.gender ?? "")
     setEmploymentType(user.employmentType ?? "")
     setPhone(user.phone ?? ""); setPassword(""); setRole(user.role)
+    setInkanImageKey(user.inkanImageKey ?? null)
+    setInkanPreviewUrl(null)
+    if (user.inkanImageKey) fetchInkanPreview(user.inkanImageKey)
     setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
     setSelectedDepts(user.departments.map(d => ({ department_id: d.department_id, is_primary: d.is_primary })))
     setSelectedGroups(user.groups.map(g => ({ group_id: g.group_id, is_primary: g.is_primary })))
@@ -195,6 +209,21 @@ export default function UsersPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+  const handleInkanUpload = async (file: File) => {
+    if (!editUser) return
+    setInkanUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await fetch(`/api/users/${editUser.id}/inkan`, { method: "POST", body: formData })
+    if (res.ok) {
+      const data = await res.json()
+      setInkanImageKey(data.inkanImageKey)
+      await fetchInkanPreview(data.inkanImageKey)
+    } else {
+      setError("印影画像のアップロードに失敗しました")
+    }
+    setInkanUploading(false)
+  }
   const handleSubmit = async () => {
     setLoading(true); setError("")
     const body = {
@@ -318,6 +347,24 @@ export default function UsersPage() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2"><Label>社員番号</Label><Input autoComplete="off" value={employeeNo} onChange={e => setEmployeeNo(e.target.value)} /></div>
+              {editUser && (
+                <div className="space-y-2">
+                  <Label>印影画像</Label>
+                  <div className="flex items-center gap-3">
+                    {inkanPreviewUrl && (
+                      <img src={inkanPreviewUrl} alt="印影プレビュー" className="w-12 h-12 object-contain border rounded" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={inkanUploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleInkanUpload(f) }}
+                      className="text-xs"
+                    />
+                    {inkanUploading && <span className="text-xs text-gray-400">アップロード中...</span>}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>性別</Label>
                 <select className="w-full border rounded px-3 py-2 text-sm bg-white" value={gender} onChange={e => setGender(e.target.value)}>
