@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="tokui-credit-request-${record.uid}.pdf"`,
+      "Content-Disposition": `inline; filename="tokui-credit-request-${record.uid}.pdf"`,
     },
   })
 }
