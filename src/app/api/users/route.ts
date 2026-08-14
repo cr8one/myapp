@@ -109,6 +109,11 @@ export async function POST(request: Request) {
           mastersEdit:  permission?.mastersEdit  ?? false,
           cadView:      permission?.cadView      ?? true,
           cadEdit:      permission?.cadEdit      ?? false,
+          manufacturingView: permission?.manufacturingView ?? true,
+          manufacturingEdit: permission?.manufacturingEdit ?? false,
+          trayView:          permission?.trayView          ?? true,
+          trayEdit:          permission?.trayEdit           ?? false,
+          dppStorageLedgerImport: permission?.dppStorageLedgerImport ?? false,
         },
       },
       departments: departments?.length > 0 ? {
