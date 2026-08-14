@@ -50,11 +50,11 @@ type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
-  manufacturingView: boolean; trayView: boolean
+  manufacturingView: boolean; trayView: boolean; addressBookView: boolean
 } | null
 
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
-  spec: "specView", estimate: "estimateView", eapp: "eappView",
+  spec: "specView", estimate: "estimateView", eapp: "eappView", addressbook: "addressBookView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
   ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
