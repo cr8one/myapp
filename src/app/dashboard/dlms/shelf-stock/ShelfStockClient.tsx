@@ -35,6 +35,7 @@ export default function ShelfStockClient({ isAdmin }: { isAdmin: boolean }) {
   const [loading, setLoading] = useState(false)
 
   const [showImport, setShowImport] = useState(false)
+  const [showLayout, setShowLayout] = useState(false)
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importProgress, setImportProgress] = useState({ count: 0, total: 0 })
@@ -221,6 +222,29 @@ export default function ShelfStockClient({ isAdmin }: { isAdmin: boolean }) {
           </div>
         )}
       </div>
+
+{racks.length > 0 && (
+          <div className="mt-2">
+            <button
+              onClick={() => setShowLayout(true)}
+              className="px-2.5 py-1 rounded-full text-xs border bg-white border-gray-200 text-gray-500 hover:border-gray-400 transition-colors"
+            >
+              棚配置図
+            </button>
+          </div>
+        )}
+
+        {showLayout && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowLayout(false)}>
+            <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="font-bold text-gray-800">棚配置図</h2>
+                <button onClick={() => setShowLayout(false)} className="text-gray-400 hover:text-gray-600 text-sm">閉じる</button>
+              </div>
+              <img src="/shelf-layout.png" alt="棚配置図" className="w-full h-auto" />
+            </div>
+          </div>
+        )}
 
       <Pagination />
 
