@@ -6,8 +6,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
+  const { searchParams } = new URL(req.url)
+  const serviceType = searchParams.get("service_type") ?? "tokui_credit"
   const settings = await prisma.userApproverSetting.findMany({
-    where: { user_id: id },
+    where: { user_id: id, service_type: serviceType },
     orderBy: { step_order: "asc" },
     include: {
       position: { select: { id: true, name: true } },
@@ -21,10 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { step_order, position_id, approver_user_id } = await req.json()
+  const { service_type, step_order, position_id, approver_user_id } = await req.json()
   const setting = await prisma.userApproverSetting.create({
     data: {
       user_id: id,
+      service_type: service_type || "tokui_credit",
       step_order: step_order ?? 0,
       position_id: position_id || null,
       approver_user_id: approver_user_id || null,

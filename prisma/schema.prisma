@@ -1486,6 +1486,7 @@ model TokuiCreditRequestFile {
 }
 model MApprovalRoute {
   id                String   @id @default(cuid())
+  service_type      String   @default("tokui_credit")
   step_order        Int
   position_id       String?
   position          MPosition? @relation(fields: [position_id], references: [id])
@@ -1499,6 +1500,7 @@ model UserApproverSetting {
   id                String   @id @default(cuid())
   user_id           String
   user              User     @relation("UserApproverOwner", fields: [user_id], references: [id])
+  service_type      String   @default("tokui_credit")
   step_order        Int
   position_id       String?
   position          MPosition? @relation("UserApproverPosition", fields: [position_id], references: [id])
