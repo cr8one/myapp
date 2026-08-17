@@ -71,12 +71,12 @@ const baseMenuItems = [
     { label: "見積一覧", href: "/dashboard/estimates" },
   ]},
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
-    { label: "得意先", href: "/dashboard/eapp/customers" },
-    { label: "納品先", href: "/dashboard/eapp/deliveries" },
-    { label: "仕入先", href: "/dashboard/eapp/suppliers" },
-    { label: "用紙", href: "/dashboard/eapp/papers" },
-    { label: "得意先共通承認者設定", href: "/dashboard/eapp/masters/approval-routes" },
-    { label: "システム担当者マスタ", href: "/dashboard/eapp/masters/system-staff" },
+    { label: "稟議書", href: "/dashboard/eapp/ringi" },
+    { label: "得意先登録", href: "/dashboard/eapp/customers" },
+    // { label: "納品先登録", href: "/dashboard/eapp/deliveries" },
+    // { label: "仕入先登録", href: "/dashboard/eapp/suppliers" },
+    // { label: "用紙登録", href: "/dashboard/eapp/papers" },
+    { label: "電子申請マスタ", href: "/dashboard/eapp/masters" },
   ]},
   { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [
     { label: "精算一覧", href: "/dashboard/travel" },

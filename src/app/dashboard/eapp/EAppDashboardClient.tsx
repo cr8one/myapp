@@ -5,9 +5,7 @@ import { Building2, Truck, ShoppingCart, FileText } from "lucide-react"
 
 type Stats = {
   customerCount: number
-  deliveryCount: number
-  supplierCount: number
-  paperCount: number
+  ringiCount: number
 }
 
 function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
@@ -32,7 +30,17 @@ function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
 
 const cards = [
   {
-    label: "得意先",
+    label: "稟議書",
+    key: "ringiCount" as keyof Stats,
+    href: "/dashboard/eapp/ringi",
+    icon: FileText,
+    bg: "bg-violet-50",
+    text: "text-violet-600",
+    border: "border-violet-100",
+    hover: "hover:border-violet-300",
+  },
+  {
+    label: "得意先登録",
     key: "customerCount" as keyof Stats,
     href: "/dashboard/eapp/customers",
     icon: Building2,
@@ -40,36 +48,6 @@ const cards = [
     text: "text-blue-600",
     border: "border-blue-100",
     hover: "hover:border-blue-300",
-  },
-  {
-    label: "納品先",
-    key: "deliveryCount" as keyof Stats,
-    href: "/dashboard/eapp/deliveries",
-    icon: Truck,
-    bg: "bg-sky-50",
-    text: "text-sky-600",
-    border: "border-sky-100",
-    hover: "hover:border-sky-300",
-  },
-  {
-    label: "仕入先",
-    key: "supplierCount" as keyof Stats,
-    href: "/dashboard/eapp/suppliers",
-    icon: ShoppingCart,
-    bg: "bg-indigo-50",
-    text: "text-indigo-600",
-    border: "border-indigo-100",
-    hover: "hover:border-indigo-300",
-  },
-  {
-    label: "用紙",
-    key: "paperCount" as keyof Stats,
-    href: "/dashboard/eapp/papers",
-    icon: FileText,
-    bg: "bg-cyan-50",
-    text: "text-cyan-600",
-    border: "border-cyan-100",
-    hover: "hover:border-cyan-300",
   },
 ]
 

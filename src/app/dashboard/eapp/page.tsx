@@ -10,9 +10,7 @@ export default async function EAppDashboardPage() {
     <EAppDashboardClient
       stats={{
         customerCount: 0,
-        deliveryCount: 0,
-        supplierCount: 0,
-        paperCount: 0,
+        ringiCount: 0,
       }}
     />
   )
