@@ -49,6 +49,7 @@ model User {
   cadRequests                 CadRequest[]
   addressBookChangeRequests    AddressBookChangeRequest[]
   approvalRouteSteps           MApprovalRoute[] @relation("ApprovalRouteApprover")
+  ringiRequests                 RingiRequest[]
   approverSettingsOwned        UserApproverSetting[] @relation("UserApproverOwner")
   approverSettingsAsApprover   UserApproverSetting[] @relation("UserApproverTarget")
   tokuiCreditRequestsAsRequester TokuiCreditRequest[] @relation("TokuiCreditRequester")
@@ -1509,4 +1510,49 @@ model UserApproverSetting {
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
   @@map("t_user_approver_settings")
+}
+model RingiRequest {
+  id                    String    @id @default(cuid())
+  title                 String
+  content               String    @db.Text
+  destination           String?
+  cost                  String?
+  requester_names       String
+  requester_user_id     String
+  requester             User      @relation(fields: [requester_user_id], references: [id])
+  requester_department  String?
+  status                String    @default("起案部承認中")
+  reception_number      String?
+  reception_date        DateTime?
+  decision_date         DateTime?
+  decision_result       String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  approval_steps        RingiApprovalStep[]
+  files                 RingiFile[]
+  @@map("t_ringi_requests")
+}
+model RingiApprovalStep {
+  id             String    @id @default(cuid())
+  request_id     String
+  request        RingiRequest @relation(fields: [request_id], references: [id])
+  stage          String
+  step_order     Int
+  position_name  String?
+  approver_name  String?
+  approver_email String?
+  status         String    @default("未承認")
+  approved_at    DateTime?
+  created_at     DateTime  @default(now())
+  @@map("t_ringi_approval_steps")
+}
+model RingiFile {
+  id          String   @id @default(cuid())
+  request_id  String
+  request     RingiRequest @relation(fields: [request_id], references: [id])
+  file_key    String
+  file_name   String
+  file_type   String
+  uploaded_at DateTime @default(now())
+  @@map("t_ringi_request_files")
 }

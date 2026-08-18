@@ -137,6 +137,7 @@ export default function UsersPage() {
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
   }
+  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
   const [showApproverForm, setShowApproverForm] = useState(false)
   const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
@@ -177,8 +178,8 @@ export default function UsersPage() {
     setError(""); setEditUser(null); setShowForm(false)
   }
 
-  const fetchApproverSettings = async (userId: string) => {
-    const res = await fetch(`/api/users/${userId}/approver-settings`)
+  const fetchApproverSettings = async (userId: string, serviceType?: string) => {
+    const res = await fetch(`/api/users/${userId}/approver-settings?service_type=${serviceType ?? approverServiceType}`)
     setApproverSettings(await res.json())
   }
   const fetchInkanPreview = async (key: string) => {
@@ -499,7 +500,17 @@ const handleInkanDelete = async () => {
             {editUser && (
               <div className="space-y-2 border rounded p-3">
                 <div className="flex items-center justify-between">
-                  <Label>承認者設定（このユーザーが得意先申請を作成した場合の承認ルート）</Label>
+                  <Label>承認者設定</Label>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => { setApproverServiceType("tokui_credit"); fetchApproverSettings(editUser.id, "tokui_credit") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "tokui_credit" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >得意先申請</button>
+                    <button
+                      onClick={() => { setApproverServiceType("ringi"); fetchApproverSettings(editUser.id, "ringi") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "ringi" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >稟議書</button>
+                  </div>
                   <button
                     onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
                     className="text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800"
@@ -520,14 +531,14 @@ const handleInkanDelete = async () => {
                     </select>
                     <button
                       onClick={async () => {
-                        const body = JSON.stringify({ step_order: approverStepOrder, position_id: approverPositionId || null, approver_user_id: approverUserId || null })
+                        const body = JSON.stringify({ service_type: approverServiceType, step_order: approverStepOrder, position_id: approverPositionId || null, approver_user_id: approverUserId || null })
                         if (editApprover) {
                           await fetch(`/api/users/${editUser.id}/approver-settings/${editApprover.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
                         } else {
                           await fetch(`/api/users/${editUser.id}/approver-settings`, { method: "POST", headers: { "Content-Type": "application/json" }, body })
                         }
                         setShowApproverForm(false)
-                        fetchApproverSettings(editUser.id)
+                        fetchApproverSettings(editUser.id, approverServiceType)
                       }}
                       className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800"
                     >保存</button>
@@ -551,7 +562,7 @@ const handleInkanDelete = async () => {
                           onClick={async () => {
                             if (!confirm("このステップを削除しますか？")) return
                             await fetch(`/api/users/${editUser.id}/approver-settings/${s.id}`, { method: "DELETE" })
-                            fetchApproverSettings(editUser.id)
+                            fetchApproverSettings(editUser.id, approverServiceType)
                           }}
                           className="text-xs text-red-500 hover:text-red-700"
                         >削除</button>
