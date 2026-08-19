@@ -18,6 +18,7 @@ type Staff = {
 
 export default function EappMastersPage() {
   const [activeTab, setActiveTab] = useState<"approval-routes" | "system-staff">("approval-routes")
+  const [routeServiceType, setRouteServiceType] = useState<"tokui_credit" | "ringi">("tokui_credit")
 
   // 得意先共通承認者設定
   const [routes, setRoutes] = useState<ApprovalRoute[]>([])
@@ -36,10 +37,10 @@ export default function EappMastersPage() {
   const [showStaffForm, setShowStaffForm] = useState(false)
   const [staffUserId, setStaffUserId] = useState("")
 
-  const fetchRoutes = async () => {
+  const fetchRoutes = async (serviceType?: string) => {
     setRoutesLoading(true)
     const [routeRes, positionRes, userRes] = await Promise.all([
-      fetch("/api/eapp/masters/approval-routes"),
+      fetch(`/api/eapp/masters/approval-routes?service_type=${serviceType ?? routeServiceType}`),
       fetch("/api/masters/positions"),
       fetch("/api/users/list"),
     ])
@@ -60,6 +61,17 @@ export default function EappMastersPage() {
   }
   useEffect(() => { fetchRoutes(); fetchStaff() }, [])
 
+  const saveRoute = async () => {
+    const body = JSON.stringify({ service_type: routeServiceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
+    if (editRoute) {
+      await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
+    } else {
+      await fetch("/api/eapp/masters/approval-routes", { method: "POST", headers: { "Content-Type": "application/json" }, body })
+    }
+    setShowRouteForm(false)
+    setEditRoute(null)
+    fetchRoutes()
+  }
   const startAddRoute = () => {
     setEditRoute(null)
     setStepOrder(routes.length + 1)
@@ -74,17 +86,7 @@ export default function EappMastersPage() {
     setApproverUserId(route.approver?.id ?? "")
     setShowRouteForm(true)
   }
-  const saveRoute = async () => {
-    const body = JSON.stringify({ step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
-    if (editRoute) {
-      await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
-    } else {
-      await fetch("/api/eapp/masters/approval-routes", { method: "POST", headers: { "Content-Type": "application/json" }, body })
-    }
-    setShowRouteForm(false)
-    setEditRoute(null)
-    fetchRoutes()
-  }
+  const body = JSON.stringify({ service_type: routeServiceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
   const removeRoute = async (id: string) => {
     if (!confirm("この承認ステップを削除しますか？")) return
     await fetch(`/api/eapp/masters/approval-routes/${id}`, { method: "DELETE" })
@@ -140,6 +142,16 @@ export default function EappMastersPage() {
                 全ての得意先申請に共通で適用される固定の承認ステップです（経理部・社長など）。ユーザーごとの可変ステップの後に、ここでの並び順で承認が進みます。
               </p>
             </div>
+          <div className="flex gap-1 mb-3">
+            <button
+              onClick={() => { setRouteServiceType("tokui_credit"); fetchRoutes("tokui_credit") }}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${routeServiceType === "tokui_credit" ? "bg-slate-700 text-white border-slate-700" : "bg-white text-gray-500 border-gray-200"}`}
+            >得意先申請</button>
+            <button
+              onClick={() => { setRouteServiceType("ringi"); fetchRoutes("ringi") }}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${routeServiceType === "ringi" ? "bg-slate-700 text-white border-slate-700" : "bg-white text-gray-500 border-gray-200"}`}
+            >稟議書</button>
+          </div>
             <button onClick={startAddRoute} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
               <Plus className="w-4 h-4" /> ステップ追加
             </button>
