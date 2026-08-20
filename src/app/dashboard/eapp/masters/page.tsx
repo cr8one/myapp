@@ -16,11 +16,19 @@ type Staff = {
   user: { id: string; name: string | null; email: string }
 }
 
-export default function EappMastersPage() {
-  const [activeTab, setActiveTab] = useState<"approval-routes" | "system-staff">("approval-routes")
-  const [routeServiceType, setRouteServiceType] = useState<"tokui_credit" | "ringi">("tokui_credit")
+const TAB_SERVICE_TYPE: Record<string, string> = {
+  "tokui-approval-routes": "tokui_credit",
+  "ringi-approval-routes": "ringi",
+}
+const TAB_DESCRIPTION: Record<string, string> = {
+  "tokui-approval-routes": "全ての得意先申請に共通で適用される固定の承認ステップです（経理部・社長など）。ユーザーごとの可変ステップの後に、ここでの並び順で承認が進みます。",
+  "ringi-approval-routes": "全ての稟議書に共通で適用される固定の承認ステップです（関連部・役員・社長など）。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。",
+}
 
-  // 得意先共通承認者設定
+export default function EappMastersPage() {
+  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "system-staff">("tokui-approval-routes")
+
+  // 共通承認者設定（得意先申請・稟議書）
   const [routes, setRoutes] = useState<ApprovalRoute[]>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [users, setUsers] = useState<UserOption[]>([])
@@ -37,10 +45,12 @@ export default function EappMastersPage() {
   const [showStaffForm, setShowStaffForm] = useState(false)
   const [staffUserId, setStaffUserId] = useState("")
 
-  const fetchRoutes = async (serviceType?: string) => {
+  const fetchRoutes = async (tab: string) => {
+    const serviceType = TAB_SERVICE_TYPE[tab]
+    if (!serviceType) return
     setRoutesLoading(true)
     const [routeRes, positionRes, userRes] = await Promise.all([
-      fetch(`/api/eapp/masters/approval-routes?service_type=${serviceType ?? routeServiceType}`),
+      fetch(`/api/eapp/masters/approval-routes?service_type=${serviceType}`),
       fetch("/api/masters/positions"),
       fetch("/api/users/list"),
     ])
@@ -59,10 +69,18 @@ export default function EappMastersPage() {
     setUsers(await userRes.json())
     setStaffLoading(false)
   }
-  useEffect(() => { fetchRoutes(); fetchStaff() }, [])
+  useEffect(() => { fetchRoutes(activeTab); fetchStaff() }, [])
+
+  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "system-staff") => {
+    setActiveTab(tab)
+    setShowRouteForm(false)
+    setEditRoute(null)
+    if (TAB_SERVICE_TYPE[tab]) fetchRoutes(tab)
+  }
 
   const saveRoute = async () => {
-    const body = JSON.stringify({ service_type: routeServiceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
+    const serviceType = TAB_SERVICE_TYPE[activeTab]
+    const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
     if (editRoute) {
       await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     } else {
@@ -70,7 +88,7 @@ export default function EappMastersPage() {
     }
     setShowRouteForm(false)
     setEditRoute(null)
-    fetchRoutes()
+    fetchRoutes(activeTab)
   }
   const startAddRoute = () => {
     setEditRoute(null)
@@ -86,11 +104,10 @@ export default function EappMastersPage() {
     setApproverUserId(route.approver?.id ?? "")
     setShowRouteForm(true)
   }
-  const body = JSON.stringify({ service_type: routeServiceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
   const removeRoute = async (id: string) => {
     if (!confirm("この承認ステップを削除しますか？")) return
     await fetch(`/api/eapp/masters/approval-routes/${id}`, { method: "DELETE" })
-    fetchRoutes()
+    fetchRoutes(activeTab)
   }
 
   const addStaff = async () => {
@@ -110,21 +127,31 @@ export default function EappMastersPage() {
     fetchStaff()
   }
 
+  const isRouteTab = activeTab === "tokui-approval-routes" || activeTab === "ringi-approval-routes"
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-4">電子申請マスタ</h1>
 
       <div className="flex gap-1 border-b border-gray-200 mb-6">
         <button
-          onClick={() => setActiveTab("approval-routes")}
+          onClick={() => switchTab("tokui-approval-routes")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "approval-routes" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
+            activeTab === "tokui-approval-routes" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
           得意先共通承認者設定
         </button>
         <button
-          onClick={() => setActiveTab("system-staff")}
+          onClick={() => switchTab("ringi-approval-routes")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "ringi-approval-routes" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          稟議書共通承認者設定
+        </button>
+        <button
+          onClick={() => switchTab("system-staff")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "system-staff" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
@@ -133,25 +160,15 @@ export default function EappMastersPage() {
         </button>
       </div>
 
-      {activeTab === "approval-routes" && (
+      {isRouteTab && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-slate-600" />
               <p className="text-xs text-gray-400">
-                全ての得意先申請に共通で適用される固定の承認ステップです（経理部・社長など）。ユーザーごとの可変ステップの後に、ここでの並び順で承認が進みます。
+                {TAB_DESCRIPTION[activeTab]}
               </p>
             </div>
-          <div className="flex gap-1 mb-3">
-            <button
-              onClick={() => { setRouteServiceType("tokui_credit"); fetchRoutes("tokui_credit") }}
-              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${routeServiceType === "tokui_credit" ? "bg-slate-700 text-white border-slate-700" : "bg-white text-gray-500 border-gray-200"}`}
-            >得意先申請</button>
-            <button
-              onClick={() => { setRouteServiceType("ringi"); fetchRoutes("ringi") }}
-              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${routeServiceType === "ringi" ? "bg-slate-700 text-white border-slate-700" : "bg-white text-gray-500 border-gray-200"}`}
-            >稟議書</button>
-          </div>
             <button onClick={startAddRoute} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
               <Plus className="w-4 h-4" /> ステップ追加
             </button>

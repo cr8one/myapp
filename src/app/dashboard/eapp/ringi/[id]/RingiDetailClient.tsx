@@ -167,14 +167,14 @@ export default function RingiDetailClient({ id }: { id: string }) {
             <div className="space-y-2">
               {steps.map(s => {
                 const isMine = s.approver_email === myEmail
-                const isFirstPending = steps.find(x => x.status === "未承認")?.id === s.id
+                const isEligible = s.status === "未承認" && !steps.some(x => x.step_order < s.step_order && x.status !== "承認済み")
                 return (
                   <div key={s.id} className="flex items-center gap-3 border-b py-2 last:border-0">
                     {s.status === "承認済み" ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <Circle className="w-4 h-4 text-gray-300 shrink-0" />}
                     <span className="text-xs text-gray-400 w-20">{s.position_name ?? "-"}</span>
                     <span className="text-sm flex-1">{s.approver_name ?? "-"}</span>
                     <span className="text-xs text-gray-400">{s.status}{s.approved_at ? `（${formatDate(s.approved_at)}）` : ""}</span>
-                    {isMine && isFirstPending && (
+                    {isMine && isEligible && (
                       <Button size="sm" onClick={() => approve(s.id)} disabled={processing}>承認する</Button>
                     )}
                   </div>

@@ -25,14 +25,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!target.approver_email || target.approver_email !== session.user.email) {
     return NextResponse.json({ error: "このステップの承認者本人のみ承認できます" }, { status: 403 })
   }
+  if (target.status === "承認済み") {
+    return NextResponse.json({ error: "既に承認済みです" }, { status: 400 })
+  }
 
   const stageSteps = await prisma.ringiApprovalStep.findMany({
     where: { request_id: id, stage: target.stage },
     orderBy: { step_order: "asc" },
   })
-  const firstPending = stageSteps.find(s => s.status === "未承認")
-  if (!firstPending || firstPending.id !== stepId) {
-    return NextResponse.json({ error: "前のステップが未承認のため承認できません" }, { status: 400 })
+
+  // 自分より前の順序が全て承認済みでなければ承認不可（同じ順序内は順不同）
+  const blockedByEarlier = stageSteps.some(s => s.step_order < target.step_order && s.status !== "承認済み")
+  if (blockedByEarlier) {
+    return NextResponse.json({ error: "前の順序の承認が完了していないため承認できません" }, { status: 400 })
   }
 
   await prisma.ringiApprovalStep.update({
@@ -40,23 +45,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: { status: "承認済み", approved_at: new Date() },
   })
 
-  const remaining = stageSteps.filter(s => s.id !== stepId && s.status === "未承認")
+  const sameOrderRemaining = stageSteps.filter(s => s.id !== stepId && s.step_order === target.step_order && s.status !== "承認済み")
+  const allRemaining = stageSteps.filter(s => s.id !== stepId && s.status !== "承認済み")
   const request = await prisma.ringiRequest.findUnique({ where: { id } })
 
-  if (remaining.length === 0) {
-    // 現ステージの全承認完了
+  if (allRemaining.length === 0) {
+    // このステージの全ステップ承認完了
     if (target.stage === "起案部") {
       await prisma.ringiRequest.update({ where: { id }, data: { status: "受付待ち" } })
     } else if (target.stage === "関連部役員社長") {
-      // このステージの最終ステップ承認時に決裁完了
       await prisma.ringiRequest.update({
         where: { id },
         data: { status: "決裁済み", decision_date: new Date(), decision_result: decision_result ?? "可" },
       })
     }
-  } else if (send_mail) {
-    const nextStep = remaining.sort((a, b) => a.step_order - b.step_order)[0]
-    if (nextStep.approver_email) {
+  } else if (sameOrderRemaining.length === 0 && send_mail) {
+    // 同じ順序の全員が承認完了 → 次の順序の承認者へまとめて通知
+    const nextOrder = Math.min(...allRemaining.map(s => s.step_order))
+    const nextSteps = allRemaining.filter(s => s.step_order === nextOrder)
+    for (const nextStep of nextSteps) {
+      if (!nextStep.approver_email) continue
       try {
         await transporter.sendMail({
           from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
@@ -74,5 +82,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     where: { request_id: id },
     orderBy: [{ stage: "asc" }, { step_order: "asc" }],
   })
-  return NextResponse.json({ steps: updated, stageCompleted: remaining.length === 0 })
+  return NextResponse.json({ steps: updated, stageCompleted: allRemaining.length === 0 })
 }
