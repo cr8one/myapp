@@ -3,10 +3,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X } from "lucide-react"
+import { Trash2, Plus } from "lucide-react"
 
 type UserOption = { id: string; name: string | null }
 type UploadedFile = { fileKey: string; fileName: string }
+type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
 
 export default function RingiNewPage() {
   const router = useRouter()
@@ -16,14 +17,42 @@ export default function RingiNewPage() {
   const [requesterUserId, setRequesterUserId] = useState("")
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [recordId, setRecordId] = useState("")
+  const [approvalSteps, setApprovalSteps] = useState<ApprovalStepInput[]>([])
 
   useEffect(() => {
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
     fetch("/api/auth/session").then(r => r.json()).then(s => {
-      if (s?.user?.id) setRequesterUserId(s.user.id)
+      if (s?.user?.id) {
+        setRequesterUserId(s.user.id)
+        loadApproverSettings(s.user.id)
+      }
       if (s?.user?.name) setForm(f => ({ ...f, requester_names: s.user.name }))
     })
   }, [])
+
+  const loadApproverSettings = async (userId: string) => {
+    const res = await fetch(`/api/users/${userId}/approver-settings?service_type=ringi`)
+    const data = await res.json()
+    setApprovalSteps(data.map((s: { step_order: number; position?: { name: string }; approver?: { id: string } }) => ({
+      step_order: s.step_order,
+      position_name: s.position?.name ?? "",
+      approver_user_id: s.approver?.id ?? "",
+    })))
+  }
+  const handleRequesterChange = (userId: string) => {
+    setRequesterUserId(userId)
+    if (userId) loadApproverSettings(userId)
+  }
+
+  const addStep = () => {
+    setApprovalSteps(prev => [...prev, { step_order: prev.length > 0 ? Math.max(...prev.map(s => s.step_order)) + 1 : 1, position_name: "", approver_user_id: "" }])
+  }
+  const updateStep = (idx: number, patch: Partial<ApprovalStepInput>) => {
+    setApprovalSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
+  const removeStep = (idx: number) => {
+    setApprovalSteps(prev => prev.filter((_, i) => i !== idx))
+  }
 
   const [form, setForm] = useState({
     title: "",
@@ -60,12 +89,12 @@ export default function RingiNewPage() {
         })
         const { url, key } = await presignRes.json()
         await fetch(url, { method: "PUT", body: file })
+        setFiles(prev => [...prev, { fileKey: key, fileName: file.name }])
         await fetch(`/api/eapp/ringi/${id}/files`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fileKey: key, fileName: file.name, fileType: file.type || "file" }),
         })
-        setFiles(prev => [...prev, { fileKey: key, fileName: file.name }])
       }
     } catch (e) {
       console.error(e)
@@ -88,6 +117,7 @@ export default function RingiNewPage() {
         requester_user_id: requesterUserId,
         status: asDraft ? "下書き" : "起案部承認中",
         send_mail: sendMail,
+        approval_steps: asDraft ? undefined : approvalSteps,
       }),
     })
     if (res.ok) {
@@ -125,7 +155,7 @@ export default function RingiNewPage() {
         </div>
         <div className={rowCls}>
           <label className={labelCls}>承認ルート設定</label>
-          <select value={requesterUserId} onChange={e => setRequesterUserId(e.target.value)}
+          <select value={requesterUserId} onChange={e => handleRequesterChange(e.target.value)}
             className="flex-1 h-8 border rounded px-2 text-sm bg-white">
             <option value="">-- 選択してください --</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -168,6 +198,32 @@ export default function RingiNewPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-gray-500">起案部承認ステップ（承認者設定から自動入力・その場で追加・削除・編集できます）</label>
+            <button onClick={addStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+              <Plus className="w-3 h-3" /> ステップ追加
+            </button>
+          </div>
+          {approvalSteps.length === 0 ? (
+            <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+          ) : (
+            <div className="space-y-2">
+              {approvalSteps.map((s, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                  <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
+                  <Input autoComplete="off" className="w-24 h-8 text-sm" placeholder="役職(任意)" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })} />
+                  <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
+                    <option value="">-- 承認者(氏名) --</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                  <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Circle, Download } from "lucide-react"
+import { CheckCircle2, Circle, Download, Trash2, Plus } from "lucide-react"
 
 type ApprovalStep = {
   id: string
@@ -37,6 +37,9 @@ type Ringi = {
   approval_steps: ApprovalStep[]
 }
 
+type UserOption = { id: string; name: string | null }
+type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
+
 const STAGE_LABEL: Record<string, string> = {
   "起案部": "起案部承認",
   "関連部役員社長": "関連部・役員・社長承認",
@@ -50,6 +53,8 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const [receptionNumber, setReceptionNumber] = useState("")
   const [receptionDate, setReceptionDate] = useState("")
   const [processing, setProcessing] = useState(false)
+  const [users, setUsers] = useState<UserOption[]>([])
+  const [receptionSteps, setReceptionSteps] = useState<ApprovalStepInput[]>([])
 
   const fetchData = async () => {
     const res = await fetch(`/api/eapp/ringi/${id}`)
@@ -60,6 +65,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
   useEffect(() => {
     fetchData()
     fetch("/api/auth/session").then(r => r.json()).then(s => setMyEmail(s?.user?.email ?? ""))
+    fetch("/api/users/list").then(r => r.json()).then(setUsers)
+    fetch("/api/eapp/masters/approval-routes?service_type=ringi").then(r => r.json()).then((routes: { step_order: number; position?: { name: string }; approver?: { id: string } }[]) => {
+      setReceptionSteps(routes.map(r => ({ step_order: r.step_order, position_name: r.position?.name ?? "", approver_user_id: r.approver?.id ?? "" })))
+    })
   }, [id])
 
   const approve = async (stepId: string) => {
@@ -77,12 +86,22 @@ export default function RingiDetailClient({ id }: { id: string }) {
     setProcessing(false)
   }
 
+  const addReceptionStep = () => {
+    setReceptionSteps(prev => [...prev, { step_order: prev.length > 0 ? Math.max(...prev.map(s => s.step_order)) + 1 : 1, position_name: "", approver_user_id: "" }])
+  }
+  const updateReceptionStep = (idx: number, patch: Partial<ApprovalStepInput>) => {
+    setReceptionSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
+  const removeReceptionStep = (idx: number) => {
+    setReceptionSteps(prev => prev.filter((_, i) => i !== idx))
+  }
+
   const submitReception = async () => {
     setProcessing(true)
     const res = await fetch(`/api/eapp/ringi/${id}/reception`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reception_number: receptionNumber, reception_date: receptionDate, send_mail: true }),
+      body: JSON.stringify({ reception_number: receptionNumber, reception_date: receptionDate, send_mail: true, approval_steps: receptionSteps }),
     })
     if (!res.ok) {
       alert("受付処理に失敗しました")
@@ -188,7 +207,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
       {data.status === "受付待ち" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-4">
           <h3 className="text-sm font-semibold text-amber-800 mb-3">受付処理</h3>
-          <div className="flex gap-3 items-end">
+          <div className="flex gap-3 items-end mb-4">
             <div>
               <label className="text-xs text-gray-500 block mb-1">受付番号</label>
               <Input value={receptionNumber} onChange={e => setReceptionNumber(e.target.value)} className="h-8 text-sm w-40" autoComplete="off" placeholder="R08-004" />
@@ -197,6 +216,31 @@ export default function RingiDetailClient({ id }: { id: string }) {
               <label className="text-xs text-gray-500 block mb-1">受付日</label>
               <Input type="date" value={receptionDate} onChange={e => setReceptionDate(e.target.value)} className="h-8 text-sm w-40" autoComplete="off" />
             </div>
+          </div>
+          <div className="border-t border-amber-200 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-gray-600">関連部・役員・社長 承認ステップ（マスタから自動入力・その場で追加・削除・編集できます）</label>
+              <button onClick={addReceptionStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+                <Plus className="w-3 h-3" /> ステップ追加
+              </button>
+            </div>
+            {receptionSteps.length === 0 ? (
+              <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+            ) : (
+              <div className="space-y-2 mb-3">
+                {receptionSteps.map((s, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-3 py-2">
+                    <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateReceptionStep(idx, { step_order: Number(e.target.value) })} />
+                    <Input autoComplete="off" className="w-24 h-8 text-sm" placeholder="役職(任意)" value={s.position_name} onChange={e => updateReceptionStep(idx, { position_name: e.target.value })} />
+                    <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateReceptionStep(idx, { approver_user_id: e.target.value })}>
+                      <option value="">-- 承認者(氏名) --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                    <button onClick={() => removeReceptionStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
             <Button onClick={submitReception} disabled={processing}>受付する</Button>
           </div>
         </div>

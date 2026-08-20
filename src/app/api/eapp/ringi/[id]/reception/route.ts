@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { reception_number, reception_date, send_mail } = await req.json()
+  const { reception_number, reception_date, send_mail, approval_steps } = await req.json()
 
   const request = await prisma.ringiRequest.findUnique({ where: { id } })
   if (!request) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -25,44 +25,68 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "受付待ち状態の申請のみ受付処理できます" }, { status: 400 })
   }
 
-  const commonSteps = await prisma.mApprovalRoute.findMany({
-    where: { service_type: "ringi" },
-    orderBy: { step_order: "asc" },
-    include: {
-      position: { select: { name: true } },
-      approver: { select: { name: true, email: true } },
-    },
-  })
+  let steps: { step_order: number; position_name: string | null; approver_name: string | null; approver_email: string | null }[] = []
+
+  if (Array.isArray(approval_steps) && approval_steps.length > 0) {
+    const userIds: string[] = approval_steps.map((s: { approver_user_id?: string }) => s.approver_user_id).filter((v: string | undefined): v is string => !!v)
+    const approvers = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
+    steps = approval_steps.map((s: { step_order: number; position_name?: string; approver_user_id?: string }) => {
+      const approver = approvers.find(a => a.id === s.approver_user_id)
+      return {
+        step_order: s.step_order,
+        position_name: s.position_name || null,
+        approver_name: approver?.name ?? null,
+        approver_email: approver?.email ?? null,
+      }
+    })
+  } else {
+    const commonSteps = await prisma.mApprovalRoute.findMany({
+      where: { service_type: "ringi" },
+      orderBy: { step_order: "asc" },
+      include: {
+        position: { select: { name: true } },
+        approver: { select: { name: true, email: true } },
+      },
+    })
+    steps = commonSteps.map(s => ({
+      step_order: s.step_order,
+      position_name: s.position?.name ?? null,
+      approver_name: s.approver?.name ?? null,
+      approver_email: s.approver?.email ?? null,
+    }))
+  }
 
   const updated = await prisma.ringiRequest.update({
     where: { id },
     data: {
       reception_number: reception_number || null,
       reception_date: reception_date ? new Date(reception_date) : new Date(),
-      status: commonSteps.length > 0 ? "関連部承認中" : "決裁済み",
+      status: steps.length > 0 ? "関連部承認中" : "決裁済み",
     },
   })
 
-  if (commonSteps.length > 0) {
+  if (steps.length > 0) {
     await prisma.ringiApprovalStep.createMany({
-      data: commonSteps.map((s, idx) => ({
+      data: steps.map((s, idx) => ({
         request_id: id,
         stage: "関連部役員社長",
-        step_order: idx + 1,
-        position_name: s.position?.name ?? null,
-        approver_name: s.approver?.name ?? null,
-        approver_email: s.approver?.email ?? null,
+        step_order: s.step_order || idx + 1,
+        position_name: s.position_name,
+        approver_name: s.approver_name,
+        approver_email: s.approver_email,
       })),
     })
     if (send_mail !== false) {
-      const first = commonSteps[0]
-      if (first.approver?.email) {
+      const firstOrder = Math.min(...steps.map(s => s.step_order || 1))
+      const firstStepApprovers = steps.filter(s => (s.step_order || 1) === firstOrder)
+      for (const s of firstStepApprovers) {
+        if (!s.approver_email) continue
         try {
           await transporter.sendMail({
             from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
-            to: first.approver.email,
+            to: s.approver_email,
             subject: `【稟議書】承認依頼: ${updated.title}`,
-            text: `${first.approver.name ?? ""} 様\n\n稟議書「${updated.title}」の承認をお願いします。\n\nhttps://japansleevesystem.com/dashboard/eapp/ringi/${id}`,
+            text: `${s.approver_name ?? ""} 様\n\n稟議書「${updated.title}」の承認をお願いします。\n\nhttps://japansleevesystem.com/dashboard/eapp/ringi/${id}`,
           })
         } catch (e) {
           console.error("承認依頼メール送信エラー:", e)
