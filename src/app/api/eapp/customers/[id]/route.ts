@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 下書き→申請済みへの初回遷移時のみ、承認ルートのスナップショットを生成
   if (before?.status === "下書き" && record.status === "申請済み" && record.requester_user_id) {
     const userSteps = await prisma.userApproverSetting.findMany({
-      where: { user_id: record.requester_user_id },
+      where: { user_id: record.requester_user_id, service_type: "tokui_credit" },
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
@@ -55,6 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     })
     const commonSteps = await prisma.mApprovalRoute.findMany({
+      where: { service_type: "tokui_credit" },
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },

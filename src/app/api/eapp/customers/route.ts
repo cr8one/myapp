@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   // 「申請する」時のみ生成（下書き保存では生成しない）
   if (requestBody.status === "申請済み" && requestBody.requester_user_id) {
     const userSteps = await prisma.userApproverSetting.findMany({
-      where: { user_id: requestBody.requester_user_id },
+      where: { user_id: requestBody.requester_user_id, service_type: "tokui_credit" },
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
       },
     })
     const commonSteps = await prisma.mApprovalRoute.findMany({
+      where: { service_type: "tokui_credit" },
       orderBy: { step_order: "asc" },
       include: {
         position: { select: { name: true } },
