@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { send_mail, ...requestBody } = body
+  const { send_mail, approval_steps, ...requestBody } = body
   const sendMailOnCreate = send_mail !== false
 
   // uid採番：TK10001から
@@ -74,44 +74,68 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // 承認ルートのスナップショット生成：①申請者の承認者設定 → ②得意先共通承認者設定 の順
-  // 「申請する」時のみ生成（下書き保存では生成しない）
+  // 承認ルートのスナップショット生成：「申請する」時のみ生成（下書き保存では生成しない）
+  // approval_stepsが明示的に渡された場合はそれを優先（その場で追加・削除・編集された内容）、
+  // なければ①申請者の承認者設定 → ②得意先共通承認者設定 の順で自動生成
   if (requestBody.status === "申請済み" && requestBody.requester_user_id) {
-    const userSteps = await prisma.userApproverSetting.findMany({
-      where: { user_id: requestBody.requester_user_id, service_type: "tokui_credit" },
-      orderBy: { step_order: "asc" },
-      include: {
-        position: { select: { name: true } },
-        approver: { select: { name: true, email: true } },
-      },
-    })
-    const commonSteps = await prisma.mApprovalRoute.findMany({
-      where: { service_type: "tokui_credit" },
-      orderBy: { step_order: "asc" },
-      include: {
-        position: { select: { name: true } },
-        approver: { select: { name: true, email: true } },
-      },
-    })
-    const combined = [...userSteps, ...commonSteps]
+    let combined: { position_name: string | null; approver_name: string | null; approver_email: string | null }[] = []
+
+    if (Array.isArray(approval_steps) && approval_steps.length > 0) {
+      const userIds: string[] = approval_steps.map((s: { approver_user_id?: string }) => s.approver_user_id).filter((v: string | undefined): v is string => !!v)
+      const approvers = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
+      combined = approval_steps
+        .slice()
+        .sort((a: { step_order: number }, b: { step_order: number }) => a.step_order - b.step_order)
+        .map((s: { position_name?: string; approver_user_id?: string }) => {
+          const approver = approvers.find(a => a.id === s.approver_user_id)
+          return {
+            position_name: s.position_name || null,
+            approver_name: approver?.name ?? null,
+            approver_email: approver?.email ?? null,
+          }
+        })
+    } else {
+      const userSteps = await prisma.userApproverSetting.findMany({
+        where: { user_id: requestBody.requester_user_id, service_type: "tokui_credit" },
+        orderBy: { step_order: "asc" },
+        include: {
+          position: { select: { name: true } },
+          approver: { select: { name: true, email: true } },
+        },
+      })
+      const commonSteps = await prisma.mApprovalRoute.findMany({
+        where: { service_type: "tokui_credit" },
+        orderBy: { step_order: "asc" },
+        include: {
+          position: { select: { name: true } },
+          approver: { select: { name: true, email: true } },
+        },
+      })
+      combined = [...userSteps, ...commonSteps].map(s => ({
+        position_name: s.position?.name ?? null,
+        approver_name: s.approver?.name ?? null,
+        approver_email: s.approver?.email ?? null,
+      }))
+    }
+
     if (combined.length > 0) {
       await prisma.tokuiCreditRequestApprovalStep.createMany({
         data: combined.map((s, idx) => ({
           request_id: record.id,
           step_order: idx + 1,
-          position_name: s.position?.name ?? null,
-          approver_name: s.approver?.name ?? null,
-          approver_email: s.approver?.email ?? null,
+          position_name: s.position_name,
+          approver_name: s.approver_name,
+          approver_email: s.approver_email,
         })),
       })
       const firstStep = combined[0]
-      if (sendMailOnCreate && firstStep.approver?.email) {
+      if (sendMailOnCreate && firstStep.approver_email) {
         try {
           await transporter.sendMail({
             from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
-            to: firstStep.approver.email,
+            to: firstStep.approver_email,
             subject: `【得意先申請】承認依頼: ${record.company_name ?? ""}（${record.uid}）`,
-            text: `${firstStep.approver.name ?? ""} 様\n\n得意先申請（${record.uid}）の承認をお願いします。\n\n会社名: ${record.company_name ?? ""}\n申請種別: ${record.request_type === "NEW" ? "登録依頼" : "修正依頼"}\n\n以下のURLから確認・承認してください。\nhttps://japansleevesystem.com/dashboard/eapp/customers/${record.id}`,
+            text: `${firstStep.approver_name ?? ""} 様\n\n得意先申請（${record.uid}）の承認をお願いします。\n\n会社名: ${record.company_name ?? ""}\n申請種別: ${record.request_type === "NEW" ? "登録依頼" : "修正依頼"}\n\n以下のURLから確認・承認してください。\nhttps://japansleevesystem.com/dashboard/eapp/customers/${record.id}`,
           })
         } catch (e) {
           console.error("承認依頼メール送信エラー:", e)

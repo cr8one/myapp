@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, FileText, Trash2 } from "lucide-react"
+import { Upload, Download, FileText, Trash2, Plus } from "lucide-react"
 
 type FileRecord = {
   id: string
@@ -21,6 +21,8 @@ type ApprovalStep = {
   status: string
   approved_at: string | null
 }
+type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
+type UserOption = { id: string; name: string | null }
 type TokuiCreditRequest = {
   id: string
   uid: string
@@ -48,6 +50,7 @@ type TokuiCreditRequest = {
   future_prospects: string | null
   requested_credit_limit: string | null
   requested_date: string | null
+  requester_user_id: string | null
   manager_comment: string | null
   division_head_comment: string | null
   accounting_comment: string | null
@@ -75,6 +78,33 @@ export default function EAppCustomerDetailPage() {
   const [form, setForm] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [submitDialog, setSubmitDialog] = useState(false)
+  const [users, setUsers] = useState<UserOption[]>([])
+  const [approvalSteps, setApprovalSteps] = useState<ApprovalStepInput[]>([])
+  useEffect(() => { fetch("/api/users/list").then(r => r.json()).then(setUsers) }, [])
+  const loadApproverSettings = async (userId: string) => {
+    const [userRes, commonRes] = await Promise.all([
+      fetch(`/api/users/${userId}/approver-settings?service_type=tokui_credit`),
+      fetch(`/api/eapp/masters/approval-routes?service_type=tokui_credit`),
+    ])
+    const userSteps = await userRes.json()
+    const commonSteps = await commonRes.json()
+    type RawStep = { position?: { name: string }; approver?: { id: string } }
+    const combined = [...userSteps, ...commonSteps].map((s: RawStep, idx: number) => ({
+      step_order: idx + 1,
+      position_name: s.position?.name ?? "",
+      approver_user_id: s.approver?.id ?? "",
+    }))
+    setApprovalSteps(combined)
+  }
+  const addStep = () => {
+    setApprovalSteps(prev => [...prev, { step_order: prev.length > 0 ? Math.max(...prev.map(s => s.step_order)) + 1 : 1, position_name: "", approver_user_id: "" }])
+  }
+  const updateStep = (idx: number, patch: Partial<ApprovalStepInput>) => {
+    setApprovalSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
+  const removeStep = (idx: number) => {
+    setApprovalSteps(prev => prev.filter((_, i) => i !== idx))
+  }
   const editableFields = [
     "company_name", "industry", "representative_name", "capital", "established_year_month",
     "annual_revenue", "employee_count", "main_bank_name", "main_bank_branch", "postal_code",
@@ -93,6 +123,9 @@ export default function EAppCustomerDetailPage() {
     editableFields.forEach(k => { initial[k] = (data as Record<string, unknown>)[k] as string ?? "" })
     approvalCommentFields.forEach(k => { initial[k] = (data as Record<string, unknown>)[k] as string ?? "" })
     setForm(initial)
+    if (data.status === "下書き" && data.requester_user_id) {
+      loadApproverSettings(data.requester_user_id)
+    }
     setLoading(false)
   }
   useEffect(() => { fetchRecord() }, [id])
@@ -113,7 +146,7 @@ export default function EAppCustomerDetailPage() {
     await fetch(`/api/eapp/customers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, status: "申請済み", send_mail: sendMail }),
+      body: JSON.stringify({ ...form, status: "申請済み", send_mail: sendMail, approval_steps: approvalSteps }),
     })
     await fetchRecord()
     setSaving(false)
@@ -324,6 +357,31 @@ export default function EAppCustomerDetailPage() {
                 <div className="mt-3">
                   <span className="text-xs font-medium text-gray-500 block mb-1">今後の見込み</span>
                   <textarea value={form.future_prospects ?? ""} onChange={e => set("future_prospects", e.target.value)} className="w-full border rounded px-3 py-2 text-sm resize-none" rows={6} autoComplete="off" />
+                </div>
+                <div className="mt-4 border-t pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-gray-500">承認ステップ（承認者設定から自動入力・その場で追加・削除・編集できます）</label>
+                    <button onClick={addStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+                      <Plus className="w-3 h-3" /> ステップ追加
+                    </button>
+                  </div>
+                  {approvalSteps.length === 0 ? (
+                    <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {approvalSteps.map((s, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                          <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
+                          <Input autoComplete="off" className="w-24 h-8 text-sm" placeholder="役職(任意)" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })} />
+                          <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
+                            <option value="">-- 承認者(氏名) --</option>
+                            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                          <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" size="sm" onClick={saveDraft} disabled={saving}>{saving ? "保存中..." : "下書き保存"}</Button>
