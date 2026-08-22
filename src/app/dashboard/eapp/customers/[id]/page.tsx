@@ -23,6 +23,7 @@ type ApprovalStep = {
 }
 type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
 type UserOption = { id: string; name: string | null }
+type PositionOption = { id: string; name: string }
 type TokuiCreditRequest = {
   id: string
   uid: string
@@ -80,7 +81,11 @@ export default function EAppCustomerDetailPage() {
   const [submitDialog, setSubmitDialog] = useState(false)
   const [users, setUsers] = useState<UserOption[]>([])
   const [approvalSteps, setApprovalSteps] = useState<ApprovalStepInput[]>([])
-  useEffect(() => { fetch("/api/users/list").then(r => r.json()).then(setUsers) }, [])
+  const [positions, setPositions] = useState<PositionOption[]>([])
+  useEffect(() => {
+    fetch("/api/users/list").then(r => r.json()).then(setUsers)
+    fetch("/api/masters/positions").then(r => r.json()).then(setPositions)
+  }, [])
   const loadApproverSettings = async (userId: string) => {
     const [userRes, commonRes] = await Promise.all([
       fetch(`/api/users/${userId}/approver-settings?service_type=tokui_credit`),
@@ -372,7 +377,10 @@ export default function EAppCustomerDetailPage() {
                       {approvalSteps.map((s, idx) => (
                         <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
                           <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
-                          <Input autoComplete="off" className="w-24 h-8 text-sm" placeholder="役職(任意)" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })} />
+                          <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })}>
+                            <option value="">-- 役職(任意) --</option>
+                            {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                          </select>
                           <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
                             <option value="">-- 承認者(氏名) --</option>
                             {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}

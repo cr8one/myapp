@@ -39,6 +39,7 @@ type Ringi = {
 
 type UserOption = { id: string; name: string | null }
 type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
+type PositionOption = { id: string; name: string }
 
 const STAGE_LABEL: Record<string, string> = {
   "起案部": "起案部承認",
@@ -54,6 +55,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const [receptionDate, setReceptionDate] = useState("")
   const [processing, setProcessing] = useState(false)
   const [users, setUsers] = useState<UserOption[]>([])
+  const [positions, setPositions] = useState<PositionOption[]>([])
   const [receptionSteps, setReceptionSteps] = useState<ApprovalStepInput[]>([])
 
   const fetchData = async () => {
@@ -66,6 +68,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
     fetchData()
     fetch("/api/auth/session").then(r => r.json()).then(s => setMyEmail(s?.user?.email ?? ""))
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
+    fetch("/api/masters/positions").then(r => r.json()).then(setPositions)
     fetch("/api/eapp/masters/approval-routes?service_type=ringi").then(r => r.json()).then((routes: { step_order: number; position?: { name: string }; approver?: { id: string } }[]) => {
       setReceptionSteps(routes.map(r => ({ step_order: r.step_order, position_name: r.position?.name ?? "", approver_user_id: r.approver?.id ?? "" })))
     })
@@ -231,7 +234,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
                 {receptionSteps.map((s, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-white border border-gray-200 rounded px-3 py-2">
                     <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateReceptionStep(idx, { step_order: Number(e.target.value) })} />
-                    <Input autoComplete="off" className="w-24 h-8 text-sm" placeholder="役職(任意)" value={s.position_name} onChange={e => updateReceptionStep(idx, { position_name: e.target.value })} />
+                    <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateReceptionStep(idx, { position_name: e.target.value })}>
+                    <option value="">-- 役職(任意) --</option>
+                    {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
                     <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateReceptionStep(idx, { approver_user_id: e.target.value })}>
                       <option value="">-- 承認者(氏名) --</option>
                       {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
