@@ -154,6 +154,9 @@ export default function RingiDetailClient({ id }: { id: string }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600">{data.status}</span>
+          <a href={`/api/eapp/ringi/pdf?id=${id}`} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="flex items-center gap-1"><Download className="w-3 h-3" />PDF出力</Button>
+          </a>
           {isAdmin && (
             <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1 hover:bg-red-50">削除</button>
           )}
