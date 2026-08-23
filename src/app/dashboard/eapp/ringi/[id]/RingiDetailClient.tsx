@@ -51,6 +51,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const [data, setData] = useState<Ringi | null>(null)
   const [loading, setLoading] = useState(true)
   const [myEmail, setMyEmail] = useState("")
+  const [isAdmin, setIsAdmin] = useState(false)
   const [receptionNumber, setReceptionNumber] = useState("")
   const [receptionDate, setReceptionDate] = useState("")
   const [processing, setProcessing] = useState(false)
@@ -66,7 +67,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
   }
   useEffect(() => {
     fetchData()
-    fetch("/api/auth/session").then(r => r.json()).then(s => setMyEmail(s?.user?.email ?? ""))
+    fetch("/api/auth/session").then(r => r.json()).then(s => { setMyEmail(s?.user?.email ?? ""); if (s?.user?.role === "ADMIN") setIsAdmin(true) })
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
     fetch("/api/masters/positions").then(r => r.json()).then(setPositions)
     fetch("/api/eapp/masters/approval-routes?service_type=ringi").then(r => r.json()).then((routes: { step_order: number; position?: { name: string }; approver?: { id: string } }[]) => {
@@ -74,6 +75,16 @@ export default function RingiDetailClient({ id }: { id: string }) {
     })
   }, [id])
 
+  const handleDelete = async () => {
+    if (!confirm("この稟議書を削除しますか？この操作は取り消せません。")) return
+    const res = await fetch(`/api/eapp/ringi/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      router.push("/dashboard/eapp/ringi")
+    } else {
+      const data = await res.json()
+      alert(data.error ?? "削除に失敗しました")
+    }
+  }
   const approve = async (stepId: string) => {
     setProcessing(true)
     const res = await fetch(`/api/eapp/ringi/${id}/approval-steps/${stepId}/approve`, {
@@ -141,7 +152,12 @@ export default function RingiDetailClient({ id }: { id: string }) {
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/eapp/ringi")}>← 一覧へ</Button>
           <h1 className="text-2xl font-bold">{data.title}</h1>
         </div>
-        <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600">{data.status}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600">{data.status}</span>
+          {isAdmin && (
+            <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1 hover:bg-red-50">削除</button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm p-6 mb-6 space-y-1">

@@ -13,6 +13,21 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
+  const record = await prisma.ringiRequest.findUnique({
+    where: { id },
+    include: {
+      files: { orderBy: { uploaded_at: "desc" } },
+      approval_steps: { orderBy: { step_order: "asc" } },
+    },
+  })
+  if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  return NextResponse.json(record)
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -90,4 +105,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   return NextResponse.json(record)
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "管理者のみ削除できます" }, { status: 403 })
+  }
+  const { id } = await params
+  await prisma.ringiFile.deleteMany({ where: { request_id: id } })
+  await prisma.ringiApprovalStep.deleteMany({ where: { request_id: id } })
+  await prisma.ringiRequest.delete({ where: { id } })
+  return NextResponse.json({ ok: true })
 }
