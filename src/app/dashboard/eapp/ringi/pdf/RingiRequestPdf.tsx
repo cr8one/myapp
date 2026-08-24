@@ -95,6 +95,11 @@ const F = StyleSheet.create({
   titleFieldSuffix: { fontSize: 10, marginLeft: "2mm" },
   dateRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: "3mm" },
   dateText: { fontSize: 8.5 },
+  requesterRow: { alignItems: "flex-end", marginBottom: "3mm" },
+  requesterText: { fontSize: 9 },
+  kiRow: { alignItems: "center", marginBottom: "3mm" },
+  kiText: { fontSize: 11, fontWeight: "bold" },
+  numberedLabel: { fontSize: 9, fontWeight: "bold", marginBottom: "1mm" },
 })
 type ApprovalStepProps = {
   stage: string
@@ -239,22 +244,28 @@ export default function RingiRequestPdf(props: Props) {
           <Text style={F.dateText}>{formatDate(props.created_at)}</Text>
         </View>
 
-        <View style={F.section}>
-          <View style={F.row}>
-            <Field label="起案者" value={props.requester_names} />
-            <Field label="起案部" value={props.requester_department} />
-          </View>
-          <View style={F.row}>
-            <Field label="依頼先" value={props.destination} />
-            <Field label="費用" value={props.cost} />
-          </View>
+        <View style={F.requesterRow}>
+          <Text style={F.requesterText}>{props.requester_department ?? ""}</Text>
+          <Text style={F.requesterText}>{props.requester_names ?? ""}</Text>
+        </View>
+
+        <View style={F.kiRow}>
+          <Text style={F.kiText}>記</Text>
         </View>
 
         <View style={F.section}>
-          <SectionTitle>目的・内容</SectionTitle>
-          <View style={F.row}>
-            <Field label="目的・内容" value={props.content} tall />
-          </View>
+          <Text style={F.numberedLabel}>１．目的・内容</Text>
+          <Text style={F.fieldValTall}>{props.content ?? ""}</Text>
+        </View>
+
+        <View style={F.section}>
+          <Text style={F.numberedLabel}>２．依頼先</Text>
+          <Text style={F.fieldVal}>{props.destination ?? ""}</Text>
+        </View>
+
+        <View style={F.section}>
+          <Text style={F.numberedLabel}>３．費用</Text>
+          <Text style={F.fieldVal}>{props.cost ?? ""}</Text>
         </View>
       </Page>
     </Document>
