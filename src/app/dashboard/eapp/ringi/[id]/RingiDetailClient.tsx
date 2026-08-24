@@ -85,12 +85,14 @@ export default function RingiDetailClient({ id }: { id: string }) {
       alert(data.error ?? "削除に失敗しました")
     }
   }
-  const approve = async (stepId: string) => {
+  const [approveTarget, setApproveTarget] = useState<string | null>(null)
+  const approve = async (stepId: string, sendMail: boolean) => {
+    setApproveTarget(null)
     setProcessing(true)
     const res = await fetch(`/api/eapp/ringi/${id}/approval-steps/${stepId}/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ send_mail: true }),
+      body: JSON.stringify({ send_mail: sendMail }),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
@@ -110,12 +112,14 @@ export default function RingiDetailClient({ id }: { id: string }) {
     setReceptionSteps(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const submitReception = async () => {
+  const [receptionConfirmDialog, setReceptionConfirmDialog] = useState(false)
+  const submitReception = async (sendMail: boolean) => {
+    setReceptionConfirmDialog(false)
     setProcessing(true)
     const res = await fetch(`/api/eapp/ringi/${id}/reception`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reception_number: receptionNumber, reception_date: receptionDate, send_mail: true, approval_steps: receptionSteps }),
+      body: JSON.stringify({ reception_number: receptionNumber, reception_date: receptionDate, send_mail: sendMail, approval_steps: receptionSteps }),
     })
     if (!res.ok) {
       alert("受付処理に失敗しました")
@@ -216,7 +220,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
                     <span className="text-sm flex-1">{s.approver_name ?? "-"}</span>
                     <span className="text-xs text-gray-400">{s.status}{s.approved_at ? `（${formatDate(s.approved_at)}）` : ""}</span>
                     {isMine && isEligible && (
-                      <Button size="sm" onClick={() => approve(s.id)} disabled={processing}>承認する</Button>
+                      <Button size="sm" onClick={() => setApproveTarget(s.id)} disabled={processing}>承認する</Button>
                     )}
                   </div>
                 )
@@ -272,7 +276,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
                 ))}
               </div>
             )}
-            <Button onClick={submitReception} disabled={processing}>受付する</Button>
+            <Button onClick={() => setReceptionConfirmDialog(true)} disabled={processing}>受付する</Button>
           </div>
         </div>
       )}
@@ -281,6 +285,32 @@ export default function RingiDetailClient({ id }: { id: string }) {
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
           <h3 className="text-sm font-semibold text-emerald-800 mb-2">決裁完了</h3>
           <p className="text-sm text-gray-700">決裁日: {formatDate(data.decision_date)} ／ 決裁結果: {data.decision_result ?? "-"}</p>
+        </div>
+      )}
+      {approveTarget && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">承認の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => approve(approveTarget, true)} disabled={processing}>送信して承認する</Button>
+              <Button variant="outline" onClick={() => approve(approveTarget, false)} disabled={processing}>送信せず承認する</Button>
+              <button onClick={() => setApproveTarget(null)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {receptionConfirmDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">受付処理の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">受付処理を行います。関連部・役員・社長の最初の承認者にメールで通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => submitReception(true)} disabled={processing}>送信して受付する</Button>
+              <Button variant="outline" onClick={() => submitReception(false)} disabled={processing}>送信せず受付する</Button>
+              <button onClick={() => setReceptionConfirmDialog(false)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
