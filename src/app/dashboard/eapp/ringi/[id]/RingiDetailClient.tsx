@@ -86,13 +86,15 @@ export default function RingiDetailClient({ id }: { id: string }) {
     }
   }
   const [approveTarget, setApproveTarget] = useState<string | null>(null)
-  const approve = async (stepId: string, sendMail: boolean) => {
+  const [decisionResult, setDecisionResult] = useState("可")
+  const [approveIsFinal, setApproveIsFinal] = useState(false)
+  const approve = async (stepId: string, sendMail: boolean, isFinal: boolean) => {
     setApproveTarget(null)
     setProcessing(true)
     const res = await fetch(`/api/eapp/ringi/${id}/approval-steps/${stepId}/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ send_mail: sendMail }),
+      body: JSON.stringify({ send_mail: sendMail, decision_result: isFinal ? decisionResult : undefined }),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
@@ -100,6 +102,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
     }
     await fetchData()
     setProcessing(false)
+    setDecisionResult("可")
   }
 
   const addReceptionStep = () => {
@@ -220,7 +223,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
                     <span className="text-sm flex-1">{s.approver_name ?? "-"}</span>
                     <span className="text-xs text-gray-400">{s.status}{s.approved_at ? `（${formatDate(s.approved_at)}）` : ""}</span>
                     {isMine && isEligible && (
-                      <Button size="sm" onClick={() => setApproveTarget(s.id)} disabled={processing}>承認する</Button>
+                      <Button size="sm" onClick={() => { setApproveTarget(s.id); setApproveIsFinal(s.step_order === Math.max(...steps.map(x => x.step_order))) }} disabled={processing}>承認する</Button>
                     )}
                   </div>
                 )
@@ -291,10 +294,24 @@ export default function RingiDetailClient({ id }: { id: string }) {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
             <h3 className="text-sm font-semibold text-gray-800 mb-2">承認の確認</h3>
-            <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者にメールで通知しますか？</p>
+            {approveIsFinal ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">最終承認です。決裁結果を選択してください。</p>
+                <div className="flex gap-2 mb-4">
+                  {["可", "差戻", "否"].map(r => (
+                    <button key={r} onClick={() => setDecisionResult(r)}
+                      className={`text-xs px-3 py-1.5 rounded border ${decisionResult === r ? "bg-slate-700 text-white border-slate-700" : "bg-white text-gray-600 border-gray-300"}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600 mb-4">このステップを承認します。次の承認者にメールで通知しますか？</p>
+            )}
             <div className="flex flex-col gap-2">
-              <Button onClick={() => approve(approveTarget, true)} disabled={processing}>送信して承認する</Button>
-              <Button variant="outline" onClick={() => approve(approveTarget, false)} disabled={processing}>送信せず承認する</Button>
+              <Button onClick={() => approve(approveTarget, true, approveIsFinal)} disabled={processing}>送信して承認する</Button>
+              <Button variant="outline" onClick={() => approve(approveTarget, false, approveIsFinal)} disabled={processing}>送信せず承認する</Button>
               <button onClick={() => setApproveTarget(null)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
             </div>
           </div>
