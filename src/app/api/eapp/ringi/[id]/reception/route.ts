@@ -25,16 +25,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "受付待ち状態の申請のみ受付処理できます" }, { status: 400 })
   }
 
-  let steps: { step_order: number; position_name: string | null; approver_name: string | null; approver_email: string | null }[] = []
+  let steps: { step_order: number; position_name: string | null; category: string | null; approver_name: string | null; approver_email: string | null }[] = []
 
   if (Array.isArray(approval_steps) && approval_steps.length > 0) {
     const userIds: string[] = approval_steps.map((s: { approver_user_id?: string }) => s.approver_user_id).filter((v: string | undefined): v is string => !!v)
     const approvers = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
-    steps = approval_steps.map((s: { step_order: number; position_name?: string; approver_user_id?: string }) => {
+    steps = approval_steps.map((s: { step_order: number; position_name?: string; category?: string; approver_user_id?: string }) => {
       const approver = approvers.find(a => a.id === s.approver_user_id)
       return {
         step_order: s.step_order,
         position_name: s.position_name || null,
+        category: s.category || null,
         approver_name: approver?.name ?? null,
         approver_email: approver?.email ?? null,
       }
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     steps = commonSteps.map(s => ({
       step_order: s.step_order,
       position_name: s.position?.name ?? null,
+      category: null,
       approver_name: s.approver?.name ?? null,
       approver_email: s.approver?.email ?? null,
     }))
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         stage: "関連部役員社長",
         step_order: s.step_order || idx + 1,
         position_name: s.position_name,
+        category: s.category,
         approver_name: s.approver_name,
         approver_email: s.approver_email,
       })),

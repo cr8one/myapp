@@ -3,23 +3,80 @@ const F = StyleSheet.create({
   page: {
     width: "210mm",
     height: "297mm",
-    padding: "8mm 10mm",
+    padding: "10mm 12mm",
     fontFamily: "NotoSansJP",
     fontSize: 8,
     backgroundColor: "#fff",
   },
-  header: {
+  topRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottom: "2pt solid #000",
-    paddingBottom: "3mm",
-    marginBottom: "4mm",
+    border: "0.7pt solid #000",
+    marginBottom: "3mm",
   },
-  headerTitle: { fontSize: 16, fontWeight: "bold" },
-  headerRight: { alignItems: "flex-end" },
-  headerNo: { fontSize: 9 },
-  headerDate: { fontSize: 9, marginTop: "1mm" },
+  topLeftBlock: { flex: 1, flexDirection: "row" },
+  topCell: {
+    flex: 1,
+    borderRight: "0.7pt solid #000",
+    padding: "1mm 1.5mm",
+  },
+  topCellLast: { flex: 1, padding: "1mm 1.5mm" },
+  topCellLabel: { fontSize: 6.5, color: "#333", marginBottom: "1mm" },
+  topCellValue: { fontSize: 8, minHeight: "4mm" },
+  noBox: {
+    width: "18mm",
+    borderLeft: "0.7pt solid #000",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "1mm",
+  },
+  noLabel: { fontSize: 7, marginBottom: "1mm" },
+  noValue: { fontSize: 9 },
+  titleRow: {
+    alignItems: "center",
+    marginVertical: "4mm",
+  },
+  titleText: { fontSize: 20, fontWeight: "bold", letterSpacing: 8 },
+  approvalTableWrap: {
+    border: "0.7pt solid #000",
+    marginBottom: "3mm",
+  },
+  approvalTableRow: { flexDirection: "row" },
+  approvalTableLabelCol: {
+    width: "14mm",
+    borderRight: "0.7pt solid #000",
+    borderTop: "0.7pt solid #000",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "1mm",
+  },
+  approvalTableLabelColFirst: {
+    width: "14mm",
+    borderRight: "0.7pt solid #000",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "1mm",
+  },
+  approvalTableLabelText: { fontSize: 7.5, fontWeight: "bold" },
+  approvalCellsRow: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
+  approvalCell: {
+    width: "25mm",
+    borderRight: "0.7pt solid #000",
+    borderTop: "0.7pt solid #000",
+    padding: "1mm",
+    minHeight: "16mm",
+    alignItems: "center",
+  },
+  approvalCellFirstRow: {
+    width: "25mm",
+    borderRight: "0.7pt solid #000",
+    padding: "1mm",
+    minHeight: "16mm",
+    alignItems: "center",
+  },
+  approvalCellPosition: { fontSize: 6.5, color: "#333" },
+  approvalCellName: { fontSize: 8, marginTop: "1mm" },
+  approvalCellStamp: { width: "9mm", height: "9mm", marginTop: "1mm" },
+  approvalCellEmpty: { fontSize: 6.5, color: "#bbb" },
   section: { marginBottom: "3mm" },
   sectionTitle: {
     fontSize: 9,
@@ -30,31 +87,20 @@ const F = StyleSheet.create({
   },
   row: { flexDirection: "row", marginBottom: "1mm" },
   field: { flexDirection: "row", flex: 1, marginRight: "2mm" },
-  fieldLabel: { width: "26mm", fontSize: 7.5, color: "#333", paddingTop: "0.8mm" },
+  fieldLabel: { width: "22mm", fontSize: 7.5, color: "#333", paddingTop: "0.8mm" },
   fieldVal: { flex: 1, border: "0.5pt solid #999", padding: "0.8mm 1.5mm", fontSize: 8, minHeight: "5mm" },
-  fieldValTall: { flex: 1, border: "0.5pt solid #999", padding: "1mm 1.5mm", fontSize: 8, minHeight: "30mm" },
-  approvalArea: {
-    marginTop: "2mm",
-    borderTop: "0.5pt solid #999",
-    paddingTop: "3mm",
-  },
-  stageLabel: { fontSize: 8, fontWeight: "bold", marginTop: "2mm", marginBottom: "1mm", color: "#444" },
-  approvalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottom: "0.3pt solid #ddd",
-    paddingVertical: "1.2mm",
-  },
-  approvalPosition: { width: "30mm", fontSize: 7.5, color: "#555" },
-  approvalName: { width: "30mm", fontSize: 8 },
-  approvalStatus: { width: "20mm", fontSize: 7.5 },
-  approvalDate: { flex: 1, fontSize: 7, color: "#777" },
-  inkanImage: { width: "8mm", height: "8mm", marginLeft: "2mm" },
+  fieldValTall: { flex: 1, border: "0.5pt solid #999", padding: "1mm 1.5mm", fontSize: 8, minHeight: "28mm" },
+  titleFieldRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: "3mm" },
+  titleFieldVal: { flex: 1, borderBottom: "0.7pt solid #000", fontSize: 11, padding: "1mm 2mm" },
+  titleFieldSuffix: { fontSize: 10, marginLeft: "2mm" },
+  dateRow: { flexDirection: "row", justifyContent: "flex-end", marginBottom: "3mm" },
+  dateText: { fontSize: 8.5 },
 })
 type ApprovalStepProps = {
   stage: string
   step_order: number
   position_name?: string
+  category?: string
   approver_name?: string
   status: string
   approved_at?: string
@@ -79,6 +125,141 @@ function formatDate(str?: string) {
   const d = new Date(str)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
+function ApprovalCell({ step, isFirstRow }: { step?: ApprovalStepProps; isFirstRow: boolean }) {
+  const style = isFirstRow ? F.approvalCellFirstRow : F.approvalCell
+  if (!step) {
+    return (
+      <View style={style}>
+        <Text style={F.approvalCellEmpty}></Text>
+      </View>
+    )
+  }
+  return (
+    <View style={style}>
+      <Text style={F.approvalCellPosition}>{step.position_name ?? ""}</Text>
+      <Text style={F.approvalCellName}>{step.approver_name ?? ""}</Text>
+      {step.inkan_image_url && <Image src={step.inkan_image_url} style={F.approvalCellStamp} />}
+    </View>
+  )
+}
+export default function RingiRequestPdf(props: Props) {
+  const draftSteps = props.approval_steps
+    .filter(s => s.stage === "起案部")
+    .sort((a, b) => a.step_order - b.step_order)
+
+  const relatedAll = props.approval_steps.filter(s => s.stage === "関連部役員社長")
+  const shachoSteps = relatedAll.filter(s => s.category === "社長")
+  const yakuinSteps = relatedAll.filter(s => s.category === "役員")
+  const kanrenSteps = relatedAll.filter(s => s.category === "関連部" || !s.category)
+
+  return (
+    <Document>
+      <Page size="A4" style={F.page}>
+        <View style={F.topRow}>
+          <View style={F.topLeftBlock}>
+            <View style={F.topCell}>
+              <Text style={F.topCellLabel}>決裁結果</Text>
+              <Text style={F.topCellValue}>{props.decision_result ?? ""}</Text>
+            </View>
+            <View style={F.topCell}>
+              <Text style={F.topCellLabel}>受付番号</Text>
+              <Text style={F.topCellValue}>{props.reception_number ?? ""}</Text>
+            </View>
+            <View style={F.topCell}>
+              <Text style={F.topCellLabel}>受付日</Text>
+              <Text style={F.topCellValue}>{formatDate(props.reception_date)}</Text>
+            </View>
+            <View style={F.topCellLast}>
+              <Text style={F.topCellLabel}>起案日</Text>
+              <Text style={F.topCellValue}>{formatDate(props.created_at)}</Text>
+            </View>
+          </View>
+          <View style={F.noBox}>
+            <Text style={F.noLabel}>Ｎｏ</Text>
+          </View>
+        </View>
+
+        <View style={F.titleRow}>
+          <Text style={F.titleText}>稟　議　書</Text>
+        </View>
+
+        <View style={F.approvalTableWrap}>
+          <View style={F.approvalTableRow}>
+            <View style={F.approvalTableLabelColFirst}>
+              <Text style={F.approvalTableLabelText}>起案部</Text>
+            </View>
+            <View style={F.approvalCellsRow}>
+              {draftSteps.length > 0 ? (
+                draftSteps.map((s, i) => <ApprovalCell key={i} step={s} isFirstRow={true} />)
+              ) : (
+                <ApprovalCell isFirstRow={true} />
+              )}
+            </View>
+          </View>
+          <View style={F.approvalTableRow}>
+            <View style={F.approvalTableLabelCol}>
+              <Text style={F.approvalTableLabelText}>関連部</Text>
+            </View>
+            <View style={F.approvalCellsRow}>
+              {kanrenSteps.length > 0 ? (
+                kanrenSteps.map((s, i) => <ApprovalCell key={i} step={s} isFirstRow={false} />)
+              ) : (
+                <ApprovalCell isFirstRow={false} />
+              )}
+            </View>
+          </View>
+          <View style={F.approvalTableRow}>
+            <View style={F.approvalTableLabelCol}>
+              <Text style={F.approvalTableLabelText}>役員</Text>
+            </View>
+            <View style={F.approvalCellsRow}>
+              {yakuinSteps.length > 0 ? (
+                yakuinSteps.map((s, i) => <ApprovalCell key={i} step={s} isFirstRow={false} />)
+              ) : (
+                <ApprovalCell isFirstRow={false} />
+              )}
+            </View>
+          </View>
+          <View style={F.approvalTableRow}>
+            <View style={F.approvalTableLabelCol}>
+              <Text style={F.approvalTableLabelText}>社長</Text>
+            </View>
+            <View style={F.approvalCellsRow}>
+              <ApprovalCell step={shachoSteps[0]} isFirstRow={false} />
+            </View>
+          </View>
+        </View>
+
+        <View style={F.titleFieldRow}>
+          <Text style={F.titleFieldVal}>{props.title}</Text>
+          <Text style={F.titleFieldSuffix}>の　件</Text>
+        </View>
+
+        <View style={F.dateRow}>
+          <Text style={F.dateText}>{formatDate(props.created_at)}</Text>
+        </View>
+
+        <View style={F.section}>
+          <View style={F.row}>
+            <Field label="起案者" value={props.requester_names} />
+            <Field label="起案部" value={props.requester_department} />
+          </View>
+          <View style={F.row}>
+            <Field label="依頼先" value={props.destination} />
+            <Field label="費用" value={props.cost} />
+          </View>
+        </View>
+
+        <View style={F.section}>
+          <SectionTitle>目的・内容</SectionTitle>
+          <View style={F.row}>
+            <Field label="目的・内容" value={props.content} tall />
+          </View>
+        </View>
+      </Page>
+    </Document>
+  )
+}
 function Field({ label, value, tall }: { label: string; value?: string; tall?: boolean }) {
   return (
     <View style={F.field}>
@@ -89,70 +270,4 @@ function Field({ label, value, tall }: { label: string; value?: string; tall?: b
 }
 function SectionTitle({ children }: { children: string }) {
   return <Text style={F.sectionTitle}>{children}</Text>
-}
-export default function RingiRequestPdf(props: Props) {
-  const stages = Array.from(new Set(props.approval_steps.map(s => s.stage)))
-  return (
-    <Document>
-      <Page size="A4" style={F.page}>
-        <View style={F.header}>
-          <Text style={F.headerTitle}>稟議書</Text>
-          <View style={F.headerRight}>
-            <Text style={F.headerNo}>受付番号　{props.reception_number ?? ""}</Text>
-            <Text style={F.headerDate}>起案日　{formatDate(props.created_at)}</Text>
-          </View>
-        </View>
-        <View style={F.section}>
-          <SectionTitle>基本情報</SectionTitle>
-          <View style={F.row}>
-            <Field label="件名" value={props.title} />
-          </View>
-          <View style={F.row}>
-            <Field label="起案者" value={props.requester_names} />
-            <Field label="起案部" value={props.requester_department} />
-          </View>
-          <View style={F.row}>
-            <Field label="依頼先" value={props.destination} />
-            <Field label="費用" value={props.cost} />
-          </View>
-        </View>
-        <View style={F.section}>
-          <SectionTitle>目的・内容</SectionTitle>
-          <View style={F.row}>
-            <Field label="目的・内容" value={props.content} tall />
-          </View>
-        </View>
-        <View style={F.section}>
-          <SectionTitle>受付・決裁</SectionTitle>
-          <View style={F.row}>
-            <Field label="受付番号" value={props.reception_number} />
-            <Field label="受付日" value={formatDate(props.reception_date)} />
-          </View>
-          <View style={F.row}>
-            <Field label="決裁結果" value={props.decision_result} />
-            <Field label="決裁日" value={formatDate(props.decision_date)} />
-          </View>
-        </View>
-        <View style={F.approvalArea}>
-          <SectionTitle>承認状況</SectionTitle>
-          {stages.map(stage => (
-            <View key={stage}>
-              <Text style={F.stageLabel}>{stage}</Text>
-              {props.approval_steps.filter(s => s.stage === stage).map(step => (
-                <View key={`${step.stage}-${step.step_order}`} style={F.approvalRow}>
-                  <Text style={F.approvalPosition}>{step.position_name ?? ""}</Text>
-                  <Text style={F.approvalName}>{step.approver_name ?? ""}</Text>
-                  <Text style={F.approvalStatus}>{step.status}</Text>
-                  <Text style={F.approvalDate}>{step.approved_at ? formatDate(step.approved_at) : ""}</Text>
-                  {step.inkan_image_url && (
-                    <Image src={step.inkan_image_url} style={F.inkanImage} />
-                  )}
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-      </Page>
-    </Document>
-  )
 }

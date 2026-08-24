@@ -1539,6 +1539,7 @@ model RingiApprovalStep {
   stage          String
   step_order     Int
   position_name  String?
+  category       String?
   approver_name  String?
   approver_email String?
   status         String    @default("未承認")

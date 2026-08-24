@@ -49,6 +49,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const ts = `${String(jstNow.getUTCFullYear()).slice(2)}${pad(jstNow.getUTCMonth() + 1)}${pad(jstNow.getUTCDate())}${pad(jstNow.getUTCHours())}${pad(jstNow.getUTCMinutes())}${pad(jstNow.getUTCSeconds())}`
+  const fileName = `${ts}_稟議書.pdf`
+
   const buf = await renderToBuffer(
     createElement(RingiRequestPdf, {
       title: record.title,
@@ -66,6 +71,7 @@ export async function GET(req: NextRequest) {
         stage: s.stage,
         step_order: s.step_order,
         position_name: n(s.position_name),
+        category: n(s.category),
         approver_name: n(s.approver_name),
         status: s.status,
         approved_at: s.approved_at?.toISOString() ?? undefined,
@@ -77,7 +83,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="ringi-request-${record.id}.pdf"`,
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     },
   })
 }
