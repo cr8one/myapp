@@ -1530,6 +1530,7 @@ model RingiRequest {
   updated_at            DateTime  @updatedAt
   approval_steps        RingiApprovalStep[]
   files                 RingiFile[]
+  planned_related_steps Json?
   @@map("t_ringi_requests")
 }
 model RingiApprovalStep {

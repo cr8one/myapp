@@ -8,6 +8,7 @@ import { Trash2, Plus } from "lucide-react"
 type UserOption = { id: string; name: string | null }
 type UploadedFile = { fileKey: string; fileName: string }
 type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
+type RelatedStepInput = { step_order: number; position_name: string; approver_user_id: string; category: string }
 type PositionOption = { id: string; name: string }
 
 export default function RingiNewPage() {
@@ -20,6 +21,7 @@ export default function RingiNewPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [recordId, setRecordId] = useState("")
   const [approvalSteps, setApprovalSteps] = useState<ApprovalStepInput[]>([])
+  const [relatedSteps, setRelatedSteps] = useState<RelatedStepInput[]>([])
 
   useEffect(() => {
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
@@ -28,6 +30,7 @@ export default function RingiNewPage() {
       if (s?.user?.id) {
         setRequesterUserId(s.user.id)
         loadApproverSettings(s.user.id)
+        loadRelatedSettings(s.user.id)
       }
       if (s?.user?.name) setForm(f => ({ ...f, requester_names: s.user.name }))
     })
@@ -42,9 +45,28 @@ export default function RingiNewPage() {
       approver_user_id: s.approver?.id ?? "",
     })))
   }
+  const loadRelatedSettings = async (userId: string) => {
+    const [userRes, commonRes] = await Promise.all([
+      fetch(`/api/users/${userId}/approver-settings?service_type=ringi`),
+      fetch(`/api/eapp/masters/approval-routes?service_type=ringi`),
+    ])
+    const userSteps = await userRes.json()
+    const commonSteps = await commonRes.json()
+    type RawStep = { position?: { name: string }; approver?: { id: string } }
+    const combined = [...userSteps, ...commonSteps].map((s: RawStep, idx: number) => ({
+      step_order: idx + 1,
+      position_name: s.position?.name ?? "",
+      approver_user_id: s.approver?.id ?? "",
+      category: "",
+    }))
+    setRelatedSteps(combined)
+  }
   const handleRequesterChange = (userId: string) => {
     setRequesterUserId(userId)
-    if (userId) loadApproverSettings(userId)
+    if (userId) {
+      loadApproverSettings(userId)
+      loadRelatedSettings(userId)
+    }
   }
 
   const addStep = () => {
@@ -55,6 +77,16 @@ export default function RingiNewPage() {
   }
   const removeStep = (idx: number) => {
     setApprovalSteps(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const addRelatedStep = () => {
+    setRelatedSteps(prev => [...prev, { step_order: prev.length > 0 ? Math.max(...prev.map(s => s.step_order)) + 1 : 1, position_name: "", approver_user_id: "", category: "" }])
+  }
+  const updateRelatedStep = (idx: number, patch: Partial<RelatedStepInput>) => {
+    setRelatedSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
+  const removeRelatedStep = (idx: number) => {
+    setRelatedSteps(prev => prev.filter((_, i) => i !== idx))
   }
 
   const [form, setForm] = useState({
@@ -121,6 +153,7 @@ export default function RingiNewPage() {
         status: asDraft ? "下書き" : "起案部承認中",
         send_mail: sendMail,
         approval_steps: asDraft ? undefined : approvalSteps,
+        planned_related_steps: asDraft ? undefined : relatedSteps,
       }),
     })
     if (res.ok) {
@@ -227,6 +260,41 @@ export default function RingiNewPage() {
                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                   <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-gray-500">関連部・役員・社長 承認ステップ（受付処理後に有効化されます・その場で追加・削除・編集できます）</label>
+            <button onClick={addRelatedStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+              <Plus className="w-3 h-3" /> ステップ追加
+            </button>
+          </div>
+          {relatedSteps.length === 0 ? (
+            <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+          ) : (
+            <div className="space-y-2">
+              {relatedSteps.map((s, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                  <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateRelatedStep(idx, { step_order: Number(e.target.value) })} />
+                  <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateRelatedStep(idx, { position_name: e.target.value })}>
+                    <option value="">-- 役職(任意) --</option>
+                    {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  </select>
+                  <select className="w-24 h-8 border rounded px-2 text-sm bg-white" value={s.category} onChange={e => updateRelatedStep(idx, { category: e.target.value })}>
+                    <option value="">-- 区分 --</option>
+                    <option value="関連部">関連部</option>
+                    <option value="役員">役員</option>
+                    <option value="社長">社長</option>
+                  </select>
+                  <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
+                    <option value="">-- 承認者(氏名) --</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                  <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>

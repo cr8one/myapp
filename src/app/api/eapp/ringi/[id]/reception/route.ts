@@ -13,11 +13,13 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+type PlannedStep = { step_order: number; position_name?: string; category?: string; approver_user_id?: string }
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { reception_number, reception_date, send_mail, approval_steps } = await req.json()
+  const { reception_number, reception_date, send_mail } = await req.json()
 
   const request = await prisma.ringiRequest.findUnique({ where: { id } })
   if (!request) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -27,10 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let steps: { step_order: number; position_name: string | null; category: string | null; approver_name: string | null; approver_email: string | null }[] = []
 
-  if (Array.isArray(approval_steps) && approval_steps.length > 0) {
-    const userIds: string[] = approval_steps.map((s: { approver_user_id?: string }) => s.approver_user_id).filter((v: string | undefined): v is string => !!v)
+  const planned = request.planned_related_steps as unknown as PlannedStep[] | null
+
+  if (Array.isArray(planned) && planned.length > 0) {
+    const userIds: string[] = planned.map(s => s.approver_user_id).filter((v): v is string => !!v)
     const approvers = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, email: true } })
-    steps = approval_steps.map((s: { step_order: number; position_name?: string; category?: string; approver_user_id?: string }) => {
+    steps = planned.map(s => {
       const approver = approvers.find(a => a.id === s.approver_user_id)
       return {
         step_order: s.step_order,
