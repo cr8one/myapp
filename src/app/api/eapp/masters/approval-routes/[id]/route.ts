@@ -6,11 +6,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { step_order, position_id, approver_user_id } = await req.json()
+  const { step_order, category, position_id, approver_user_id } = await req.json()
   const route = await prisma.mApprovalRoute.update({
     where: { id },
     data: {
       step_order: step_order ?? 0,
+      category: category || null,
       position_id: position_id || null,
       approver_user_id: approver_user_id || null,
     },

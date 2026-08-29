@@ -1489,6 +1489,7 @@ model MApprovalRoute {
   id                String   @id @default(cuid())
   service_type      String   @default("tokui_credit")
   step_order        Int
+  category          String?
   position_id       String?
   position          MPosition? @relation(fields: [position_id], references: [id])
   approver_user_id  String?

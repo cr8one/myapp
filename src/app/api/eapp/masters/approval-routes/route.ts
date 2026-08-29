@@ -21,11 +21,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const { service_type, step_order, position_id, approver_user_id } = await req.json()
+  const { service_type, step_order, category, position_id, approver_user_id } = await req.json()
   const route = await prisma.mApprovalRoute.create({
     data: {
       service_type: service_type || "tokui_credit",
       step_order: step_order ?? 0,
+      category: category || null,
       position_id: position_id || null,
       approver_user_id: approver_user_id || null,
     },

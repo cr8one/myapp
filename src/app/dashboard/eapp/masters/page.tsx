@@ -6,6 +6,7 @@ type UserOption = { id: string; name: string | null; email: string }
 type ApprovalRoute = {
   id: string
   step_order: number
+  category: string | null
   position: { id: string; name: string } | null
   approver: { id: string; name: string | null; email: string } | null
 }
@@ -37,6 +38,7 @@ export default function EappMastersPage() {
   const [editRoute, setEditRoute] = useState<ApprovalRoute | null>(null)
   const [stepOrder, setStepOrder] = useState(0)
   const [positionId, setPositionId] = useState("")
+  const [categoryValue, setCategoryValue] = useState("")
   const [approverUserId, setApproverUserId] = useState("")
 
   // システム担当者マスタ
@@ -80,7 +82,7 @@ export default function EappMastersPage() {
 
   const saveRoute = async () => {
     const serviceType = TAB_SERVICE_TYPE[activeTab]
-    const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, position_id: positionId || null, approver_user_id: approverUserId || null })
+    const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, category: categoryValue || null, position_id: positionId || null, approver_user_id: approverUserId || null })
     if (editRoute) {
       await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     } else {
@@ -94,6 +96,7 @@ export default function EappMastersPage() {
     setEditRoute(null)
     setStepOrder(routes.length + 1)
     setPositionId("")
+    setCategoryValue("")
     setApproverUserId("")
     setShowRouteForm(true)
   }
@@ -101,6 +104,7 @@ export default function EappMastersPage() {
     setEditRoute(route)
     setStepOrder(route.step_order)
     setPositionId(route.position?.id ?? "")
+    setCategoryValue(route.category ?? "")
     setApproverUserId(route.approver?.id ?? "")
     setShowRouteForm(true)
   }
@@ -178,6 +182,14 @@ export default function EappMastersPage() {
               <p className="text-sm font-medium text-slate-700 mb-3">{editRoute ? "承認ステップを編集" : "承認ステップを追加"}</p>
               <div className="flex gap-2 flex-wrap">
                 <input autoComplete="off" type="number" className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="順序" value={stepOrder} onChange={e => setStepOrder(Number(e.target.value))} />
+                {activeTab === "ringi-approval-routes" && (
+                  <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={categoryValue} onChange={e => setCategoryValue(e.target.value)}>
+                    <option value="">-- 区分 --</option>
+                    <option value="関連部">関連部</option>
+                    <option value="役員">役員</option>
+                    <option value="社長">社長</option>
+                  </select>
+                )}
                 <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={positionId} onChange={e => setPositionId(e.target.value)}>
                   <option value="">-- 役職を選択 --</option>
                   {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -200,6 +212,9 @@ export default function EappMastersPage() {
               {routes.map(route => (
                 <div key={route.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
                   <span className="text-xs font-bold text-slate-500 w-8">{route.step_order}</span>
+                  {activeTab === "ringi-approval-routes" && (
+                    <span className="text-xs text-gray-400 w-16">{route.category ?? "-"}</span>
+                  )}
                   <span className="text-sm text-gray-500 w-24">{route.position?.name ?? "-"}</span>
                   <span className="flex-1 text-sm font-medium text-gray-900">{route.approver?.name ?? "-"}</span>
                   <button onClick={() => startEditRoute(route)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
