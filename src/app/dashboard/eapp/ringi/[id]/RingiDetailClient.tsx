@@ -221,6 +221,24 @@ export default function RingiDetailClient({ id }: { id: string }) {
         )
       })}
 
+      {data.planned_related_steps && data.planned_related_steps.length > 0 && data.status !== "受付待ち" && (
+        <div className="bg-white border rounded-lg shadow-sm p-6 mb-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">関連部・役員・社長 予定ルート（新規作成時に確定・受付処理後に有効化されます）</h3>
+          <div className="space-y-1">
+            {data.planned_related_steps.map((s, idx) => {
+              const approver = users.find(u => u.id === s.approver_user_id)
+              return (
+                <div key={idx} className="flex items-center gap-3 border-b py-2 last:border-0 text-xs">
+                  <span className="text-gray-400 w-6">{s.step_order}</span>
+                  <span className="text-gray-500 w-20">{s.category || "-"}</span>
+                  <span className="text-gray-400 w-20">{s.position_name || "-"}</span>
+                  <span className="flex-1 text-gray-700">{approver?.name ?? "-"}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {data.status === "受付待ち" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-4">
           <h3 className="text-sm font-semibold text-amber-800 mb-3">受付処理</h3>
