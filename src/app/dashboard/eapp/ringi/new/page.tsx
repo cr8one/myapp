@@ -268,7 +268,7 @@ export default function RingiNewPage() {
 
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-500">関連部・役員・社長 承認ステップ（受付処理後に有効化されます・その場で追加・削除・編集できます）</label>
+            <label className="text-xs font-medium text-gray-500">関連部・役員・社長 承認ステップ（その場で追加・削除・編集できます）</label>
             <button onClick={addRelatedStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
               <Plus className="w-3 h-3" /> ステップ追加
             </button>
