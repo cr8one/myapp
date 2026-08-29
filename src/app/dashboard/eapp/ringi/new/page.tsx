@@ -46,15 +46,11 @@ export default function RingiNewPage() {
     })))
   }
   const loadRelatedSettings = async (userId: string) => {
-    const [userRes, commonRes] = await Promise.all([
-      fetch(`/api/users/${userId}/approver-settings?service_type=ringi`),
-      fetch(`/api/eapp/masters/approval-routes?service_type=ringi`),
-    ])
-    const userSteps = await userRes.json()
-    const commonSteps = await commonRes.json()
-    type RawStep = { position?: { name: string }; approver?: { id: string } }
-    const combined = [...userSteps, ...commonSteps].map((s: RawStep, idx: number) => ({
-      step_order: idx + 1,
+    const res = await fetch(`/api/eapp/masters/approval-routes?service_type=ringi`)
+    const commonSteps = await res.json()
+    type RawStep = { step_order: number; position?: { name: string }; approver?: { id: string } }
+    const combined = commonSteps.map((s: RawStep) => ({
+      step_order: s.step_order,
       position_name: s.position?.name ?? "",
       approver_user_id: s.approver?.id ?? "",
       category: "",
