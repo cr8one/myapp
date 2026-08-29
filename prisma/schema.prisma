@@ -1532,6 +1532,7 @@ model RingiRequest {
   approval_steps        RingiApprovalStep[]
   files                 RingiFile[]
   planned_related_steps Json?
+  planned_approval_steps Json?
   @@map("t_ringi_requests")
 }
 model RingiApprovalStep {

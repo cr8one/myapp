@@ -150,6 +150,7 @@ export default function RingiNewPage() {
         send_mail: sendMail,
         approval_steps: asDraft ? undefined : approvalSteps,
         planned_related_steps: relatedSteps,
+        planned_approval_steps: approvalSteps,
       }),
     })
     if (res.ok) {

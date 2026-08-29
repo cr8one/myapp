@@ -37,6 +37,7 @@ type Ringi = {
   files: RingiFile[]
   approval_steps: ApprovalStep[]
   planned_related_steps: { step_order: number; position_name?: string; category?: string; approver_user_id?: string }[] | null
+  planned_approval_steps: { step_order: number; position_name?: string; approver_user_id?: string }[] | null
 }
 
 type UserOption = { id: string; name: string | null }
@@ -74,10 +75,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
     setData(d)
     if (d.status === "下書き") {
       setForm({ title: d.title ?? "", destination: d.destination ?? "", cost: d.cost ?? "", content: d.content ?? "" })
-      setApprovalSteps((d.approval_steps ?? []).filter((s: ApprovalStep) => s.stage === "起案部").map((s: ApprovalStep, idx: number) => ({
-        step_order: s.step_order || idx + 1,
+      setApprovalSteps((d.planned_approval_steps ?? []).map((s: { step_order: number; position_name?: string; approver_user_id?: string }) => ({
+        step_order: s.step_order,
         position_name: s.position_name ?? "",
-        approver_user_id: "",
+        approver_user_id: s.approver_user_id ?? "",
       })))
       setRelatedSteps((d.planned_related_steps ?? []).map((s: { step_order: number; position_name?: string; category?: string; approver_user_id?: string }) => ({
         step_order: s.step_order,
@@ -171,7 +172,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
     await fetch(`/api/eapp/ringi/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, planned_related_steps: relatedSteps, status: "下書き" }),
+      body: JSON.stringify({ ...form, planned_related_steps: relatedSteps, planned_approval_steps: approvalSteps, status: "下書き" }),
     })
     await fetchData()
     setSaving(false)
