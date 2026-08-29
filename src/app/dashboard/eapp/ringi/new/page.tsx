@@ -149,7 +149,7 @@ export default function RingiNewPage() {
         status: asDraft ? "下書き" : "起案部承認中",
         send_mail: sendMail,
         approval_steps: asDraft ? undefined : approvalSteps,
-        planned_related_steps: asDraft ? undefined : relatedSteps,
+        planned_related_steps: relatedSteps,
       }),
     })
     if (res.ok) {
