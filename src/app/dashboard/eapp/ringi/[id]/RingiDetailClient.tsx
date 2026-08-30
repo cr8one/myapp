@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, Circle, Download, Trash2, Plus } from "lucide-react"
+import { CheckCircle2, Circle, Download, Trash2, Plus, Pencil } from "lucide-react"
 
 type ApprovalStep = {
   id: string
@@ -62,30 +62,43 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const [users, setUsers] = useState<UserOption[]>([])
   const [positions, setPositions] = useState<PositionOption[]>([])
 
-  // 下書き編集用
-  const [form, setForm] = useState({ title: "", destination: "", cost: "", content: "" })
+  const [editMode, setEditMode] = useState(false)
+  const [form, setForm] = useState({ title: "", destination: "", cost: "", content: "", requester_names: "", requester_department: "" })
+  const [requesterUserId, setRequesterUserId] = useState("")
   const [approvalSteps, setApprovalSteps] = useState<ApprovalStepInput[]>([])
   const [relatedSteps, setRelatedSteps] = useState<RelatedStepInput[]>([])
   const [saving, setSaving] = useState(false)
   const [submitDialog, setSubmitDialog] = useState(false)
+
+  const applyDraftFormFromData = (d: Ringi) => {
+    setForm({
+      title: d.title ?? "",
+      destination: d.destination ?? "",
+      cost: d.cost ?? "",
+      content: d.content ?? "",
+      requester_names: d.requester_names ?? "",
+      requester_department: d.requester_department ?? "",
+    })
+    setRequesterUserId(d.requester_user_id ?? "")
+    setApprovalSteps((d.planned_approval_steps ?? []).map(s => ({
+      step_order: s.step_order,
+      position_name: s.position_name ?? "",
+      approver_user_id: s.approver_user_id ?? "",
+    })))
+    setRelatedSteps((d.planned_related_steps ?? []).map(s => ({
+      step_order: s.step_order,
+      position_name: s.position_name ?? "",
+      approver_user_id: s.approver_user_id ?? "",
+      category: s.category ?? "",
+    })))
+  }
 
   const fetchData = async () => {
     const res = await fetch(`/api/eapp/ringi/${id}`)
     const d = await res.json()
     setData(d)
     if (d.status === "下書き") {
-      setForm({ title: d.title ?? "", destination: d.destination ?? "", cost: d.cost ?? "", content: d.content ?? "" })
-      setApprovalSteps((d.planned_approval_steps ?? []).map((s: { step_order: number; position_name?: string; approver_user_id?: string }) => ({
-        step_order: s.step_order,
-        position_name: s.position_name ?? "",
-        approver_user_id: s.approver_user_id ?? "",
-      })))
-      setRelatedSteps((d.planned_related_steps ?? []).map((s: { step_order: number; position_name?: string; category?: string; approver_user_id?: string }) => ({
-        step_order: s.step_order,
-        position_name: s.position_name ?? "",
-        approver_user_id: s.approver_user_id ?? "",
-        category: s.category ?? "",
-      })))
+      applyDraftFormFromData(d)
     }
     setLoading(false)
   }
@@ -158,7 +171,6 @@ export default function RingiDetailClient({ id }: { id: string }) {
     return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
   }
 
-  // 下書き編集用ヘルパー
   const setF = (key: keyof typeof form, value: string) => setForm(f => ({ ...f, [key]: value }))
   const addStep = () => setApprovalSteps(prev => [...prev, { step_order: prev.length > 0 ? Math.max(...prev.map(s => s.step_order)) + 1 : 1, position_name: "", approver_user_id: "" }])
   const updateStep = (idx: number, patch: Partial<ApprovalStepInput>) => setApprovalSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
@@ -167,15 +179,49 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const updateRelatedStep = (idx: number, patch: Partial<RelatedStepInput>) => setRelatedSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
   const removeRelatedStep = (idx: number) => setRelatedSteps(prev => prev.filter((_, i) => i !== idx))
 
+  const handleRequesterChange = async (userId: string) => {
+    setRequesterUserId(userId)
+    if (!userId) return
+    const [userRes, commonRes] = await Promise.all([
+      fetch(`/api/users/${userId}/approver-settings?service_type=ringi`),
+      fetch(`/api/eapp/masters/approval-routes?service_type=ringi`),
+    ])
+    const userSteps = await userRes.json()
+    const commonSteps = await commonRes.json()
+    type RawUserStep = { step_order: number; position?: { name: string }; approver?: { id: string } }
+    type RawCommonStep = { step_order: number; category?: string | null; position?: { name: string }; approver?: { id: string } }
+    setApprovalSteps(userSteps.map((s: RawUserStep, idx: number) => ({
+      step_order: s.step_order ?? idx + 1,
+      position_name: s.position?.name ?? "",
+      approver_user_id: s.approver?.id ?? "",
+    })))
+    setRelatedSteps(commonSteps.map((s: RawCommonStep) => ({
+      step_order: s.step_order,
+      position_name: s.position?.name ?? "",
+      approver_user_id: s.approver?.id ?? "",
+      category: s.category ?? "",
+    })))
+  }
+
+  const enterEditMode = () => {
+    if (data) applyDraftFormFromData(data)
+    setEditMode(true)
+  }
+  const cancelEditMode = () => {
+    if (data) applyDraftFormFromData(data)
+    setEditMode(false)
+  }
+
   const saveDraft = async () => {
     setSaving(true)
     await fetch(`/api/eapp/ringi/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, planned_related_steps: relatedSteps, planned_approval_steps: approvalSteps, status: "下書き" }),
+      body: JSON.stringify({ ...form, requester_user_id: requesterUserId, planned_related_steps: relatedSteps, planned_approval_steps: approvalSteps, status: "下書き" }),
     })
     await fetchData()
     setSaving(false)
+    setEditMode(false)
   }
   const submitRingi = async (sendMail: boolean) => {
     setSubmitDialog(false)
@@ -183,15 +229,17 @@ export default function RingiDetailClient({ id }: { id: string }) {
     await fetch(`/api/eapp/ringi/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, planned_related_steps: relatedSteps, status: "起案部承認中", approval_steps: approvalSteps, send_mail: sendMail }),
+      body: JSON.stringify({ ...form, requester_user_id: requesterUserId, planned_related_steps: relatedSteps, planned_approval_steps: approvalSteps, status: "起案部承認中", approval_steps: approvalSteps, send_mail: sendMail }),
     })
     await fetchData()
     setSaving(false)
+    setEditMode(false)
   }
 
   if (loading || !data) return <div className="p-8 text-gray-400">読み込み中...</div>
 
   const isDraft = data.status === "下書き"
+  const isEditing = isDraft && editMode
   const stages = ["起案部", "関連部役員社長"] as const
   const labelCls = "text-xs font-medium text-gray-500 w-24 shrink-0"
   const rowCls = "flex items-start gap-3 py-1.5"
@@ -201,7 +249,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/eapp/ringi")}>← 一覧へ</Button>
-          <h1 className="text-2xl font-bold">{isDraft ? (form.title || "（無題の下書き）") : data.title}</h1>
+          <h1 className="text-2xl font-bold">{data.title || "（無題の下書き）"}</h1>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-600">{data.status}</span>
@@ -210,6 +258,9 @@ export default function RingiDetailClient({ id }: { id: string }) {
               <Button variant="outline" size="sm" className="flex items-center gap-1"><Download className="w-3 h-3" />PDF出力</Button>
             </a>
           )}
+          {isDraft && !isEditing && (
+            <Button variant="outline" size="sm" onClick={enterEditMode} className="flex items-center gap-1"><Pencil className="w-3 h-3" />編集</Button>
+          )}
           {isAdmin && (
             <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1 hover:bg-red-50">削除</button>
           )}
@@ -217,7 +268,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
       </div>
 
       <div className="bg-white border rounded-lg shadow-sm p-6 mb-6 space-y-1">
-        {isDraft ? (
+        {isEditing ? (
           <>
             <div className={rowCls}>
               <span className={labelCls}>タイトル</span>
@@ -225,11 +276,18 @@ export default function RingiDetailClient({ id }: { id: string }) {
             </div>
             <div className={rowCls}>
               <span className={labelCls}>起案者</span>
-              <span className="text-sm text-gray-800">{data.requester_names}</span>
+              <Input value={form.requester_names} onChange={e => setF("requester_names", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" placeholder="連名の場合はカンマ区切り" />
             </div>
             <div className={rowCls}>
               <span className={labelCls}>起案部</span>
-              <span className="text-sm text-gray-800">{data.requester_department ?? "-"}</span>
+              <Input value={form.requester_department} onChange={e => setF("requester_department", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <span className={labelCls}>承認ルート設定</span>
+              <select value={requesterUserId} onChange={e => handleRequesterChange(e.target.value)} className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                <option value="">-- 選択してください --</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
             </div>
             <div className={rowCls}>
               <span className={labelCls}>依頼先</span>
@@ -283,7 +341,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
         )}
       </div>
 
-      {isDraft && (
+      {isEditing && (
         <>
           <div className="bg-white border rounded-lg shadow-sm p-6 mb-4">
             <div className="flex items-center justify-between mb-2">
@@ -348,9 +406,50 @@ export default function RingiDetailClient({ id }: { id: string }) {
             )}
           </div>
           <div className="flex justify-end gap-3 mb-6">
+            <button onClick={cancelEditMode} className="text-xs text-gray-400 hover:text-gray-600 px-2">キャンセル</button>
             <Button variant="outline" onClick={saveDraft} disabled={saving}>{saving ? "保存中..." : "下書き保存"}</Button>
             <Button onClick={() => setSubmitDialog(true)} disabled={saving}>{saving ? "登録中..." : "申請する"}</Button>
           </div>
+        </>
+      )}
+
+      {isDraft && !isEditing && (
+        <>
+          {data.planned_approval_steps && data.planned_approval_steps.length > 0 && (
+            <div className="bg-white border rounded-lg shadow-sm p-6 mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">起案部 予定承認ステップ</h3>
+              <div className="space-y-1">
+                {data.planned_approval_steps.map((s, idx) => {
+                  const approver = users.find(u => u.id === s.approver_user_id)
+                  return (
+                    <div key={idx} className="flex items-center gap-3 border-b py-2 last:border-0 text-xs">
+                      <span className="text-gray-400 w-6">{s.step_order}</span>
+                      <span className="text-gray-400 w-20">{s.position_name || "-"}</span>
+                      <span className="flex-1 text-gray-700">{approver?.name ?? "-"}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {data.planned_related_steps && data.planned_related_steps.length > 0 && (
+            <div className="bg-white border rounded-lg shadow-sm p-6 mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">関連部・役員・社長 予定ルート</h3>
+              <div className="space-y-1">
+                {data.planned_related_steps.map((s, idx) => {
+                  const approver = users.find(u => u.id === s.approver_user_id)
+                  return (
+                    <div key={idx} className="flex items-center gap-3 border-b py-2 last:border-0 text-xs">
+                      <span className="text-gray-400 w-6">{s.step_order}</span>
+                      <span className="text-gray-500 w-20">{s.category || "-"}</span>
+                      <span className="text-gray-400 w-20">{s.position_name || "-"}</span>
+                      <span className="flex-1 text-gray-700">{approver?.name ?? "-"}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
