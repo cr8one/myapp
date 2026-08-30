@@ -130,7 +130,7 @@ function formatDate(str?: string) {
   const d = new Date(str)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
-function ApprovalCell({ step, isFirstRow }: { step?: ApprovalStepProps; isFirstRow: boolean }) {
+function ApprovalCell({ step, isFirstRow, alwaysShowPosition }: { step?: ApprovalStepProps; isFirstRow: boolean; alwaysShowPosition?: boolean }) {
   const style = isFirstRow ? F.approvalCellFirstRow : F.approvalCell
   if (!step) {
     return (
@@ -139,23 +139,30 @@ function ApprovalCell({ step, isFirstRow }: { step?: ApprovalStepProps; isFirstR
       </View>
     )
   }
+  const isApproved = step.status === "承認済み"
   return (
     <View style={style}>
-      <Text style={F.approvalCellPosition}>{step.position_name ?? ""}</Text>
-      <Text style={F.approvalCellName}>{step.approver_name ?? ""}</Text>
-      {step.inkan_image_url && <Image src={step.inkan_image_url} style={F.approvalCellStamp} />}
+      {(alwaysShowPosition || isApproved) && <Text style={F.approvalCellPosition}>{step.position_name ?? ""}</Text>}
+      {isApproved && <Text style={F.approvalCellName}>{step.approver_name ?? ""}</Text>}
+      {isApproved && step.inkan_image_url && <Image src={step.inkan_image_url} style={F.approvalCellStamp} />}
     </View>
   )
+}
+function orderByApprovalRightToLeft(steps: ApprovalStepProps[]) {
+  const pending = steps.filter(s => s.status !== "承認済み")
+  const approved = steps.filter(s => s.status === "承認済み")
+    .sort((a, b) => new Date(b.approved_at ?? 0).getTime() - new Date(a.approved_at ?? 0).getTime())
+  return [...pending, ...approved]
 }
 export default function RingiRequestPdf(props: Props) {
   const draftSteps = props.approval_steps
     .filter(s => s.stage === "起案部")
-    .sort((a, b) => a.step_order - b.step_order)
+    .sort((a, b) => b.step_order - a.step_order)
 
   const relatedAll = props.approval_steps.filter(s => s.stage === "関連部役員社長")
-  const shachoSteps = relatedAll.filter(s => s.category === "社長")
-  const yakuinSteps = relatedAll.filter(s => s.category === "役員")
-  const kanrenSteps = relatedAll.filter(s => s.category === "関連部" || !s.category)
+  const shachoSteps = orderByApprovalRightToLeft(relatedAll.filter(s => s.category === "社長"))
+  const yakuinSteps = orderByApprovalRightToLeft(relatedAll.filter(s => s.category === "役員"))
+  const kanrenSteps = orderByApprovalRightToLeft(relatedAll.filter(s => s.category === "関連部" || !s.category))
 
   return (
     <Document>
@@ -195,7 +202,7 @@ export default function RingiRequestPdf(props: Props) {
             </View>
             <View style={F.approvalCellsRow}>
               {draftSteps.length > 0 ? (
-                draftSteps.map((s, i) => <ApprovalCell key={i} step={s} isFirstRow={true} />)
+                draftSteps.map((s, i) => <ApprovalCell key={i} step={s} isFirstRow={true} alwaysShowPosition />)
               ) : (
                 <ApprovalCell isFirstRow={true} />
               )}
