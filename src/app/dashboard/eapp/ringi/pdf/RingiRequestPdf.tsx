@@ -61,10 +61,10 @@ const F = StyleSheet.create({
   tableBValueRow: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", padding: "0 1mm" },
   tableBApproverBlock: { alignItems: "center", marginLeft: "1.5mm" },
   tableBApproverName: { fontSize: 7.5 },
-  tableBStamp: { width: "8mm", height: "8mm" },
+  tableBStamp: { width: "10.5mm", height: "10.5mm" },
 
   sheetGap: { height: "4.1mm" },
-  sheet: { borderLeft: "0.8pt solid #000", borderRight: "0.8pt solid #000", borderBottom: "0.8pt solid #000" },
+  sheet: { borderTop: "0.8pt solid #000", borderLeft: "0.8pt solid #000", borderRight: "0.8pt solid #000", borderBottom: "0.8pt solid #000" },
   sheetTitleRow: { height: "10.5mm", borderBottom: "0.8pt solid #000", flexDirection: "row", alignItems: "flex-end", justifyContent: "flex-end", padding: "0 3mm 1.5mm 3mm" },
   sheetTitleText: { fontSize: 12 },
   sheetTitleSuffix: { fontSize: 10, marginLeft: "2mm" },
@@ -74,7 +74,7 @@ const F = StyleSheet.create({
 
   tableCGap: { height: "5.3mm" },
   tableC: { flexDirection: "row", border: "0.8pt solid #000", height: "26.7mm" },
-  tableCLabelCol: { width: "5.6mm", borderRight: "0.8pt solid #000", alignItems: "center", justifyContent: "center" },
+  tableCLabelCol: { width: "6.2mm", borderRight: "0.8pt solid #000", alignItems: "center", justifyContent: "center" },
   tableCLabelText: { fontSize: 8, fontWeight: "bold" },
   tableCStampArea: { flexDirection: "row" },
   tableCStampCell: { flexDirection: "column", borderRight: "0.8pt solid #000", alignItems: "center", width: "22.3mm" },
@@ -83,8 +83,8 @@ const F = StyleSheet.create({
   tableCPositionText: { fontSize: 8 },
   tableCApproverRow: { flex: 1, alignItems: "center", justifyContent: "center", width: "22.3mm" },
   tableCApproverName: { fontSize: 7.5 },
-  tableCStamp: { width: "8mm", height: "8mm" },
-  tableCRequesterLabelCol: { width: "11.2mm", borderLeft: "0.8pt solid #000", borderRight: "0.8pt solid #000", alignItems: "center", justifyContent: "center" },
+  tableCStamp: { width: "10.5mm", height: "10.5mm" },
+  tableCRequesterLabelCol: { width: "6.2mm", borderLeft: "0.8pt solid #000", borderRight: "0.8pt solid #000", alignItems: "center", justifyContent: "center" },
   tableCRequesterValueCol: { flex: 1, alignItems: "flex-start", justifyContent: "center", paddingLeft: "3mm" },
   tableCRequesterValueText: { fontSize: 9 },
 })
