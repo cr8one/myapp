@@ -9,6 +9,7 @@ type ApprovalStep = {
   approver_name: string | null
   status: string
   approved_at: string | null
+  inkan_image_url?: string
 }
 type Props = {
   title: string
@@ -54,9 +55,14 @@ function TableBApprovers({ steps }: { steps: ApprovalStep[] }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: "1.5mm", padding: "0 1mm" }}>
       {ordered.map((s, i) => (
-        <div key={i} style={{ fontSize: "2.5mm", border: "1px solid #999", borderRadius: "50%", width: "10.5mm", height: "10.5mm", display: "flex", alignItems: "center", justifyContent: "center", color: "#b00", textAlign: "center", lineHeight: 1.1 }}>
-          {s.approver_name ?? ""}
-        </div>
+        s.inkan_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={i} src={s.inkan_image_url} alt={s.approver_name ?? ""} style={{ width: "10.5mm", height: "10.5mm", objectFit: "contain" }} />
+        ) : (
+          <div key={i} style={{ fontSize: "2.5mm", border: "1px solid #999", borderRadius: "50%", width: "10.5mm", height: "10.5mm", display: "flex", alignItems: "center", justifyContent: "center", color: "#b00", textAlign: "center", lineHeight: 1.1 }}>
+            {s.approver_name ?? ""}
+          </div>
+        )
       ))}
     </div>
   )
@@ -135,9 +141,14 @@ export default function RingiPaperPreview(props: Props) {
               <div style={{ height: "6.2mm", borderBottom: B, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.6mm" }}>{s.position_name ?? ""}</div>
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {s.status === "承認済み" && (
-                  <div style={{ fontSize: "2.5mm", border: "1px solid #999", borderRadius: "50%", width: "10.5mm", height: "10.5mm", display: "flex", alignItems: "center", justifyContent: "center", color: "#b00" }}>
-                    {s.approver_name ?? ""}
-                  </div>
+                  s.inkan_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.inkan_image_url} alt={s.approver_name ?? ""} style={{ width: "10.5mm", height: "10.5mm", objectFit: "contain" }} />
+                  ) : (
+                    <div style={{ fontSize: "2.5mm", border: "1px solid #999", borderRadius: "50%", width: "10.5mm", height: "10.5mm", display: "flex", alignItems: "center", justifyContent: "center", color: "#b00" }}>
+                      {s.approver_name ?? ""}
+                    </div>
+                  )
                 )}
               </div>
             </div>

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import nodemailer from "nodemailer"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+const s3 = new S3Client({
+  region: "ap-northeast-1",
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
+})
+const BUCKET = "japan-sleeve-system-files-936533876784"
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -25,7 +33,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json(record)
+  const approverEmails = record.approval_steps.map(s => s.approver_email).filter((e): e is string => !!e)
+  const approverUsers = approverEmails.length > 0
+    ? await prisma.user.findMany({ where: { email: { in: approverEmails } }, select: { email: true, inkanImageKey: true } })
+    : []
+  const inkanUrlByEmail: Record<string, string> = {}
+  for (const u of approverUsers) {
+    if (u.inkanImageKey) {
+      inkanUrlByEmail[u.email] = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: u.inkanImageKey }), { expiresIn: 300 })
+    }
+  }
+  const approval_steps_with_inkan = record.approval_steps.map(s => ({
+    ...s,
+    inkan_image_url: s.approver_email ? inkanUrlByEmail[s.approver_email] : undefined,
+  }))
+  return NextResponse.json({ ...record, approval_steps: approval_steps_with_inkan })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
