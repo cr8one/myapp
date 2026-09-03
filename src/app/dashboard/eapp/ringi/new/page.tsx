@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Trash2, Plus } from "lucide-react"
+import RingiPaperPreview from "../[id]/RingiPaperPreview"
 
 type UserOption = { id: string; name: string | null }
 type UploadedFile = { fileKey: string; fileName: string }
@@ -165,147 +166,191 @@ export default function RingiNewPage() {
   const inputCls = "h-8 text-sm flex-1"
   const rowCls = "flex items-center gap-3"
 
+  const previewSteps = [
+    ...approvalSteps.map((s, idx) => ({
+      id: `draft-${idx}`,
+      stage: "起案部",
+      step_order: s.step_order,
+      position_name: s.position_name || null,
+      category: null,
+      approver_name: users.find(u => u.id === s.approver_user_id)?.name ?? null,
+      status: "未承認",
+      approved_at: null,
+    })),
+    ...relatedSteps.map((s, idx) => ({
+      id: `related-${idx}`,
+      stage: "関連部役員社長",
+      step_order: s.step_order,
+      position_name: s.position_name || null,
+      category: s.category || null,
+      approver_name: users.find(u => u.id === s.approver_user_id)?.name ?? null,
+      status: "未承認",
+      approved_at: null,
+    })),
+  ]
+
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => router.back()}>← 戻る</Button>
           <h1 className="text-2xl font-bold">稟議書 新規作成</h1>
         </div>
       </div>
-      <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
-        <div className={rowCls}>
-          <label className={labelCls}>件名 <span className="text-red-500">*</span></label>
-          <Input value={form.title} onChange={e => set("title", e.target.value)} className={inputCls} autoComplete="off" placeholder="〇〇のご提案の件" />
-        </div>
-        <div className={rowCls}>
-          <label className={labelCls}>起案者</label>
-          <Input value={form.requester_names} onChange={e => set("requester_names", e.target.value)} className={inputCls} autoComplete="off" placeholder="連名の場合はカンマ区切り" />
-        </div>
-        <div className={rowCls}>
-          <label className={labelCls}>起案部</label>
-          <Input value={form.requester_department} onChange={e => set("requester_department", e.target.value)} className={inputCls} autoComplete="off" />
-        </div>
-        <div className={rowCls}>
-          <label className={labelCls}>承認ルート設定</label>
-          <select value={requesterUserId} onChange={e => handleRequesterChange(e.target.value)}
-            className="flex-1 h-8 border rounded px-2 text-sm bg-white">
-            <option value="">-- 選択してください --</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-        <div className={rowCls}>
-          <label className={labelCls}>依頼先</label>
-          <Input value={form.destination} onChange={e => set("destination", e.target.value)} className={inputCls} autoComplete="off" />
-        </div>
-        <div className={rowCls}>
-          <label className={labelCls}>費用</label>
-          <Input value={form.cost} onChange={e => set("cost", e.target.value)} className={inputCls} autoComplete="off" placeholder="初期費用〇〇円＋月額〇〇円" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-500 block mb-1">目的・内容</label>
-          <textarea
-            value={form.content}
-            onChange={e => set("content", e.target.value)}
-            className="w-full border rounded px-3 py-2 text-sm resize-none"
-            rows={12}
-            autoComplete="off"
-            placeholder="目的・内容を自由に記入してください"
+      <div className="flex gap-6 items-start">
+        <div className="overflow-x-auto">
+          <RingiPaperPreview
+            title={form.title}
+            content={form.content}
+            destination={form.destination}
+            cost={form.cost}
+            requester_names={form.requester_names}
+            requester_department={form.requester_department}
+            reception_number={null}
+            reception_date={null}
+            decision_date={null}
+            decision_result={null}
+            created_at={new Date().toISOString()}
+            approval_steps={previewSteps}
           />
         </div>
-        <div>
-          <label className="text-xs font-medium text-gray-500 block mb-1">添付ファイル（見積書・カタログ等）</label>
-          <input
-            type="file"
-            multiple
-            disabled={uploading}
-            onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
-            className="text-sm"
-          />
-          {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
-          {files.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {files.map(f => (
-                <li key={f.fileKey} className="text-xs text-gray-600 flex items-center gap-1">
-                  <span>{f.fileName}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
 
-        <div className="border-t pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-500">起案部承認ステップ（承認者設定から自動入力・その場で追加・削除・編集できます）</label>
-            <button onClick={addStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
-              <Plus className="w-3 h-3" /> ステップ追加
-            </button>
-          </div>
-          {approvalSteps.length === 0 ? (
-            <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
-          ) : (
-            <div className="space-y-2">
-              {approvalSteps.map((s, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
-                  <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
-                  <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })}>
-                    <option value="">-- 役職(任意) --</option>
-                    {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                  </select>
-                  <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
-                    <option value="">-- 承認者(氏名) --</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
-                  <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              ))}
+        <div className="flex-1 min-w-[420px]">
+          <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
+            <div className={rowCls}>
+              <label className={labelCls}>件名 <span className="text-red-500">*</span></label>
+              <Input value={form.title} onChange={e => set("title", e.target.value)} className={inputCls} autoComplete="off" placeholder="〇〇のご提案の件" />
             </div>
-          )}
-        </div>
+            <div className={rowCls}>
+              <label className={labelCls}>起案者</label>
+              <Input value={form.requester_names} onChange={e => set("requester_names", e.target.value)} className={inputCls} autoComplete="off" placeholder="連名の場合はカンマ区切り" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>起案部</label>
+              <Input value={form.requester_department} onChange={e => set("requester_department", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>承認ルート設定</label>
+              <select value={requesterUserId} onChange={e => handleRequesterChange(e.target.value)}
+                className="flex-1 h-8 border rounded px-2 text-sm bg-white">
+                <option value="">-- 選択してください --</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>依頼先</label>
+              <Input value={form.destination} onChange={e => set("destination", e.target.value)} className={inputCls} autoComplete="off" />
+            </div>
+            <div className={rowCls}>
+              <label className={labelCls}>費用</label>
+              <Input value={form.cost} onChange={e => set("cost", e.target.value)} className={inputCls} autoComplete="off" placeholder="初期費用〇〇円＋月額〇〇円" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">目的・内容</label>
+              <textarea
+                value={form.content}
+                onChange={e => set("content", e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm resize-none"
+                rows={12}
+                autoComplete="off"
+                placeholder="目的・内容を自由に記入してください"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">添付ファイル（見積書・カタログ等）</label>
+              <input
+                type="file"
+                multiple
+                disabled={uploading}
+                onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
+                className="text-sm"
+              />
+              {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
+              {files.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {files.map(f => (
+                    <li key={f.fileKey} className="text-xs text-gray-600 flex items-center gap-1">
+                      <span>{f.fileName}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-        <div className="border-t pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-gray-500">関連部・役員・社長 承認ステップ（その場で追加・削除・編集できます）</label>
-            <button onClick={addRelatedStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
-              <Plus className="w-3 h-3" /> ステップ追加
-            </button>
-          </div>
-          {relatedSteps.length === 0 ? (
-            <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
-          ) : (
-            <div className="space-y-2">
-              {relatedSteps.map((s, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
-                  <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateRelatedStep(idx, { step_order: Number(e.target.value) })} />
-                  <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateRelatedStep(idx, { position_name: e.target.value })}>
-                    <option value="">-- 役職(任意) --</option>
-                    {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                  </select>
-                  <select className="w-24 h-8 border rounded px-2 text-sm bg-white" value={s.category} onChange={e => updateRelatedStep(idx, { category: e.target.value })}>
-                    <option value="">-- 区分 --</option>
-                    <option value="関連部">関連部</option>
-                    <option value="役員">役員</option>
-                    <option value="社長">社長</option>
-                  </select>
-                  <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
-                    <option value="">-- 承認者(氏名) --</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
-                  <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-gray-500">起案部承認ステップ（承認者設定から自動入力・その場で追加・削除・編集できます）</label>
+                <button onClick={addStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+                  <Plus className="w-3 h-3" /> ステップ追加
+                </button>
+              </div>
+              {approvalSteps.length === 0 ? (
+                <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+              ) : (
+                <div className="space-y-2">
+                  {approvalSteps.map((s, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                      <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
+                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })}>
+                        <option value="">-- 役職(任意) --</option>
+                        {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      </select>
+                      <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
+                        <option value="">-- 承認者(氏名) --</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                      <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-gray-500">関連部・役員・社長 承認ステップ（その場で追加・削除・編集できます）</label>
+                <button onClick={addRelatedStep} className="flex items-center gap-1 text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800">
+                  <Plus className="w-3 h-3" /> ステップ追加
+                </button>
+              </div>
+              {relatedSteps.length === 0 ? (
+                <p className="text-xs text-gray-400">承認ステップがありません。「ステップ追加」から追加してください。</p>
+              ) : (
+                <div className="space-y-2">
+                  {relatedSteps.map((s, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                      <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateRelatedStep(idx, { step_order: Number(e.target.value) })} />
+                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateRelatedStep(idx, { position_name: e.target.value })}>
+                        <option value="">-- 役職(任意) --</option>
+                        {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      </select>
+                      <select className="w-24 h-8 border rounded px-2 text-sm bg-white" value={s.category} onChange={e => updateRelatedStep(idx, { category: e.target.value })}>
+                        <option value="">-- 区分 --</option>
+                        <option value="関連部">関連部</option>
+                        <option value="役員">役員</option>
+                        <option value="社長">社長</option>
+                      </select>
+                      <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
+                        <option value="">-- 承認者(氏名) --</option>
+                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                      <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
+            <Button variant="outline" onClick={() => submit(true, false)} disabled={saving}>
+              {saving ? "保存中..." : "下書き保存"}
+            </Button>
+            <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
+              {saving ? "登録中..." : "申請する"}
+            </Button>
+          </div>
         </div>
-      </div>
-      <div className="flex justify-end gap-3 mt-6">
-        <Button variant="outline" onClick={() => router.back()}>キャンセル</Button>
-        <Button variant="outline" onClick={() => submit(true, false)} disabled={saving}>
-          {saving ? "保存中..." : "下書き保存"}
-        </Button>
-        <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
-          {saving ? "登録中..." : "申請する"}
-        </Button>
       </div>
       {confirmDialog && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
