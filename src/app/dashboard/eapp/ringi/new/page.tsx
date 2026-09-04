@@ -89,8 +89,6 @@ export default function RingiNewPage() {
   const [form, setForm] = useState({
     title: "",
     content: "",
-    destination: "",
-    cost: "",
     requester_names: "",
     requester_department: "",
   })
@@ -198,24 +196,7 @@ export default function RingiNewPage() {
         </div>
       </div>
       <div className="flex gap-6 items-start">
-        <div className="overflow-x-auto">
-          <RingiPaperPreview
-            title={form.title}
-            content={form.content}
-            destination={form.destination}
-            cost={form.cost}
-            requester_names={form.requester_names}
-            requester_department={form.requester_department}
-            reception_number={null}
-            reception_date={null}
-            decision_date={null}
-            decision_result={null}
-            created_at={new Date().toISOString()}
-            approval_steps={previewSteps}
-          />
-        </div>
-
-        <div className="flex-1 min-w-[420px]">
+        <div className="flex-1 min-w-0">
           <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
             <div className={rowCls}>
               <label className={labelCls}>件名 <span className="text-red-500">*</span></label>
@@ -237,23 +218,15 @@ export default function RingiNewPage() {
                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
-            <div className={rowCls}>
-              <label className={labelCls}>依頼先</label>
-              <Input value={form.destination} onChange={e => set("destination", e.target.value)} className={inputCls} autoComplete="off" />
-            </div>
-            <div className={rowCls}>
-              <label className={labelCls}>費用</label>
-              <Input value={form.cost} onChange={e => set("cost", e.target.value)} className={inputCls} autoComplete="off" placeholder="初期費用〇〇円＋月額〇〇円" />
-            </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">目的・内容</label>
+              <label className="text-xs font-medium text-gray-500 block mb-1">内容（目的・依頼先・費用等、自由に記入してください）</label>
               <textarea
                 value={form.content}
                 onChange={e => set("content", e.target.value)}
                 className="w-full border rounded px-3 py-2 text-sm resize-none"
-                rows={12}
+                rows={16}
                 autoComplete="off"
-                placeholder="目的・内容を自由に記入してください"
+                placeholder={"例：\n給与明細電子化のご提案\n\n1. 目的\n...\n\n2. 依頼先\n株式会社〇〇\n\n3. 費用\n初期費用〇〇円＋月額〇〇円"}
               />
             </div>
             <div>
@@ -289,17 +262,17 @@ export default function RingiNewPage() {
               ) : (
                 <div className="space-y-2">
                   {approvalSteps.map((s, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
-                      <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
-                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })}>
+                    <div key={idx} className="flex items-center gap-2 flex-wrap bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                      <Input autoComplete="off" type="number" className="w-20 h-8 text-sm shrink-0" value={s.step_order} onChange={e => updateStep(idx, { step_order: Number(e.target.value) })} />
+                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white shrink-0" value={s.position_name} onChange={e => updateStep(idx, { position_name: e.target.value })}>
                         <option value="">-- 役職(任意) --</option>
                         {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                       </select>
-                      <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
+                      <select className="flex-1 min-w-[160px] h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
                         <option value="">-- 承認者(氏名) --</option>
                         {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
-                      <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>
@@ -318,23 +291,23 @@ export default function RingiNewPage() {
               ) : (
                 <div className="space-y-2">
                   {relatedSteps.map((s, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded px-3 py-2">
-                      <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={s.step_order} onChange={e => updateRelatedStep(idx, { step_order: Number(e.target.value) })} />
-                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white" value={s.position_name} onChange={e => updateRelatedStep(idx, { position_name: e.target.value })}>
+                    <div key={idx} className="flex items-center gap-2 flex-wrap bg-slate-50 border border-slate-200 rounded px-3 py-2">
+                      <Input autoComplete="off" type="number" className="w-20 h-8 text-sm shrink-0" value={s.step_order} onChange={e => updateRelatedStep(idx, { step_order: Number(e.target.value) })} />
+                      <select className="w-28 h-8 border rounded px-2 text-sm bg-white shrink-0" value={s.position_name} onChange={e => updateRelatedStep(idx, { position_name: e.target.value })}>
                         <option value="">-- 役職(任意) --</option>
                         {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                       </select>
-                      <select className="w-24 h-8 border rounded px-2 text-sm bg-white" value={s.category} onChange={e => updateRelatedStep(idx, { category: e.target.value })}>
+                      <select className="w-24 h-8 border rounded px-2 text-sm bg-white shrink-0" value={s.category} onChange={e => updateRelatedStep(idx, { category: e.target.value })}>
                         <option value="">-- 区分 --</option>
                         <option value="関連部">関連部</option>
                         <option value="役員">役員</option>
                         <option value="社長">社長</option>
                       </select>
-                      <select className="flex-1 h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
+                      <select className="flex-1 min-w-[160px] h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
                         <option value="">-- 承認者(氏名) --</option>
                         {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
-                      <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>
@@ -349,6 +322,28 @@ export default function RingiNewPage() {
             <Button onClick={() => setConfirmDialog(true)} disabled={saving}>
               {saving ? "登録中..." : "申請する"}
             </Button>
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <p className="text-xs text-gray-400 mb-1">プレビュー（確認用）</p>
+          <div style={{ width: 460, overflow: "hidden" }}>
+            <div style={{ zoom: 0.55 }}>
+              <RingiPaperPreview
+                title={form.title}
+                content={form.content}
+                destination={null}
+                cost={null}
+                requester_names={form.requester_names}
+                requester_department={form.requester_department}
+                reception_number={null}
+                reception_date={null}
+                decision_date={null}
+                decision_result={null}
+                created_at={new Date().toISOString()}
+                approval_steps={previewSteps}
+              />
+            </div>
           </div>
         </div>
       </div>

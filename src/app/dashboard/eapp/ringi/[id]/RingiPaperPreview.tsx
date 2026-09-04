@@ -127,7 +127,16 @@ export default function RingiPaperPreview(props: Props) {
             backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent calc(7.11mm - 1px), #ccc calc(7.11mm - 1px), #ccc 7.11mm)",
           }}
         >
-          {`${formatDate(props.created_at)}\n${props.requester_department ?? ""}　${props.requester_names ?? ""}\n\n記\n\n１．目的・内容\n${props.content ?? ""}\n\n２．依頼先\n${props.destination ?? ""}\n\n３．費用\n${props.cost ?? ""}`}
+          {[
+            `${formatDate(props.created_at)}`,
+            `${props.requester_department ?? ""}　${props.requester_names ?? ""}`,
+            "",
+            "記",
+            "",
+            props.content ?? "",
+            props.destination ? `\n依頼先：${props.destination}` : "",
+            props.cost ? `\n費用：${props.cost}` : "",
+          ].filter(s => s !== "").join("\n")}
         </div>
       </div>
 
