@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
+import { SearchAssistInput, SelectOption } from "@/components/ui/searchable-select-modal"
 type DeviceModel = { modelId: number; modelName: string; vendorName: string | null }
 type Master = { id: number; category: string; value: string }
 type Device = { deviceId: number; deviceName: string; assetNo: string | null }
@@ -21,6 +22,7 @@ export default function DeviceNewPage() {
   const [models, setModels] = useState<DeviceModel[]>([])
   const [masters, setMasters] = useState<Master[]>([])
   const [allDevices, setAllDevices] = useState<Device[]>([])
+  const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const getMasterValues = (category: string) => masters.filter(m => m.category === category).map(m => m.value)
@@ -28,6 +30,9 @@ export default function DeviceNewPage() {
     fetch("/api/terminal/device-models").then(r => r.json()).then(setModels)
     fetch("/api/terminal/terminal-masters").then(r => r.json()).then(setMasters)
     fetch("/api/terminal/devices").then(r => r.json()).then(setAllDevices)
+    fetch("/api/users/list").then(r => r.json()).then((users: { id: string; name: string | null; furiganaLastName?: string | null }[]) =>
+      setUserOptions(users.map(u => ({ id: u.id, label: u.name ?? "", kana: u.furiganaLastName ?? undefined })))
+    )
   }, [])
   const handleSave = async () => {
     if (!form.deviceName) { setError("端末名は必須です"); return }
@@ -107,7 +112,8 @@ export default function DeviceNewPage() {
           </div>
           <div className="space-y-1">
             <Label>利用者</Label>
-            <Input value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" />
+            <SearchAssistInput label="利用者" options={userOptions} indexFilter
+              value={form.userId} onChange={(v) => setForm(f => ({ ...f, userId: v }))} placeholder="氏名を入力、または検索から選択（共有PC等は自由記述可）" />
           </div>
           <div className="space-y-1">
             <Label>アカウント名</Label>

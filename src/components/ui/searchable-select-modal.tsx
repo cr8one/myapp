@@ -7,6 +7,7 @@ export type SelectOption = {
   id: string
   label: string
   sublabel?: string
+  kana?: string
 }
 
 // ============================================================
@@ -19,22 +20,40 @@ type SingleSelectModalProps = {
   onChange: (id: string) => void
   placeholder?: string
   nullable?: boolean
+  indexFilter?: boolean
 }
 
+const KANA_INDEX_GROUPS: { label: string; chars: string[] }[] = [
+  { label: "あ", chars: ["あ", "い", "う", "え", "お"] },
+  { label: "か", chars: ["か", "き", "く", "け", "こ", "が", "ぎ", "ぐ", "げ", "ご"] },
+  { label: "さ", chars: ["さ", "し", "す", "せ", "そ", "ざ", "じ", "ず", "ぜ", "ぞ"] },
+  { label: "た", chars: ["た", "ち", "つ", "て", "と", "だ", "ぢ", "づ", "で", "ど"] },
+  { label: "な", chars: ["な", "に", "ぬ", "ね", "の"] },
+  { label: "は", chars: ["は", "ひ", "ふ", "へ", "ほ", "ば", "び", "ぶ", "べ", "ぼ", "ぱ", "ぴ", "ぷ", "ぺ", "ぽ"] },
+  { label: "ま", chars: ["ま", "み", "む", "め", "も"] },
+  { label: "や", chars: ["や", "ゆ", "よ"] },
+  { label: "ら", chars: ["ら", "り", "る", "れ", "ろ"] },
+  { label: "わ", chars: ["わ", "を", "ん"] },
+]
+
 export function SingleSelectModal({
-  label, options, value, onChange, placeholder = "選択してください", nullable = true,
+  label, options, value, onChange, placeholder = "選択してください", nullable = true, indexFilter = false,
 }: SingleSelectModalProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const [kanaGroup, setKanaGroup] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const selected = options.find((o) => o.id === value)
-  const filtered = options.filter((o) =>
-    query === "" ||
-    o.label.toLowerCase().includes(query.toLowerCase()) ||
-    (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
-  )
+  const filtered = options.filter((o) => {
+    const matchesQuery = query === "" ||
+      o.label.toLowerCase().includes(query.toLowerCase()) ||
+      (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
+    const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
+    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => (o.kana ?? "").startsWith(c)) : true)
+    return matchesQuery && matchesKana
+  })
   useEffect(() => {
-    if (open) { setQuery(""); setTimeout(() => inputRef.current?.focus(), 50) }
+    if (open) { setQuery(""); setKanaGroup(null); setTimeout(() => inputRef.current?.focus(), 50) }
   }, [open])
   useEffect(() => {
     if (!open) return
@@ -62,6 +81,20 @@ export function SingleSelectModal({
               <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                 placeholder="検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+            {indexFilter && (
+              <div className="px-4 py-2 border-b flex flex-wrap gap-1">
+                <button type="button" onClick={() => setKanaGroup(null)}
+                  className={`text-xs px-2 py-1 rounded ${kanaGroup === null ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  全
+                </button>
+                {KANA_INDEX_GROUPS.map((g) => (
+                  <button key={g.label} type="button" onClick={() => setKanaGroup(g.label)}
+                    className={`text-xs px-2 py-1 rounded ${kanaGroup === g.label ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="overflow-y-auto flex-1">
               {nullable && (
                 <button type="button" onClick={() => { onChange(""); setOpen(false) }}
@@ -215,6 +248,100 @@ export function MultiSelectModal({
     </>
   )
 }
+// ============================================================
+// 検索補助テキスト入力（自由記述＋モーダルから選んで転記／スナップショット方式）
+// ============================================================
+type SearchAssistInputProps = {
+  label: string
+  value: string
+  onChange: (text: string) => void
+  options: SelectOption[]
+  placeholder?: string
+  indexFilter?: boolean
+}
+export function SearchAssistInput({
+  label, value, onChange, options, placeholder, indexFilter = false,
+}: SearchAssistInputProps) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [kanaGroup, setKanaGroup] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const filtered = options.filter((o) => {
+    const matchesQuery = query === "" ||
+      o.label.toLowerCase().includes(query.toLowerCase()) ||
+      (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
+    const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
+    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => (o.kana ?? "").startsWith(c)) : true)
+    return matchesQuery && matchesKana
+  })
+  const handleOpen = () => { setQuery(""); setKanaGroup(null); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open])
+  return (
+    <>
+      <div className="flex gap-2">
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder} autoComplete="off"
+          className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <Button type="button" variant="outline" size="sm" onClick={handleOpen}>
+          <Search className="w-4 h-4" />
+        </Button>
+      </div>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[70vh]">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+              <h2 className="font-semibold text-gray-800">{label}を選択</h2>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <div className="px-4 py-3 border-b">
+              <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            {indexFilter && (
+              <div className="px-4 py-2 border-b flex flex-wrap gap-1">
+                <button type="button" onClick={() => setKanaGroup(null)}
+                  className={`text-xs px-2 py-1 rounded ${kanaGroup === null ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  全
+                </button>
+                {KANA_INDEX_GROUPS.map((g) => (
+                  <button key={g.label} type="button" onClick={() => setKanaGroup(g.label)}
+                    className={`text-xs px-2 py-1 rounded ${kanaGroup === g.label ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="overflow-y-auto flex-1">
+              {filtered.length === 0
+                ? <p className="text-center text-sm text-gray-400 py-8">該当なし</p>
+                : filtered.map((o) => (
+                  <button key={o.id} type="button" onClick={() => { onChange(o.label); setOpen(false) }}
+                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors text-gray-800">
+                    <span className="flex flex-col">
+                      <span>{o.label}</span>
+                      {o.sublabel && <span className="text-xs text-gray-400">{o.sublabel}</span>}
+                    </span>
+                  </button>
+                ))
+              }
+            </div>
+            <div className="px-4 py-3 border-t bg-gray-50 rounded-b-xl flex justify-between items-center">
+              <span className="text-xs text-gray-400">{filtered.length}件表示</span>
+              <Button variant="outline" size="sm" onClick={() => setOpen(false)}>閉じる</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ============================================================
 // リモート検索選択モーダル（大量データ向け：APIキーワード検索）
 // ============================================================

@@ -10,6 +10,7 @@ export async function GET() {
       name: true,
       email: true,
       position: true,
+      furiganaLastName: true,
       departments: { select: { department: { select: { name: true } } } },
       groups: { select: { group: { select: { name: true, department: { select: { name: true } } } } } },
     },
@@ -23,6 +24,7 @@ export async function GET() {
       name: u.name,
       email: u.email,
       position: u.position,
+      furiganaLastName: u.furiganaLastName,
       departmentLabels: Array.from(new Set([...deptNames, ...groupLabels])),
     }
   })

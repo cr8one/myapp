@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CheckCircle2, Circle, Download, Trash2, Plus, Pencil } from "lucide-react"
 import RingiPaperPreview from "./RingiPaperPreview"
+import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
 
 type ApprovalStep = {
   id: string
@@ -43,7 +44,7 @@ type Ringi = {
   planned_approval_steps: { step_order: number; position_name?: string; approver_user_id?: string }[] | null
 }
 
-type UserOption = { id: string; name: string | null }
+type UserOption = { id: string; name: string | null; furiganaLastName?: string | null }
 type ApprovalStepInput = { step_order: number; position_name: string; approver_user_id: string }
 type RelatedStepInput = { step_order: number; position_name: string; approver_user_id: string; category: string }
 type PositionOption = { id: string; name: string }
@@ -63,6 +64,7 @@ export default function RingiDetailClient({ id }: { id: string }) {
   const [receptionDate, setReceptionDate] = useState("")
   const [processing, setProcessing] = useState(false)
   const [users, setUsers] = useState<UserOption[]>([])
+  const userOptions = users.map(u => ({ id: u.id, label: u.name ?? "", kana: u.furiganaLastName ?? undefined }))
   const [positions, setPositions] = useState<PositionOption[]>([])
 
   const [editMode, setEditMode] = useState(false)
@@ -368,10 +370,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
               </div>
               <div className={rowCls}>
                 <span className={labelCls}>承認ルート設定</span>
-                <select value={requesterUserId} onChange={e => handleRequesterChange(e.target.value)} className="flex-1 h-8 border rounded px-2 text-sm bg-white">
-                  <option value="">-- 選択してください --</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                <div className="flex-1">
+                  <SingleSelectModal label="承認ルート設定" options={userOptions} value={requesterUserId}
+                    onChange={handleRequesterChange} indexFilter placeholder="-- 選択してください --" />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500 block mb-1">内容（目的・依頼先・費用等、自由に記入してください）</label>
@@ -409,10 +411,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
                           <option value="">-- 役職(任意) --</option>
                           {positions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                         </select>
-                        <select className="flex-1 min-w-[160px] h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateStep(idx, { approver_user_id: e.target.value })}>
-                          <option value="">-- 承認者(氏名) --</option>
-                          {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                        </select>
+                        <div className="flex-1 min-w-[160px]">
+                          <SingleSelectModal label="承認者" options={userOptions} value={s.approver_user_id}
+                            onChange={(id) => updateStep(idx, { approver_user_id: id })} indexFilter placeholder="-- 承認者(氏名) --" />
+                        </div>
                         <button onClick={() => removeStep(idx)} className="p-1 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     ))}
@@ -444,10 +446,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
                           <option value="役員">役員</option>
                           <option value="社長">社長</option>
                         </select>
-                        <select className="flex-1 min-w-[160px] h-8 border rounded px-2 text-sm bg-white" value={s.approver_user_id} onChange={e => updateRelatedStep(idx, { approver_user_id: e.target.value })}>
-                          <option value="">-- 承認者(氏名) --</option>
-                          {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                        </select>
+                        <div className="flex-1 min-w-[160px]">
+                          <SingleSelectModal label="承認者" options={userOptions} value={s.approver_user_id}
+                            onChange={(id) => updateRelatedStep(idx, { approver_user_id: id })} indexFilter placeholder="-- 承認者(氏名) --" />
+                        </div>
                         <button onClick={() => removeRelatedStep(idx)} className="p-1 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     ))}

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react"
+import { SearchAssistInput, SelectOption } from "@/components/ui/searchable-select-modal"
 
 type DeviceIp = { id: number; ip: string; subnet: string | null; gateway: string | null; interface: string | null; note: string | null }
 type DeviceRemark = { id: number; date: string | null; title: string | null; content: string | null }
@@ -54,6 +55,7 @@ export default function DeviceDetailPage() {
   const [models, setModels] = useState<DeviceModel[]>([])
   const [masters, setMasters] = useState<Master[]>([])
   const [allDevices, setAllDevices] = useState<Device[]>([])
+  const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [loading, setLoading] = useState(true)
   // 端末編集
   const [editDeviceOpen, setEditDeviceOpen] = useState(false)
@@ -123,6 +125,9 @@ export default function DeviceDetailPage() {
     fetchRemarks()
     fetch("/api/terminal/software").then(r => r.json()).then(setSoftwareMasters)
     fetch("/api/terminal/terminal-masters").then(r => r.json()).then(setMasters)
+    fetch("/api/users/list").then(r => r.json()).then((users: { id: string; name: string | null; furiganaLastName?: string | null }[]) =>
+      setUserOptions(users.map(u => ({ id: u.id, label: u.name ?? "", kana: u.furiganaLastName ?? undefined })))
+    )
   }, [deviceId])
 
   // 端末編集
@@ -483,7 +488,8 @@ export default function DeviceDetailPage() {
               <datalist id="location-list">{getMasterValues("設置場所").map(v => <option key={v} value={v} />)}</datalist>
             </div>
             <div className="space-y-1"><Label>利用者</Label>
-              <Input value={deviceForm.userId} onChange={e => setDeviceForm(f => ({ ...f, userId: e.target.value }))} autoComplete="off" /></div>
+              <SearchAssistInput label="利用者" options={userOptions} indexFilter
+                value={deviceForm.userId} onChange={(v) => setDeviceForm(f => ({ ...f, userId: v }))} placeholder="氏名を入力、または検索から選択（共有PC等は自由記述可）" /></div>
             <div className="space-y-1"><Label>アカウント名</Label>
               <Input value={deviceForm.accountName} onChange={e => setDeviceForm(f => ({ ...f, accountName: e.target.value }))} placeholder="例：ログインID" autoComplete="off" /></div>
             <div className="space-y-1"><Label>調達区分</Label>
@@ -613,7 +619,8 @@ export default function DeviceDetailPage() {
             <div className="space-y-1"><Label>バージョン <span className="text-xs text-gray-400">（空欄の場合はマスタのバージョンを参照）</span></Label>
               <Input value={swForm.version} onChange={e => setSwForm(f => ({ ...f, version: e.target.value }))} placeholder="例：1.2.3" autoComplete="off" /></div>
             <div className="space-y-1"><Label>利用者 <span className="text-xs text-gray-400">（空欄の場合は端末共通）</span></Label>
-              <Input value={swForm.userId} onChange={e => setSwForm(f => ({ ...f, userId: e.target.value }))} placeholder="例：山田太郎" autoComplete="off" /></div>
+              <SearchAssistInput label="利用者" options={userOptions} indexFilter
+                value={swForm.userId} onChange={(v) => setSwForm(f => ({ ...f, userId: v }))} placeholder="例：山田太郎（検索から選択も可）" /></div>
             <div className="space-y-1"><Label>備考</Label>
               <Input value={swForm.note} onChange={e => setSwForm(f => ({ ...f, note: e.target.value }))} autoComplete="off" /></div>
             <div className="flex justify-end gap-2 pt-2">
