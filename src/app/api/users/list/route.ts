@@ -14,7 +14,7 @@ export async function GET() {
       departments: { select: { department: { select: { name: true } } } },
       groups: { select: { group: { select: { name: true, department: { select: { name: true } } } } } },
     },
-    orderBy: [{ name: "asc" }],
+    orderBy: [{ furiganaLastName: { sort: "asc", nulls: "last" } }, { name: "asc" }],
   })
   const result = users.map(u => {
     const deptNames = u.departments.map(d => d.department.name)
