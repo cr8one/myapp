@@ -268,6 +268,29 @@ export default function RingiDetailClient({ id }: { id: string }) {
     })),
   ]
 
+  const draftPreviewSteps = [
+    ...(data.planned_approval_steps ?? []).map((s, idx) => ({
+      id: `dp-${idx}`,
+      stage: "起案部",
+      step_order: s.step_order,
+      position_name: s.position_name || null,
+      category: null,
+      approver_name: users.find(u => u.id === s.approver_user_id)?.name ?? null,
+      status: "未承認",
+      approved_at: null,
+    })),
+    ...(data.planned_related_steps ?? []).map((s, idx) => ({
+      id: `dr-${idx}`,
+      stage: "関連部役員社長",
+      step_order: s.step_order,
+      position_name: s.position_name || null,
+      category: s.category || null,
+      approver_name: users.find(u => u.id === s.approver_user_id)?.name ?? null,
+      status: "未承認",
+      approved_at: null,
+    })),
+  ]
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -292,67 +315,38 @@ export default function RingiDetailClient({ id }: { id: string }) {
       </div>
 
       {isDraft && !isEditing && (
-        <div className="bg-white border rounded-lg shadow-sm p-6 mb-6 space-y-1 max-w-4xl">
-          <div className={rowCls}>
-            <span className={labelCls}>起案者</span>
-            <span className="text-sm text-gray-800">{data.requester_names}</span>
+        <div className="flex gap-6 items-start">
+          <div className="overflow-x-auto">
+            <RingiPaperPreview
+              title={data.title}
+              content={data.content}
+              destination={data.destination}
+              cost={data.cost}
+              requester_names={data.requester_names}
+              requester_department={data.requester_department}
+              reception_number={data.reception_number}
+              reception_date={data.reception_date}
+              decision_date={data.decision_date}
+              decision_result={data.decision_result}
+              created_at={data.created_at}
+              approval_steps={draftPreviewSteps}
+            />
           </div>
-          <div className={rowCls}>
-            <span className={labelCls}>起案部</span>
-            <span className="text-sm text-gray-800">{data.requester_department ?? "-"}</span>
+          <div className="w-80 shrink-0 space-y-4">
+            {data.files.length > 0 && (
+              <div className="bg-white border rounded-lg shadow-sm p-4">
+                <h3 className="text-xs font-semibold text-gray-500 mb-2">添付ファイル</h3>
+                <div className="space-y-1">
+                  {data.files.map(f => (
+                    <button key={f.id} onClick={() => downloadFile(f.file_key, f.file_name)}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                      <Download className="w-3 h-3" />{f.file_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className={rowCls}>
-            <span className={labelCls}>内容</span>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap flex-1">{data.content}</p>
-          </div>
-          {data.files.length > 0 && (
-            <div className={rowCls}>
-              <span className={labelCls}>添付ファイル</span>
-              <div className="flex-1 space-y-1">
-                {data.files.map(f => (
-                  <button key={f.id} onClick={() => downloadFile(f.file_key, f.file_name)}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
-                    <Download className="w-3 h-3" />{f.file_name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {data.planned_approval_steps && data.planned_approval_steps.length > 0 && (
-            <div className={rowCls}>
-              <span className={labelCls}>起案部予定</span>
-              <div className="flex-1 space-y-1">
-                {data.planned_approval_steps.map((s, idx) => {
-                  const approver = users.find(u => u.id === s.approver_user_id)
-                  return (
-                    <div key={idx} className="flex items-center gap-3 text-xs text-gray-600">
-                      <span className="w-6">{s.step_order}</span>
-                      <span className="w-20">{s.position_name || "-"}</span>
-                      <span>{approver?.name ?? "-"}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          {data.planned_related_steps && data.planned_related_steps.length > 0 && (
-            <div className={rowCls}>
-              <span className={labelCls}>関連部等予定</span>
-              <div className="flex-1 space-y-1">
-                {data.planned_related_steps.map((s, idx) => {
-                  const approver = users.find(u => u.id === s.approver_user_id)
-                  return (
-                    <div key={idx} className="flex items-center gap-3 text-xs text-gray-600">
-                      <span className="w-6">{s.step_order}</span>
-                      <span className="w-16">{s.category || "-"}</span>
-                      <span className="w-20">{s.position_name || "-"}</span>
-                      <span>{approver?.name ?? "-"}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
