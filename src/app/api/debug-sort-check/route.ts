@@ -2,18 +2,14 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
-  const byId = await prisma.$queryRawUnsafe<{ furigana_last_name: string | null }[]>(
-    `SELECT furigana_last_name FROM "User" ORDER BY id ASC`
+  const plan = await prisma.$queryRawUnsafe<{ "QUERY PLAN": string }[]>(
+    `EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) SELECT furigana_last_name FROM "User" ORDER BY furigana_last_name ASC NULLS LAST`
   )
-  const byCreated = await prisma.$queryRawUnsafe<{ furigana_last_name: string | null }[]>(
-    `SELECT furigana_last_name FROM "User" ORDER BY "createdAt" ASC`
-  )
-  const byFurigana = await prisma.$queryRawUnsafe<{ furigana_last_name: string | null }[]>(
-    `SELECT furigana_last_name FROM "User" ORDER BY furigana_last_name ASC NULLS LAST`
+  const indexes = await prisma.$queryRawUnsafe<{ indexname: string; indexdef: string }[]>(
+    `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'User'`
   )
   return NextResponse.json({
-    byId: byId.map(r => r.furigana_last_name),
-    byCreated: byCreated.map(r => r.furigana_last_name),
-    byFurigana: byFurigana.map(r => r.furigana_last_name),
+    plan: plan.map(p => p["QUERY PLAN"]),
+    indexes,
   })
 }
