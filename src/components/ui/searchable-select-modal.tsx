@@ -36,6 +36,10 @@ const KANA_INDEX_GROUPS: { label: string; chars: string[] }[] = [
   { label: "わ", chars: ["わ", "を", "ん"] },
 ]
 
+function toHiragana(str: string): string {
+  return str.replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+}
+
 export function SingleSelectModal({
   label, options, value, onChange, placeholder = "選択してください", nullable = true, indexFilter = false,
 }: SingleSelectModalProps) {
@@ -49,7 +53,7 @@ export function SingleSelectModal({
       o.label.toLowerCase().includes(query.toLowerCase()) ||
       (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
     const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
-    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => (o.kana ?? "").startsWith(c)) : true)
+    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => toHiragana(o.kana ?? "").startsWith(c)) : true)
     return matchesQuery && matchesKana
   })
   useEffect(() => {
@@ -271,7 +275,7 @@ export function SearchAssistInput({
       o.label.toLowerCase().includes(query.toLowerCase()) ||
       (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
     const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
-    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => (o.kana ?? "").startsWith(c)) : true)
+    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => toHiragana(o.kana ?? "").startsWith(c)) : true)
     return matchesQuery && matchesKana
   })
   const handleOpen = () => { setQuery(""); setKanaGroup(null); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
