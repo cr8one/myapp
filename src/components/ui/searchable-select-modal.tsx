@@ -76,7 +76,7 @@ export function SingleSelectModal({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[70vh]">
+          <div className={`relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col ${indexFilter ? "h-[70vh]" : "max-h-[70vh]"}`}>
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
               <h2 className="font-semibold text-gray-800">{label}を選択</h2>
               <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
@@ -298,7 +298,7 @@ export function SearchAssistInput({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[70vh]">
+          <div className={`relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col ${indexFilter ? "h-[70vh]" : "max-h-[70vh]"}`}>
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
               <h2 className="font-semibold text-gray-800">{label}を選択</h2>
               <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
@@ -338,6 +338,144 @@ export function SearchAssistInput({
             <div className="px-4 py-3 border-t bg-gray-50 rounded-b-xl flex justify-between items-center">
               <span className="text-xs text-gray-400">{filtered.length}件表示</span>
               <Button variant="outline" size="sm" onClick={() => setOpen(false)}>閉じる</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ============================================================
+// 複数選択・検索補助テキスト入力（自由記述＋選んだ順にカンマ区切りで転記）
+// ============================================================
+type MultiSearchAssistInputProps = {
+  label: string
+  value: string
+  onChange: (text: string) => void
+  options: SelectOption[]
+  placeholder?: string
+  indexFilter?: boolean
+}
+export function MultiSearchAssistInput({
+  label, value, onChange, options, placeholder, indexFilter = false,
+}: MultiSearchAssistInputProps) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [kanaGroup, setKanaGroup] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
+  const filtered = options.filter((o) => {
+    const matchesQuery = query === "" ||
+      o.label.toLowerCase().includes(query.toLowerCase()) ||
+      (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
+    const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
+    const matchesKana = !kanaGroup || (group ? group.chars.some((c) => toHiragana(o.kana ?? "").startsWith(c)) : true)
+    return matchesQuery && matchesKana
+  })
+  const toggle = (label: string) =>
+    setSelected((prev) => prev.includes(label) ? prev.filter((x) => x !== label) : [...prev, label])
+  const handleOpen = () => {
+    setQuery("")
+    setKanaGroup(null)
+    // 現在のテキストをカンマ区切りで分解して選択状態の初期値にする（自由記述との併用のため、完全一致するものだけチェック状態にする）
+    const current = value.split(/[,、]/).map((s) => s.trim()).filter(Boolean)
+    setSelected(current.filter((c) => options.some((o) => o.label === c)))
+    setOpen(true)
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
+  const handleConfirm = () => {
+    const freeTextParts = value.split(/[,、]/).map((s) => s.trim()).filter((s) => s && !options.some((o) => o.label === s))
+    onChange([...selected, ...freeTextParts].join("、"))
+    setOpen(false)
+  }
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open])
+  return (
+    <>
+      <div className="flex gap-2">
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder} autoComplete="off"
+          className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <Button type="button" variant="outline" size="sm" onClick={handleOpen}>
+          <Search className="w-4 h-4" />
+        </Button>
+      </div>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div className={`relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col ${indexFilter ? "h-[70vh]" : "max-h-[75vh]"}`}>
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
+              <h2 className="font-semibold text-gray-800">{label}を選択（複数可）</h2>
+              <div className="flex items-center gap-2">
+                {selected.length > 0 && (
+                  <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5 font-medium">{selected.length}件選択中</span>
+                )}
+                <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              </div>
+            </div>
+            <div className="px-4 py-3 border-b">
+              <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            {indexFilter && (
+              <div className="px-4 py-2 border-b flex flex-wrap gap-1">
+                <button type="button" onClick={() => setKanaGroup(null)}
+                  className={`text-xs px-2 py-1 rounded ${kanaGroup === null ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  全
+                </button>
+                {KANA_INDEX_GROUPS.map((g) => (
+                  <button key={g.label} type="button" onClick={() => setKanaGroup(g.label)}
+                    className={`text-xs px-2 py-1 rounded ${kanaGroup === g.label ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {selected.length > 0 && (
+              <div className="px-4 py-2 border-b bg-blue-50 flex flex-wrap gap-1.5">
+                {selected.map((label) => (
+                  <span key={label} onClick={() => toggle(label)}
+                    className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer hover:bg-blue-700 flex items-center gap-1">
+                    {label} <span className="opacity-70">✕</span>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="overflow-y-auto flex-1">
+              {filtered.length === 0
+                ? <p className="text-center text-sm text-gray-400 py-8">該当なし</p>
+                : filtered.map((o) => {
+                  const checked = selected.includes(o.label)
+                  return (
+                    <button key={o.id} type="button" onClick={() => toggle(o.label)}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-3 ${checked ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-800"}`}>
+                      <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${checked ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
+                        {checked && (
+                          <svg viewBox="0 0 10 8" className="w-2.5 h-2 fill-white">
+                            <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      <span className="flex flex-col">
+                        <span className={checked ? "font-medium" : ""}>{o.label}</span>
+                        {o.sublabel && <span className="text-xs text-gray-400">{o.sublabel}</span>}
+                      </span>
+                    </button>
+                  )
+                })
+              }
+            </div>
+            <div className="px-4 py-3 border-t bg-gray-50 rounded-b-xl flex items-center justify-between">
+              <span className="text-xs text-gray-400">{filtered.length}件表示</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>キャンセル</Button>
+                <Button size="sm" onClick={handleConfirm}>反映 ({selected.length})</Button>
+              </div>
             </div>
           </div>
         </div>

@@ -38,12 +38,6 @@ const STATUS_COLORS: Record<string, string> = {
 const emptyIpForm = { ip: "", subnet: "", gateway: "", interface: "", note: "" }
 const emptySoftwareForm = { softwareId: "", version: "", note: "", userId: "" }
 const emptyRemarkForm = { date: "", title: "", content: "" }
-const emptyDeviceForm = {
-  assetNo: "", deviceName: "", hostname: "", modelId: "", serialNo: "",
-  osVersion: "", memorySize: "", storageSize: "", location: "", userId: "", accountName: "",
-  purchaseDate: "", startDate: "", status: "", managementType: "", remark: "",
-  parentDeviceId: "", procurementType: "", leaseCompany: "", leaseStart: "", leaseEnd: "", contractNo: "", leaseItemNo: "",
-}
 
 export default function DeviceDetailPage() {
   const params = useParams()
@@ -57,10 +51,6 @@ export default function DeviceDetailPage() {
   const [allDevices, setAllDevices] = useState<Device[]>([])
   const [userOptions, setUserOptions] = useState<SelectOption[]>([])
   const [loading, setLoading] = useState(true)
-  // 端末編集
-  const [editDeviceOpen, setEditDeviceOpen] = useState(false)
-  const [deviceForm, setDeviceForm] = useState(emptyDeviceForm)
-  const [savingDevice, setSavingDevice] = useState(false)
   // IP
   const [ipDialogOpen, setIpDialogOpen] = useState(false)
   const [editIpTarget, setEditIpTarget] = useState<DeviceIp | null>(null)
@@ -130,40 +120,6 @@ export default function DeviceDetailPage() {
     )
   }, [deviceId])
 
-  // 端末編集
-  const openEditDevice = () => {
-    if (!device) return
-    setDeviceForm({
-      assetNo: device.assetNo ?? "", deviceName: device.deviceName,
-      hostname: device.hostname ?? "", modelId: device.modelId?.toString() ?? "",
-      serialNo: device.serialNo ?? "", osVersion: device.osVersion ?? "",
-      memorySize: device.memorySize ?? "", storageSize: device.storageSize ?? "",
-      location: device.location ?? "", userId: device.userId ?? "", accountName: device.accountName ?? "",
-      purchaseDate: device.purchaseDate ? device.purchaseDate.split("T")[0] : "",
-      startDate: device.startDate ? device.startDate.split("T")[0] : "",
-      procurementType: device.procurementType ?? "",
-      leaseCompany: device.lease?.lease_company ?? "",
-      leaseStart: device.lease?.lease_start ? device.lease.lease_start.split("T")[0] : "",
-      leaseEnd: device.lease?.lease_end ? device.lease.lease_end.split("T")[0] : "",
-      contractNo: device.lease?.contract_no ?? "",
-      leaseItemNo: device.lease?.lease_item_no ?? "",
-      status: device.status ?? "", managementType: device.managementType ?? "",
-      remark: device.remark ?? "", parentDeviceId: device.parentDeviceId?.toString() ?? "",
-    })
-    setEditDeviceOpen(true)
-  }
-  const handleSaveDevice = async () => {
-    if (!device || !deviceForm.deviceName) return
-    setSavingDevice(true)
-    try {
-      await fetch("/api/terminal/devices", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...deviceForm, deviceId: device.deviceId }),
-      })
-      setEditDeviceOpen(false)
-      fetchDevice()
-    } finally { setSavingDevice(false) }
-  }
   const handleDeleteDevice = async () => {
     if (!device || !confirm(`「${device.deviceName}」を削除しますか？`)) return
     await fetch("/api/terminal/devices", {
@@ -270,7 +226,7 @@ export default function DeviceDetailPage() {
           <ArrowLeft className="w-4 h-4" />一覧に戻る
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={openEditDevice}
+          <button onClick={() => router.push(`/dashboard/terminal/devices/${deviceId}/edit`)}
             className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50">
             <Pencil className="w-4 h-4" />編集
           </button>
@@ -454,99 +410,6 @@ export default function DeviceDetailPage() {
           </table>
         )}
       </div>
-
-      {/* 端末編集ダイアログ */}
-      <Dialog open={editDeviceOpen} onOpenChange={setEditDeviceOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>端末を編集</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div className="space-y-1"><Label>端末名 <span className="text-red-500">*</span></Label>
-              <Input value={deviceForm.deviceName} onChange={e => setDeviceForm(f => ({ ...f, deviceName: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>資産番号</Label>
-              <Input value={deviceForm.assetNo} onChange={e => setDeviceForm(f => ({ ...f, assetNo: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>ホスト名</Label>
-              <Input value={deviceForm.hostname} onChange={e => setDeviceForm(f => ({ ...f, hostname: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>機種</Label>
-              <select value={deviceForm.modelId} onChange={e => {
-                const selected = models.find(m => m.modelId === parseInt(e.target.value)) as any
-                setDeviceForm(f => ({ ...f, modelId: e.target.value, osVersion: selected?.osName || f.osVersion, memorySize: selected?.memoryDefault || f.memorySize, storageSize: selected?.storageDefault || f.storageSize }))
-              }} className="w-full h-10 border rounded px-3 text-sm bg-white">
-                <option value="">未選択</option>
-                {models.map(m => <option key={m.modelId} value={m.modelId}>{m.modelName}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1"><Label>シリアル番号</Label>
-              <Input value={deviceForm.serialNo} onChange={e => setDeviceForm(f => ({ ...f, serialNo: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>実OS</Label>
-              <Input value={deviceForm.osVersion} onChange={e => setDeviceForm(f => ({ ...f, osVersion: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>実メモリ</Label>
-              <Input value={deviceForm.memorySize} onChange={e => setDeviceForm(f => ({ ...f, memorySize: e.target.value }))} placeholder="例：16GB" autoComplete="off" /></div>
-            <div className="space-y-1"><Label>実容量</Label>
-              <Input value={deviceForm.storageSize} onChange={e => setDeviceForm(f => ({ ...f, storageSize: e.target.value }))} placeholder="例：512GB SSD" autoComplete="off" /></div>
-            <div className="space-y-1"><Label>設置場所</Label>
-              <Input value={deviceForm.location} onChange={e => setDeviceForm(f => ({ ...f, location: e.target.value }))} list="location-list" autoComplete="off" />
-              <datalist id="location-list">{getMasterValues("設置場所").map(v => <option key={v} value={v} />)}</datalist>
-            </div>
-            <div className="space-y-1"><Label>利用者</Label>
-              <SearchAssistInput label="利用者" options={userOptions} indexFilter
-                value={deviceForm.userId} onChange={(v) => setDeviceForm(f => ({ ...f, userId: v }))} placeholder="氏名を入力、または検索から選択（共有PC等は自由記述可）" /></div>
-            <div className="space-y-1"><Label>アカウント名</Label>
-              <Input value={deviceForm.accountName} onChange={e => setDeviceForm(f => ({ ...f, accountName: e.target.value }))} placeholder="例：ログインID" autoComplete="off" /></div>
-            <div className="space-y-1"><Label>調達区分</Label>
-              <select value={deviceForm.procurementType} onChange={e => setDeviceForm(f => ({ ...f, procurementType: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                <option value="">-- 選択 --</option>
-                <option value="購入">購入</option>
-                <option value="リース">リース</option>
-              </select></div>
-            {deviceForm.procurementType === "購入" && (
-            <div className="space-y-1"><Label>購入日</Label>
-              <Input type="date" value={deviceForm.purchaseDate} onChange={e => setDeviceForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
-            )}
-            {deviceForm.procurementType === "リース" && (<>
-            <div className="space-y-1"><Label>リース会社</Label>
-              <select value={deviceForm.leaseCompany} onChange={e => setDeviceForm(f => ({ ...f, leaseCompany: e.target.value }))}
-                className="w-full h-10 border rounded px-3 text-sm bg-white">
-                <option value="">未選択</option>
-                {getMasterValues("リース会社").map(v => <option key={v} value={v}>{v}</option>)}
-              </select></div>
-            <div className="space-y-1"><Label>レンタル開始日</Label>
-              <Input type="date" value={deviceForm.leaseStart} onChange={e => setDeviceForm(f => ({ ...f, leaseStart: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>レンタル終了日</Label>
-              <Input type="date" value={deviceForm.leaseEnd} onChange={e => setDeviceForm(f => ({ ...f, leaseEnd: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>契約番号</Label>
-              <Input value={deviceForm.contractNo} onChange={e => setDeviceForm(f => ({ ...f, contractNo: e.target.value }))} autoComplete="off" /></div>
-            <div className="space-y-1"><Label>レンタル物件No</Label>
-              <Input value={deviceForm.leaseItemNo} onChange={e => setDeviceForm(f => ({ ...f, leaseItemNo: e.target.value }))} autoComplete="off" /></div>
-            </>)}
-            <div className="space-y-1"><Label>利用開始日</Label>
-              <Input type="date" value={deviceForm.startDate} onChange={e => setDeviceForm(f => ({ ...f, startDate: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>状態</Label>
-              <Input value={deviceForm.status} onChange={e => setDeviceForm(f => ({ ...f, status: e.target.value }))} list="status-list" autoComplete="off" />
-              <datalist id="status-list">{getMasterValues("状態").map(v => <option key={v} value={v} />)}</datalist>
-            </div>
-            <div className="space-y-1"><Label>管理区分</Label>
-              <Input value={deviceForm.managementType} onChange={e => setDeviceForm(f => ({ ...f, managementType: e.target.value }))} list="management-list" autoComplete="off" />
-              <datalist id="management-list">{getMasterValues("管理区分").map(v => <option key={v} value={v} />)}</datalist>
-            </div>
-            <div className="col-span-2 space-y-1"><Label>備考</Label>
-              <Textarea value={deviceForm.remark} onChange={e => setDeviceForm(f => ({ ...f, remark: e.target.value }))} rows={3} placeholder="端末固有の備考" />
-            </div>
-            <div className="col-span-2 space-y-1"><Label>親端末（仮想マシンの場合に選択）</Label>
-              <select value={deviceForm.parentDeviceId} onChange={e => setDeviceForm(f => ({ ...f, parentDeviceId: e.target.value }))}
-                className="w-full h-10 border rounded px-3 text-sm bg-white">
-                <option value="">なし（物理端末）</option>
-                {parentCandidates.map(d => <option key={d.deviceId} value={d.deviceId}>{d.deviceName}{d.assetNo ? ` (${d.assetNo})` : ""}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setEditDeviceOpen(false)}>キャンセル</Button>
-            <Button onClick={handleSaveDevice} disabled={savingDevice || !deviceForm.deviceName}>
-              {savingDevice ? "保存中..." : "保存"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* IP ダイアログ */}
       <Dialog open={ipDialogOpen} onOpenChange={setIpDialogOpen}>

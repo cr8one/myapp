@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CheckCircle2, Circle, Download, Trash2, Plus, Pencil } from "lucide-react"
 import RingiPaperPreview from "./RingiPaperPreview"
-import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
+import { SingleSelectModal, MultiSearchAssistInput } from "@/components/ui/searchable-select-modal"
 
 type ApprovalStep = {
   id: string
@@ -362,7 +362,10 @@ export default function RingiDetailClient({ id }: { id: string }) {
               </div>
               <div className={rowCls}>
                 <span className={labelCls}>起案者</span>
-                <Input value={form.requester_names} onChange={e => setF("requester_names", e.target.value)} className="flex-1 h-8 text-sm" autoComplete="off" placeholder="連名の場合はカンマ区切り" />
+                <div className="flex-1">
+                  <MultiSearchAssistInput label="起案者" options={userOptions} indexFilter
+                    value={form.requester_names} onChange={(v) => setF("requester_names", v)} placeholder="連名の場合はカンマ区切り（検索から複数選択も可）" />
+                </div>
               </div>
               <div className={rowCls}>
                 <span className={labelCls}>起案部</span>

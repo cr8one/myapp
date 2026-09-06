@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Trash2, Plus } from "lucide-react"
 import RingiPaperPreview from "../[id]/RingiPaperPreview"
-import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
+import { SingleSelectModal, MultiSearchAssistInput } from "@/components/ui/searchable-select-modal"
 
 type UserOption = { id: string; name: string | null; furiganaLastName?: string | null }
 type UploadedFile = { fileKey: string; fileName: string }
@@ -206,7 +206,8 @@ export default function RingiNewPage() {
             </div>
             <div className={rowCls}>
               <label className={labelCls}>起案者</label>
-              <Input value={form.requester_names} onChange={e => set("requester_names", e.target.value)} className={inputCls} autoComplete="off" placeholder="連名の場合はカンマ区切り" />
+              <MultiSearchAssistInput label="起案者" options={userOptions} indexFilter
+                value={form.requester_names} onChange={(v) => set("requester_names", v)} placeholder="連名の場合はカンマ区切り（検索から複数選択も可）" />
             </div>
             <div className={rowCls}>
               <label className={labelCls}>起案部</label>
