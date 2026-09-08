@@ -177,15 +177,15 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const { id } = await params
-  await prisma.$transaction([
-    prisma.devProjectAssignee.deleteMany({ where: { userId: id } }),
-    prisma.devExhibitionVisitor.deleteMany({ where: { userId: id } }),
-    prisma.sealSupply.updateMany({ where: { issuerId: id },            data: { issuerId: null } }),
-    prisma.sealSupply.updateMany({ where: { supplierId: id },          data: { supplierId: null } }),
-    prisma.sealSupply.updateMany({ where: { receiverId: id },          data: { receiverId: null } }),
-    prisma.sealSupply.updateMany({ where: { outsourceReceiverId: id }, data: { outsourceReceiverId: null } }),
-    prisma.sealSupply.updateMany({ where: { salesPersonId: id },       data: { salesPersonId: null } }),
-    prisma.user.delete({ where: { id } }),
-  ])
+  await prisma.$transaction(async (tx) => {
+    await tx.devProjectAssignee.deleteMany({ where: { userId: id } })
+    await tx.devExhibitionVisitor.deleteMany({ where: { userId: id } })
+    await tx.sealSupply.updateMany({ where: { issuerId: id },            data: { issuerId: null } })
+    await tx.sealSupply.updateMany({ where: { supplierId: id },          data: { supplierId: null } })
+    await tx.sealSupply.updateMany({ where: { receiverId: id },          data: { receiverId: null } })
+    await tx.sealSupply.updateMany({ where: { outsourceReceiverId: id }, data: { outsourceReceiverId: null } })
+    await tx.sealSupply.updateMany({ where: { salesPersonId: id },       data: { salesPersonId: null } })
+    await tx.user.delete({ where: { id } })
+  })
   return NextResponse.json({ success: true })
 }
