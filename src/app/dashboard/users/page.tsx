@@ -271,7 +271,7 @@ const handleInkanDelete = async () => {
     const res = await fetch("/api/users/import", { method: "POST", body: formData })
     const result = await res.json()
     if (res.ok) {
-      alert(`インポート完了：${result.created}件登録、${result.skipped}件スキップ${result.errors.length > 0 ? `\nエラー：${result.errors.join("\n")}` : ""}`)
+      alert(`インポート完了：新規${result.created}件、更新${result.updated}件${result.errors.length > 0 ? `\nエラー：${result.errors.join("\n")}` : ""}`)
       fetchUsers()
     } else { alert(`エラー：${result.error}`) }
     e.target.value = ""
@@ -317,9 +317,9 @@ const handleInkanDelete = async () => {
         <div className="flex gap-2">
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={handleExport}>CSVエクスポート</Button>
-              <Button variant="outline" onClick={() => importRef.current?.click()}>CSVインポート</Button>
-              <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+              <Button variant="outline" onClick={handleExport}>Excelエクスポート</Button>
+              <Button variant="outline" onClick={() => importRef.current?.click()}>Excelインポート</Button>
+              <input ref={importRef} type="file" accept=".xlsx" className="hidden" onChange={handleImport} />
               <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
                 {showForm ? "キャンセル" : "新規登録"}
               </Button>
