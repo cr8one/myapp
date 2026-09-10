@@ -107,6 +107,7 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [error, setError] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
@@ -147,8 +148,10 @@ export default function UsersPage() {
 
   const [sort, setSort] = useState("org")
   const fetchUsers = async (sortValue?: string) => {
+    setFetching(true)
     const res = await fetch(`/api/users?sort=${sortValue ?? sort}`)
     setUsers(await res.json())
+    setFetching(false)
   }
   const fetchDepartments = async () => {
     const res = await fetch("/api/masters/departments")
@@ -624,7 +627,9 @@ const handleInkanDelete = async () => {
         ))}
       </div>
 
-      {filteredUsers.length === 0 ? (
+      {fetching ? (
+        <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+      ) : filteredUsers.length === 0 ? (
         <p className="text-center text-gray-500 py-8">{searchQuery ? "検索結果がありません" : "ユーザーが登録されていません"}</p>
       ) : (
         <div className="border rounded-lg overflow-hidden">
