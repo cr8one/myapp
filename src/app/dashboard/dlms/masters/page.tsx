@@ -95,7 +95,9 @@ export default function DlmsMastersPage() {
     setFetching(false)
   }, [])
 
+  const [tcFetching, setTcFetching] = useState(true)
   const fetchTypeConditions = useCallback(async (keyword = "", genre = "", spec = "", hinmoku = "", tag1 = "", tag2 = "", page = 1) => {
+    setTcFetching(true)
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
     if (genre) params.set("genre", genre)
@@ -108,6 +110,7 @@ export default function DlmsMastersPage() {
     const data = await res.json()
     setTypeConditions(data.records ?? [])
     setTcTotal(data.total ?? 0)
+    setTcFetching(false)
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
@@ -623,7 +626,9 @@ export default function DlmsMastersPage() {
                 </div>
               )}
 
-              {typeConditions.length === 0 ? (
+              {tcFetching ? (
+                <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+              ) : typeConditions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400">
                   <AlertCircle className="w-8 h-8 mb-2 opacity-30" />
                   <p className="text-sm">型条件が登録されていません</p>

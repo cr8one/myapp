@@ -32,7 +32,7 @@ export default function ShelfStockClient({ isAdmin }: { isAdmin: boolean }) {
   const [keyword, setKeyword] = useState("")
   const [rack, setRack] = useState("")
   const [racks, setRacks] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const [showImport, setShowImport] = useState(false)
   const [showLayout, setShowLayout] = useState(false)

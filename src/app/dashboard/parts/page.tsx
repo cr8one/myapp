@@ -23,11 +23,14 @@ export default function PartsPage() {
   const [editName, setEditName] = useState("")
   const [editNote, setEditNote] = useState("")
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
 
   const fetchParts = async () => {
+    setFetching(true)
     const res = await fetch("/api/parts")
     const data = await res.json()
     setParts(data)
+    setFetching(false)
   }
 
   useEffect(() => {
@@ -142,8 +145,10 @@ export default function PartsPage() {
             </CardContent>
           </Card>
         ))}
-        {filteredParts.length === 0 && (
-          <p className="text-center text-gray-500">
+        {fetching ? (
+          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+        ) : filteredParts.length === 0 && (
+          <p className="text-center text-gray-500 py-8">
             {searchQuery ? "検索結果がありません" : "パーツが登録されていません"}
           </p>
         )}

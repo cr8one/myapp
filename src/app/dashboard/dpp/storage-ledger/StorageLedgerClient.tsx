@@ -37,7 +37,7 @@ export default function StorageLedgerClient({ canImport, initialTotal }: { canIm
   const [page, setPage] = useState(1)
   const [entries, setEntries] = useState<Entry[]>([])
   const [total, setTotal] = useState(initialTotal)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
   const [importMessage, setImportMessage] = useState("")

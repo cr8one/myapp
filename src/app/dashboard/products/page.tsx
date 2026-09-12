@@ -30,6 +30,7 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [error, setError] = useState("")
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
@@ -40,9 +41,11 @@ export default function ProductsPage() {
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState("")
   const fetchProducts = async () => {
+    setFetching(true)
     const res = await fetch("/api/products")
     const data = await res.json()
     setProducts(data)
+    setFetching(false)
   }
   const fetchUsers = async () => {
     const res = await fetch("/api/users")
@@ -352,8 +355,10 @@ export default function ProductsPage() {
             </CardContent>
           </Card>
         ))}
-        {filteredProducts.length === 0 && (
-          <p className="text-center text-gray-500">
+        {fetching ? (
+          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+        ) : filteredProducts.length === 0 && (
+          <p className="text-center text-gray-500 py-8">
             {searchQuery ? "検索結果がありません" : "製品が登録されていません"}
           </p>
         )}

@@ -38,7 +38,7 @@ function Pagination({ page, totalPages, totalCount, onPageChange }: {
 }
 export default function MTokuiNonyuPage() {
   const [records, setRecords] = useState<Record_[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
   const [delFlg, setDelFlg] = useState("")
   const [totalCount, setTotalCount] = useState(0)
