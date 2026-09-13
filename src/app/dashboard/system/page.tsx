@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import SystemDashboardClient from "./SystemDashboardClient"
+import { ALLOWED_TABLE_NAMES } from "@/lib/db-management/schema-groups"
 
 export default async function SystemDashboardPage() {
   const session = await auth()
@@ -17,9 +18,11 @@ export default async function SystemDashboardPage() {
     prisma.auditLog.count(),
   ])
 
+  const dbTableCount = ALLOWED_TABLE_NAMES.size
+
   return (
     <SystemDashboardClient
-      stats={{ devLogCount, loginLogCount, loginFailCount, auditLogCount }}
+      stats={{ devLogCount, loginLogCount, loginFailCount, auditLogCount, dbTableCount }}
     />
   )
 }

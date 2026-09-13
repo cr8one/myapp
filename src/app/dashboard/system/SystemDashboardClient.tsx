@@ -1,13 +1,14 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ShieldCheck, BookOpen, LogIn, AlertTriangle, ClipboardList } from "lucide-react"
+import { ShieldCheck, BookOpen, LogIn, AlertTriangle, ClipboardList, DatabaseZap } from "lucide-react"
 
 type Stats = {
   devLogCount: number
   loginLogCount: number
   loginFailCount: number
   auditLogCount: number
+  dbTableCount: number
 }
 
 const cards = [
@@ -54,6 +55,17 @@ const cards = [
     border: "border-purple-100",
     hover: "hover:border-purple-300",
     unit: "件",
+  },
+  {
+    label: "DB管理",
+    key: "dbTableCount" as keyof Stats,
+    href: "/dashboard/system/db-management",
+    icon: DatabaseZap,
+    bg: "bg-teal-50",
+    text: "text-teal-600",
+    border: "border-teal-100",
+    hover: "hover:border-teal-300",
+    unit: "テーブル",
   },
 ]
 

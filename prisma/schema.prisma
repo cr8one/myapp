@@ -1560,3 +1560,15 @@ model RingiFile {
   uploaded_at DateTime @default(now())
   @@map("t_ringi_request_files")
 }
+model DbManagementNote {
+  id         String   @id @default(cuid())
+  tableName  String   @map("table_name")
+  fieldName  String   @default("") @map("field_name")
+  note       String
+  updatedBy  String?  @map("updated_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([tableName, fieldName])
+  @@map("t_db_management_notes")
+}
