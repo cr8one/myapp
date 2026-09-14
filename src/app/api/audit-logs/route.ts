@@ -12,12 +12,14 @@ export async function GET(req: NextRequest) {
   const action = searchParams.get("action")
   const targetModel = searchParams.get("targetModel")
   const userId = searchParams.get("userId")
+  const service = searchParams.get("service")
 
   const logs = await prisma.auditLog.findMany({
     where: {
       ...(action ? { action } : {}),
       ...(targetModel ? { targetModel } : {}),
       ...(userId ? { userId } : {}),
+      ...(service ? { service } : {}),
     },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { createdAt: "desc" },

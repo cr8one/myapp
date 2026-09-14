@@ -2,9 +2,11 @@
 import { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
+import { DB_SERVICE_GROUPS } from "@/lib/db-management/schema-groups"
 
 type AuditLog = {
   id: string
+  service: string | null
   action: string
   targetModel: string
   targetId: string
@@ -35,18 +37,24 @@ const MODEL_LABELS: Record<string, string> = {
   Product: "製品",
 }
 
+const SERVICE_LABELS: Record<string, string> = Object.fromEntries(
+  DB_SERVICE_GROUPS.map(g => [g.key, g.label])
+)
+
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
   const [filterAction, setFilterAction] = useState<string>("all")
   const [filterModel, setFilterModel] = useState<string>("all")
+  const [filterService, setFilterService] = useState<string>("all")
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const fetchLogs = async (action?: string, model?: string) => {
+  const fetchLogs = async (action?: string, model?: string, service?: string) => {
     setLoading(true)
     const params = new URLSearchParams()
     if (action && action !== "all") params.set("action", action)
     if (model && model !== "all") params.set("targetModel", model)
+    if (service && service !== "all") params.set("service", service)
     const res = await fetch(`/api/audit-logs?${params.toString()}`)
     const data = await res.json()
     setLogs(data)
@@ -57,12 +65,17 @@ export default function AuditLogsPage() {
 
   const handleActionFilter = (value: string) => {
     setFilterAction(value)
-    fetchLogs(value, filterModel)
+    fetchLogs(value, filterModel, filterService)
   }
 
   const handleModelFilter = (value: string) => {
     setFilterModel(value)
-    fetchLogs(filterAction, value)
+    fetchLogs(filterAction, value, filterService)
+  }
+
+  const handleServiceFilter = (value: string) => {
+    setFilterService(value)
+    fetchLogs(filterAction, filterModel, value)
   }
 
   const formatDiff = (diff: string | null) => {
@@ -110,6 +123,19 @@ export default function AuditLogsPage() {
             ))}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-gray-600">サービス：</Label>
+          <select
+            value={filterService}
+            onChange={e => handleServiceFilter(e.target.value)}
+            className="border rounded px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">すべて</option>
+            {DB_SERVICE_GROUPS.map(g => (
+              <option key={g.key} value={g.key}>{g.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -123,6 +149,7 @@ export default function AuditLogsPage() {
               <tr>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">日時</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">操作者</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">サービス</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">操作</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">対象</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">対象名</th>
@@ -139,6 +166,9 @@ export default function AuditLogsPage() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-800 text-xs">{log.user?.name ?? "—"}</div>
                       <div className="text-xs text-gray-400">{log.user?.email ?? "—"}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      {log.service ? (SERVICE_LABELS[log.service] ?? log.service) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${ACTION_STYLES[log.action] ?? "bg-gray-100 text-gray-700"}`}>
@@ -164,7 +194,7 @@ export default function AuditLogsPage() {
                   </tr>
                   {expandedId === log.id && log.diff && (
                     <tr key={`${log.id}-diff`} className="bg-gray-50">
-                      <td colSpan={6} className="px-4 py-3">
+                      <td colSpan={7} className="px-4 py-3">
                         <pre className="text-xs text-gray-600 bg-gray-100 rounded p-3 overflow-x-auto whitespace-pre-wrap">
                           {formatDiff(log.diff)}
                         </pre>

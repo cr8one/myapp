@@ -416,6 +416,7 @@ model LoginLog {
 model AuditLog {
   id          String   @id @default(cuid())
   userId      String?
+  service     String?
   action      String
   targetModel String
   targetId    String
@@ -423,6 +424,10 @@ model AuditLog {
   diff        String?
   createdAt   DateTime @default(now())
   user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([service])
+  @@index([targetModel])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 model DlmsDielineParent {
