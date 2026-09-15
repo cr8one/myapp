@@ -3,8 +3,8 @@ import { useEffect, useState, useRef, Fragment } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle } from "lucide-react"
-
+import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
+import { useSession } from "next-auth/react"
 type CadRequest = {
   id: string
   uid: string
@@ -22,14 +22,11 @@ type CadRequest = {
   desired_time: string | null
   requester: { id: string; name: string | null; department: string | null } | null
 }
-
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
 type SortMode = "created" | "nouki"
 const PAGE_SIZE = 50
 const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"]
-
 const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"] as const
-
 const STATUS_STYLE: Record<string, string> = {
   "作成中": "bg-gray-100 text-gray-600",
   "依頼済": "bg-blue-100 text-blue-700",
@@ -37,9 +34,10 @@ const STATUS_STYLE: Record<string, string> = {
   "完了": "bg-green-100 text-green-700",
   "保留": "bg-red-100 text-red-700",
 }
-
 export default function CadRequestsPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [records, setRecords] = useState<CadRequest[]>([])
   const [total, setTotal] = useState(0)
@@ -53,8 +51,10 @@ export default function CadRequestsPage() {
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [importProgress, setImportProgress] = useState({ count: 0, total: 0 })
   const [importError, setImportError] = useState("")
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("")
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const totalPages = Math.ceil(total / PAGE_SIZE)
-
   const fetchRecords = async (p = page, kw = keyword, st = statusFilter, sm = sortMode) => {
     setLoading(true)
     const params = new URLSearchParams()
@@ -68,40 +68,33 @@ export default function CadRequestsPage() {
     setTotal(data.total)
     setLoading(false)
   }
-
   useEffect(() => { fetchRecords(1) }, [])
-
   const handleSearch = () => {
     setPage(1)
     fetchRecords(1, keyword, statusFilter, sortMode)
   }
-
   const handleStatusFilter = (st: string) => {
     const next = statusFilter === st ? "" : st
     setStatusFilter(next)
     setPage(1)
     fetchRecords(1, keyword, next, sortMode)
   }
-
   const handleSortMode = (sm: SortMode) => {
     setSortMode(sm)
     setPage(1)
     fetchRecords(1, keyword, statusFilter, sm)
   }
-
   const handlePage = (next: number) => {
     setPage(next)
     fetchRecords(next, keyword, statusFilter, sortMode)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
-
   const handleExport = () => {
     const params = new URLSearchParams()
     if (keyword) params.set("keyword", keyword)
     if (statusFilter) params.set("status", statusFilter)
     window.location.href = `/api/cad/requests/export?${params.toString()}`
   }
-
   const handleImport = async () => {
     if (!importFile) return
     setImportStatus("uploading")
@@ -138,7 +131,6 @@ export default function CadRequestsPage() {
       setImportStatus("error")
     }
   }
-
   const resetImport = () => {
     setImportStatus("idle")
     setImportFile(null)
@@ -146,18 +138,31 @@ export default function CadRequestsPage() {
     setImportError("")
     setShowImport(false)
   }
-
+  const handleBulkDelete = async () => {
+    if (bulkDeleteConfirmText !== "削除") return
+    setBulkDeleting(true)
+    try {
+      const res = await fetch("/api/cad/requests/bulk-delete", { method: "DELETE" })
+      if (!res.ok) throw new Error("削除に失敗しました")
+      setShowBulkDeleteModal(false)
+      setBulkDeleteConfirmText("")
+      setPage(1)
+      fetchRecords(1, keyword, statusFilter, sortMode)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "エラーが発生しました")
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
   const formatMonthDay = (str: string | null) => {
     if (!str) return ""
     const d = new Date(str)
     return `${d.getMonth() + 1}/${d.getDate()}`
   }
-
   const formatTimeNoSec = (str: string | null) => {
     if (!str) return ""
     return str.length > 5 ? str.slice(0, 5) : str
   }
-
   const groupedRecords = (() => {
     const groups: { key: string; label: string; items: CadRequest[] }[] = []
     const map = new Map<string, CadRequest[]>()
@@ -177,7 +182,6 @@ export default function CadRequestsPage() {
     }
     return groups
   })()
-
   const Pagination = () => (
     <div className="flex items-center justify-between py-3 px-1">
       <p className="text-sm text-gray-500">
@@ -194,7 +198,6 @@ export default function CadRequestsPage() {
       </div>
     </div>
   )
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -207,9 +210,17 @@ export default function CadRequestsPage() {
             <Download className="w-4 h-4" />CSVエクスポート
           </Button>
           <Button onClick={() => router.push("/dashboard/cad/requests/new")}>新規登録</Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 className="w-4 h-4" />全件削除
+            </Button>
+          )}
         </div>
       </div>
-
       {/* インポートパネル */}
       {showImport && (
         <div className="bg-white border rounded-lg p-5 mb-6 shadow-sm space-y-4">
@@ -274,7 +285,6 @@ export default function CadRequestsPage() {
           )}
         </div>
       )}
-
       {/* 検索・フィルタ・グルーピング切替 */}
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm space-y-3">
         <div className="flex gap-3">
@@ -326,7 +336,6 @@ export default function CadRequestsPage() {
           ))}
         </div>
       </div>
-
       {/* 一覧 */}
       {loading ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
@@ -416,6 +425,45 @@ export default function CadRequestsPage() {
           </div>
           <Pagination />
         </>
+      )}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => !bulkDeleting && setShowBulkDeleteModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 text-red-600 mb-3">
+              <AlertCircle className="w-5 h-5" />
+              <h2 className="text-lg font-bold">CAD依頼書 全件削除</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">
+              現在の検索・絞り込み条件に関係なく、CAD依頼書の全レコードを削除します。
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              この操作は元に戻せません。続行する場合は下欄に「<span className="font-bold">削除</span>」と入力してください。
+            </p>
+            <Input
+              value={bulkDeleteConfirmText}
+              onChange={e => setBulkDeleteConfirmText(e.target.value)}
+              placeholder="削除"
+              className="mb-4"
+              autoComplete="off"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setShowBulkDeleteModal(false); setBulkDeleteConfirmText("") }}
+                disabled={bulkDeleting}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteConfirmText !== "削除" || bulkDeleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {bulkDeleting ? "削除中..." : "全件削除を実行"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
