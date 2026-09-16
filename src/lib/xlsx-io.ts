@@ -20,7 +20,7 @@ export function buildXlsxWorkbook(sheets: XlsxSheetData[]): Buffer {
 }
 
 export function readXlsxWorkbook(buf: Buffer): Record<string, Record<string, unknown>[]> {
-  const wb = XLSX.read(buf, { type: "buffer" })
+  const wb = XLSX.read(buf, { type: "buffer", cellDates: true })
   const result: Record<string, Record<string, unknown>[]> = {}
   for (const sheetName of wb.SheetNames) {
     result[sheetName] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null })

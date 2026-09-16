@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
-import { parseCsvLine } from "@/lib/csv"
+import { readXlsxWorkbook } from "@/lib/xlsx-io"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -12,38 +12,65 @@ const s3 = new S3Client({
 
 const CHUNK = 100
 
+function str(v: unknown): string {
+  if (v === null || v === undefined) return ""
+  return String(v).trim()
+}
+
+function toDateStr(v: unknown): string {
+  if (v === null || v === undefined || v === "") return ""
+  if (v instanceof Date) return v.toISOString().slice(0, 10)
+  return String(v).trim()
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { key, offset } = await req.json()
 
-  // S3からCSV取得
+  // S3からExcelファイル取得
   const obj = await s3.send(new GetObjectCommand({
     Bucket: "japan-sleeve-system-files-936533876784",
     Key: key,
   }))
-  const raw = await obj.Body!.transformToString("utf-8")
-  const text = raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw // BOM除去
+  const buf = Buffer.from(await obj.Body!.transformToByteArray())
 
-  const lines = text.split("\n").filter(l => l.trim() !== "")
-  const dataLines = lines.slice(1) // ヘッダー除去
-  const total = dataLines.length
-  const chunk = dataLines.slice(offset, offset + CHUNK)
+  const sheets = readXlsxWorkbook(buf)
+  const dataRows = sheets["CadRequests"] ?? []
+  const total = dataRows.length
+  const chunk = dataRows.slice(offset, offset + CHUNK)
 
   // 採番用：現在の最大uid取得
   const last = await prisma.cadRequest.findFirst({ orderBy: { uid: "desc" } })
   let nextNum = last ? parseInt(last.uid) + 1 : 10001
 
-  for (const line of chunk) {
-    const cols = parseCsvLine(line)
-
-    const [
-      uid, request_date, request_time, requester_name, department, content,
-      client, title, genre, hinmoku, hinban, status, dieline_no,
-      develop_y, develop_x, paper, finish_count,
-      desired_date, desired_time, flg_tray_spec, tray, degi_spec, tray_count, pocket, remarks
-    ] = cols
+  for (const row of chunk) {
+    const uid = str(row["依頼番号"])
+    const request_date = toDateStr(row["依頼日"])
+    const request_time = str(row["依頼時刻"])
+    const requester_name = str(row["依頼営業名"])
+    const department = str(row["依頼部署"])
+    const content = str(row["依頼内容"])
+    const client = str(row["クライアント"])
+    const title = str(row["タイトル"])
+    const genre = str(row["ジャンル"])
+    const hinmoku = str(row["品目名"])
+    const hinban = str(row["品番"])
+    const status = str(row["ステータス"])
+    const dieline_no = str(row["型台帳番号"])
+    const develop_y = str(row["展開天地"])
+    const develop_x = str(row["展開左右"])
+    const paper = str(row["用紙"])
+    const finish_count = str(row["仕上個数"])
+    const desired_date = toDateStr(row["希望納期日"])
+    const desired_time = str(row["希望納期時刻"])
+    const flg_tray_spec = str(row["トレイ仕様flg"])
+    const tray = str(row["使用トレイ"])
+    const degi_spec = str(row["デジ仕様"])
+    const tray_count = str(row["トレイ枚数"])
+    const pocket = str(row["ポケット"])
+    const remarks = str(row["備考"])
 
     const data = {
       request_date: request_date ? new Date(request_date) : new Date(),

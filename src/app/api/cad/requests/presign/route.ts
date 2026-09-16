@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     new PutObjectCommand({
       Bucket: "japan-sleeve-system-files-936533876784",
       Key: key,
-      ContentType: "text/csv",
+      ContentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
     { expiresIn: 300 }
   )

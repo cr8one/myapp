@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { buildXlsxWorkbook } from "@/lib/xlsx-io"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword")
@@ -50,13 +51,13 @@ export async function GET(req: NextRequest) {
     r.hinban ?? "",
     r.status ?? "",
     r.dieline_no ?? "",
-    r.develop_y?.toString() ?? "",
-    r.develop_x?.toString() ?? "",
+    r.develop_y ?? "",
+    r.develop_x ?? "",
     r.paper ?? "",
-    r.finish_count?.toString() ?? "",
+    r.finish_count ?? "",
     r.desired_date ? new Date(r.desired_date).toISOString().slice(0, 10) : "",
     r.desired_time ?? "",
-    r.flg_tray_spec?.toString() ?? "0",
+    r.flg_tray_spec ?? 0,
     r.tray ?? "",
     r.degi_spec ?? "",
     r.tray_count ?? "",
@@ -64,13 +65,14 @@ export async function GET(req: NextRequest) {
     r.remarks ?? "",
   ])
 
-  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n")
-  const bom = "\uFEFF"
+  const buf = buildXlsxWorkbook([
+    { name: "CadRequests", headers, rows },
+  ])
 
-  return new NextResponse(bom + csv, {
+  return new Response(new Uint8Array(buf), {
     headers: {
-      "Content-Type": "text/csv;charset=utf-8;",
-      "Content-Disposition": "attachment; filename=cad-requests.csv",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="cad-requests_${new Date().toISOString().slice(0, 10)}.xlsx"`,
     },
   })
 }
