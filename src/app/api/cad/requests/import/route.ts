@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { parseCsvLine } from "@/lib/csv"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -35,8 +36,7 @@ export async function POST(req: NextRequest) {
   let nextNum = last ? parseInt(last.uid) + 1 : 10001
 
   for (const line of chunk) {
-    const cols = line.match(/("([^"]*)"|([^,]*))(,|$)/g)
-      ?.map(c => c.replace(/^"|"$|,$/g, "").trim()) ?? []
+    const cols = parseCsvLine(line)
 
     const [
       uid, request_date, request_time, requester_name, department, content,
