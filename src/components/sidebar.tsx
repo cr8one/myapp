@@ -149,6 +149,7 @@ const baseMenuItems = [
       { label: "m_user", href: "/dashboard/masters/prinser/m-user" },
       { label: "m_tokui", href: "/dashboard/masters/prinser/m-tokui" },
       { label: "m_tokui_nonyu", href: "/dashboard/masters/prinser/m-tokui-nonyu" },
+      { label: "m_tray", href: "/dashboard/masters/prinser/m-tray" },
     ]},
   ]},
 ]
