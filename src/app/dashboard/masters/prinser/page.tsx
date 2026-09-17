@@ -33,6 +33,16 @@ const cards = [
     border: "border-indigo-100",
     hover: "hover:border-indigo-300",
   },
+  {
+    label: "m_tray",
+    desc: "トレイマスタ",
+    href: "/dashboard/masters/prinser/m-tray",
+    icon: Database,
+    bg: "bg-teal-50",
+    text: "text-teal-600",
+    border: "border-teal-100",
+    hover: "hover:border-teal-300",
+  },
 ]
 export default function PrinserDashboardPage() {
   const [phase, setPhase] = useState<0 | 1 | 2>(0)

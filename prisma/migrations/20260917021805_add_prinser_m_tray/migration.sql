@@ -1,0 +1,32 @@
+-- CreateTable
+CREATE TABLE "prinser_m_tray" (
+    "t_shop" TEXT NOT NULL DEFAULT '',
+    "t_maker" TEXT NOT NULL DEFAULT '',
+    "t_type" TEXT NOT NULL DEFAULT '',
+    "tray_cd" TEXT NOT NULL,
+    "tray_nm" TEXT NOT NULL,
+    "t_atumi" INTEGER NOT NULL DEFAULT 0,
+    "t_logo" TEXT NOT NULL DEFAULT '',
+    "t_foot" TEXT NOT NULL DEFAULT '',
+    "t_col" TEXT NOT NULL DEFAULT '',
+    "bikou" TEXT NOT NULL DEFAULT '',
+    "tray_nm2" TEXT NOT NULL DEFAULT '',
+    "t_wide" TEXT,
+    "tray_tanka" DECIMAL(10,2),
+    "rendo_tray_cd" TEXT NOT NULL DEFAULT '',
+    "t_sort" INTEGER NOT NULL DEFAULT 0,
+    "del_flg" INTEGER NOT NULL DEFAULT 0,
+    "dtindt" TEXT NOT NULL,
+    "dtintm" TEXT NOT NULL,
+    "dtinuid" TEXT NOT NULL,
+    "dtupdt" TEXT NOT NULL,
+    "dtuptm" TEXT NOT NULL,
+    "dtupuid" TEXT NOT NULL,
+    "tray_ryaku_nm" TEXT DEFAULT '',
+    "tray_warimashi" DECIMAL(10,2) DEFAULT 0.00,
+    "rawData" TEXT,
+    "importedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "prinser_m_tray_pkey" PRIMARY KEY ("tray_cd")
+);

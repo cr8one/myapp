@@ -134,6 +134,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "prinser_m_users", label: "PRINSERユーザー" },
       { tableName: "prinser_m_tokui", label: "PRINSER得意先" },
       { tableName: "prinser_m_tokui_nonyu", label: "PRINSER得意先納入先" },
+      { tableName: "prinser_m_tray", label: "PRINSERトレイ" },
     ],
   },
   {

@@ -646,6 +646,37 @@ model PrinserMTokuiNonyu {
   @@map("prinser_m_tokui_nonyu")
 }
 
+model PrinserMTray {
+  t_shop         String   @default("")
+  t_maker        String   @default("")
+  t_type         String   @default("")
+  tray_cd        String   @id
+  tray_nm        String
+  t_atumi        Int      @default(0)
+  t_logo         String   @default("")
+  t_foot         String   @default("")
+  t_col          String   @default("")
+  bikou          String   @default("")
+  tray_nm2       String   @default("")
+  t_wide         String?
+  tray_tanka     Decimal? @db.Decimal(10, 2)
+  rendo_tray_cd  String   @default("")
+  t_sort         Int      @default(0)
+  del_flg        Int      @default(0)
+  dtindt         String
+  dtintm         String
+  dtinuid        String
+  dtupdt         String
+  dtuptm         String
+  dtupuid        String
+  tray_ryaku_nm  String?  @default("")
+  tray_warimashi Decimal? @default(0.00) @db.Decimal(10, 2)
+  rawData        String?
+  importedAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@map("prinser_m_tray")
+}
+
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
   vendorName    String?   @map("vendor_name")
