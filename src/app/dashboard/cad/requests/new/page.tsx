@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
 import { DesiredTimeInput } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
@@ -195,17 +196,13 @@ export default function CadRequestNewPage() {
             <div className={rowCls}>
               <label className={labelCls}>依頼内容</label>
               <div className="flex-1">
-                <Input
+                <SearchAssistInput
+                  label="依頼内容"
                   value={form.content}
-                  onChange={e => set("content", e.target.value)}
-                  className={inputCls}
-                  autoComplete="off"
-                  list="content-list"
+                  onChange={v => set("content", v)}
+                  options={contents.map(c => ({ id: c.id, label: c.name }))}
                   placeholder="依頼内容を入力または選択"
                 />
-                <datalist id="content-list">
-                  {contents.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
               </div>
             </div>
             <div className={rowCls}>
