@@ -6,7 +6,7 @@ import { createElement } from "react"
 import CadRequestPdf from "@/app/dashboard/cad/requests/pdf/CadRequestPdf"
 import path from "path"
 import { Font } from "@react-pdf/renderer"
-import { desiredTimeLabel } from "@/components/desired-time-input"
+import { desiredTimeLabel } from "@/lib/desired-time"
 
 Font.register({
   family: "NotoSansJP",

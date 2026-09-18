@@ -3,7 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { readXlsxWorkbook } from "@/lib/xlsx-io"
-import { parseDesiredTimeLabel } from "@/components/desired-time-input"
+import { parseDesiredTimeLabel } from "@/lib/desired-time"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",

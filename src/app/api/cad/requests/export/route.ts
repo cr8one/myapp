@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { buildXlsxWorkbook } from "@/lib/xlsx-io"
-import { desiredTimeLabel } from "@/components/desired-time-input"
+import { desiredTimeLabel } from "@/lib/desired-time"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
