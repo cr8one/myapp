@@ -50,13 +50,13 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
-  // uid採番：10001から
-  const last = await prisma.cadRequest.findFirst({
-    orderBy: { uid: "desc" },
-  })
-  const nextNum = last
-    ? String(parseInt(last.uid) + 1).padStart(5, "0")
-    : "10001"
+  // uid採番：10001から。uidはString型で、旧システム由来の1〜2桁の値が混在しているため、
+  // 文字列ソートではなく数値としてのMAXを取得する（文字列ソートだと"9" > "10001"と誤判定されるため）
+  const maxResult = await prisma.$queryRaw<{ max: number | null }[]>`
+    SELECT MAX(CAST(uid AS INTEGER)) as max FROM t_cad_requests WHERE uid ~ '^[0-9]+$'
+  `
+  const currentMax = maxResult[0]?.max ?? 10000
+  const nextNum = String(Math.max(currentMax + 1, 10001)).padStart(5, "0")
 
   const record = await prisma.cadRequest.create({
     data: {
