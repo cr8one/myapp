@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { desiredTimeSortKey } from "@/components/desired-time-input"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       where,
       include: { requester: { select: { id: true, name: true } } },
       orderBy: sort === "nouki"
-        ? [{ desired_date: "desc" }, { desired_time: "desc" }]
+        ? [{ desired_date: "desc" }, { desired_time_sort: "desc" }]
         : { uid: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       uid: nextNum,
       request_date: new Date(body.request_date),
       desired_date: body.desired_date ? new Date(body.desired_date) : null,
+      desired_time_sort: desiredTimeSortKey(body.desired_time_kbn ?? 0, body.desired_time ?? null),
     },
     include: { requester: { select: { id: true, name: true } } },
   })

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { buildXlsxWorkbook } from "@/lib/xlsx-io"
+import { desiredTimeLabel } from "@/components/desired-time-input"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     r.paper ?? "",
     r.finish_count ?? "",
     r.desired_date ? new Date(r.desired_date).toISOString().slice(0, 10) : "",
-    r.desired_time ?? "",
+    desiredTimeLabel(r.desired_time_kbn, r.desired_time),
     r.flg_tray_spec ?? 0,
     r.tray ?? "",
     r.degi_spec ?? "",

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { desiredTimeLabel } from "@/components/desired-time-input"
 type CadRequest = {
   id: string
   uid: string
@@ -20,6 +21,7 @@ type CadRequest = {
   status: string
   desired_date: string | null
   desired_time: string | null
+  desired_time_kbn: number
   requester: { id: string; name: string | null; department: string | null } | null
 }
 type ImportStatus = "idle" | "uploading" | "importing" | "done" | "error"
@@ -396,7 +398,7 @@ export default function CadRequestsPage() {
                         </td>
                         <td className="px-3 py-4">
                           <div className="text-sm text-gray-600">{formatMonthDay(r.desired_date)}</div>
-                          {r.desired_time && <div className="text-xs text-gray-400 mt-0.5">{formatTimeNoSec(r.desired_time)}</div>}
+                          {desiredTimeLabel(r.desired_time_kbn, r.desired_time) && <div className="text-xs text-gray-400 mt-0.5">{r.desired_time_kbn === 1 ? formatTimeNoSec(r.desired_time) : desiredTimeLabel(r.desired_time_kbn, r.desired_time)}</div>}
                         </td>
                         <td className="px-3 py-4">
                           <span className="text-sm text-gray-600 whitespace-nowrap">{r.content ?? ""}</span>

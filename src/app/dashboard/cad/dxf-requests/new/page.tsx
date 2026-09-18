@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { DesiredTimeInput } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null }
 const STATUS_OPTIONS = ["作成中", "依頼済み", "作業中", "完了"]
@@ -20,6 +21,7 @@ export default function DxfRequestNewPage() {
     request_time: nowTime(),
     desired_date: "",
     desired_time: "",
+    desired_time_kbn: 0,
     purpose: "",
     remarks: "",
     history: "",
@@ -31,7 +33,7 @@ export default function DxfRequestNewPage() {
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
   }, [])
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async () => {
     setSaving(true)
@@ -77,7 +79,11 @@ export default function DxfRequestNewPage() {
               </div>
               <div>
                 <label className={labelCls}>希望納期時刻</label>
-                <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className={inputCls} autoComplete="off" />
+                <DesiredTimeInput
+                  kbn={form.desired_time_kbn}
+                  time={form.desired_time}
+                  onChange={(kbn, time) => { set("desired_time_kbn", kbn); set("desired_time", time) }}
+                />
               </div>
               <div className="col-span-2">
                 <label className={labelCls}>CAD依頼書No</label>

@@ -6,6 +6,7 @@ import { createElement } from "react"
 import CadRequestPdf from "@/app/dashboard/cad/requests/pdf/CadRequestPdf"
 import path from "path"
 import { Font } from "@react-pdf/renderer"
+import { desiredTimeLabel } from "@/components/desired-time-input"
 
 Font.register({
   family: "NotoSansJP",
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
       paper: n(record.paper),
       finish_count: record.finish_count ?? undefined,
       desired_date: record.desired_date?.toISOString() ?? undefined,
-      desired_time: n(record.desired_time),
+      desired_time: n(desiredTimeLabel(record.desired_time_kbn, record.desired_time)),
       tray: n(record.tray),
       degi_spec: n(record.degi_spec),
       tray_count: record.tray_count ?? undefined,

@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import RequestMailModal from "@/components/cad/RequestMailModal"
+import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
@@ -43,6 +44,7 @@ type CadRequest = {
   finish_count: number | null
   desired_date: string | null
   desired_time: string | null
+  desired_time_kbn: number
   flg_tray_spec: number
   tray: string | null
   degi_spec: string | null
@@ -64,7 +66,7 @@ export default function CadRequestDetailPage() {
   const [options, setOptions] = useState<CadOption[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<Record<string, string>>({})
+  const [form, setForm] = useState<Record<string, string | number>>({})
   const [flgTraySpec, setFlgTraySpec] = useState(false)
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function CadRequestDetailPage() {
         finish_count: data.finish_count?.toString() ?? "",
         desired_date: data.desired_date?.slice(0, 10) ?? "",
         desired_time: data.desired_time ?? "",
+        desired_time_kbn: data.desired_time_kbn ?? 0,
         tray: data.tray ?? "",
         degi_spec: data.degi_spec ?? "",
         tray_count: data.tray_count ?? "",
@@ -104,11 +107,11 @@ export default function CadRequestDetailPage() {
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
   }, [id])
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
   const optionsFor = (category: string) => options.filter(o => o.category === category)
 
   const filteredUsers = form.department
-    ? users.filter(u => u.departmentLabels.includes(form.department))
+    ? users.filter(u => u.departmentLabels.includes(form.department as string))
     : users
 
   const handleUserSelect = (userId: string) => {
@@ -139,12 +142,13 @@ export default function CadRequestDetailPage() {
       body: JSON.stringify({
         ...form,
         flg_tray_spec: flgTraySpec ? 1 : 0,
-        develop_y: form.develop_y ? parseFloat(form.develop_y) : null,
-        develop_x: form.develop_x ? parseFloat(form.develop_x) : null,
-        finish_count: form.finish_count ? parseInt(form.finish_count) : null,
+        develop_y: form.develop_y ? parseFloat(form.develop_y as string) : null,
+        develop_x: form.develop_x ? parseFloat(form.develop_x as string) : null,
+        finish_count: form.finish_count ? parseInt(form.finish_count as string) : null,
         requester_id: form.requester_id || null,
         desired_date: form.desired_date || null,
         desired_time: form.desired_time || null,
+        desired_time_kbn: form.desired_time_kbn,
       }),
     })
     if (res.ok) {
@@ -429,8 +433,12 @@ export default function CadRequestDetailPage() {
                 <div className={rowCls}>
                   <label className={labelCls}>希望納期</label>
                   <div className="flex-1 flex items-center gap-2">
-                    <Input type="date" value={form.desired_date} onChange={e => set("desired_date", e.target.value)} className="h-8 text-sm w-36" autoComplete="off" />
-                    <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className="h-8 text-sm w-24" autoComplete="off" />
+                    <Input type="date" value={form.desired_date as string} onChange={e => set("desired_date", e.target.value)} className="h-8 text-sm w-36" autoComplete="off" />
+                    <DesiredTimeInput
+                      kbn={Number(form.desired_time_kbn ?? 0)}
+                      time={(form.desired_time as string) || ""}
+                      onChange={(kbn, time) => { set("desired_time_kbn", kbn); set("desired_time", time) }}
+                    />
                   </div>
                 </div>
               </>
@@ -457,7 +465,7 @@ export default function CadRequestDetailPage() {
                 <div className={rowCls}><span className={valLabelCls}>仕上個数</span><span className={valCls}>{record.finish_count != null ? `${record.finish_count}個` : "—"}</span></div>
                 <div className={rowCls}>
                   <span className={valLabelCls}>希望納期</span>
-                  <span className={valCls}>{formatDate(record.desired_date)}{record.desired_time ? `　${record.desired_time}` : ""}</span>
+                  <span className={valCls}>{formatDate(record.desired_date)}{desiredTimeLabel(record.desired_time_kbn, record.desired_time) ? `　${desiredTimeLabel(record.desired_time_kbn, record.desired_time)}` : ""}</span>
                 </div>
               </>
             )}

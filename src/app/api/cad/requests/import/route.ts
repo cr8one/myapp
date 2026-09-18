@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { readXlsxWorkbook } from "@/lib/xlsx-io"
+import { parseDesiredTimeLabel } from "@/components/desired-time-input"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -64,7 +65,8 @@ export async function POST(req: NextRequest) {
     const paper = str(row["用紙"])
     const finish_count = str(row["仕上個数"])
     const desired_date = toDateStr(row["希望納期日"])
-    const desired_time = str(row["希望納期時刻"])
+    const desired_time_raw = str(row["希望納期時刻"])
+    const { kbn: desired_time_kbn, time: desired_time } = parseDesiredTimeLabel(desired_time_raw)
     const flg_tray_spec = str(row["トレイ仕様flg"])
     const tray = str(row["使用トレイ"])
     const degi_spec = str(row["デジ仕様"])
@@ -90,7 +92,8 @@ export async function POST(req: NextRequest) {
       paper: paper || null,
       finish_count: finish_count ? parseInt(finish_count) : null,
       desired_date: desired_date ? new Date(desired_date) : null,
-      desired_time: desired_time || null,
+      desired_time: desired_time,
+      desired_time_kbn,
       tray: tray || null,
       degi_spec: degi_spec || null,
       flg_tray_spec: flg_tray_spec === "1" ? 1 : 0,

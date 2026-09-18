@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { desiredTimeSortKey } from "@/components/desired-time-input"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -25,6 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ...body,
       request_date: new Date(body.request_date),
       desired_date: body.desired_date ? new Date(body.desired_date) : null,
+      desired_time_sort: desiredTimeSortKey(body.desired_time_kbn ?? 0, body.desired_time ?? null),
       updated_at: new Date(),
     },
     include: { requester: { select: { id: true, name: true } } },

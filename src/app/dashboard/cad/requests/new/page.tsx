@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DesiredTimeInput } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
@@ -42,6 +43,7 @@ export default function CadRequestNewPage() {
     finish_count: "",
     desired_date: "",
     desired_time: "",
+    desired_time_kbn: 0,
     flg_tray_spec: false,
     tray: "",
     degi_spec: "",
@@ -58,7 +60,7 @@ export default function CadRequestNewPage() {
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
   }, [])
 
-  const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | boolean | number) => setForm(f => ({ ...f, [k]: v }))
 
   const optionsFor = (category: string) => options.filter(o => o.category === category)
 
@@ -101,6 +103,7 @@ export default function CadRequestNewPage() {
         requester_id: form.requester_id || null,
         desired_date: form.desired_date || null,
         desired_time: form.desired_time || null,
+        desired_time_kbn: form.desired_time_kbn,
       }),
     })
     if (res.ok) {
@@ -258,7 +261,11 @@ export default function CadRequestNewPage() {
               <label className={labelCls}>希望納期</label>
               <div className="flex-1 flex items-center gap-2">
                 <Input type="date" value={form.desired_date} onChange={e => set("desired_date", e.target.value)} className="h-8 text-sm w-36" autoComplete="off" />
-                <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className="h-8 text-sm w-24" autoComplete="off" />
+                <DesiredTimeInput
+                  kbn={form.desired_time_kbn}
+                  time={form.desired_time}
+                  onChange={(kbn, time) => { set("desired_time_kbn", kbn); set("desired_time", time) }}
+                />
               </div>
             </div>
           </div>

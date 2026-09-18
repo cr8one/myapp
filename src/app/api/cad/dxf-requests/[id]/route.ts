@@ -24,6 +24,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       request_time: body.request_time,
       desired_date: body.desired_date ? new Date(body.desired_date) : null,
       desired_time: body.desired_time || null,
+      desired_time_kbn: body.desired_time_kbn ?? 0,
       purpose: body.purpose || null,
       remarks: body.remarks || null,
       history: body.history || null,

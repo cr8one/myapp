@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null }
 type DxfRequest = {
@@ -14,6 +15,7 @@ type DxfRequest = {
   request_time: string
   desired_date: string | null
   desired_time: string | null
+  desired_time_kbn: number
   purpose: string | null
   remarks: string | null
   history: string | null
@@ -37,7 +39,7 @@ export default function DxfRequestDetailPage() {
   const [users, setUsers] = useState<User[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<Record<string, string>>({})
+  const [form, setForm] = useState<Record<string, string | number>>({})
 
   useEffect(() => {
     fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json()).then((data: DxfRequest) => {
@@ -48,6 +50,7 @@ export default function DxfRequestDetailPage() {
         request_time: data.request_time ?? "",
         desired_date: data.desired_date?.slice(0, 10) ?? "",
         desired_time: data.desired_time ?? "",
+        desired_time_kbn: data.desired_time_kbn ?? 0,
         purpose: data.purpose ?? "",
         remarks: data.remarks ?? "",
         history: data.history ?? "",
@@ -58,7 +61,7 @@ export default function DxfRequestDetailPage() {
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
   }, [id])
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = async () => {
     setSaving(true)
@@ -141,7 +144,11 @@ export default function DxfRequestDetailPage() {
                 </div>
                 <div>
                   <label className={labelCls}>希望納期時刻</label>
-                  <Input type="time" value={form.desired_time} onChange={e => set("desired_time", e.target.value)} className={inputCls} autoComplete="off" />
+                  <DesiredTimeInput
+                    kbn={Number(form.desired_time_kbn ?? 0)}
+                    time={(form.desired_time as string) || ""}
+                    onChange={(kbn, time) => { set("desired_time_kbn", kbn); set("desired_time", time) }}
+                  />
                 </div>
                 <div className="col-span-2">
                   <label className={labelCls}>CAD依頼書No</label>
@@ -168,7 +175,7 @@ export default function DxfRequestDetailPage() {
                 <div><p className="text-xs text-gray-400">依頼日</p><p className="text-sm text-gray-800">{formatDate(record.request_date)}</p></div>
                 <div><p className="text-xs text-gray-400">依頼時刻</p><p className="text-sm text-gray-800">{val(record.request_time)}</p></div>
                 <div><p className="text-xs text-gray-400">希望納期日</p><p className="text-sm text-gray-800">{formatDate(record.desired_date)}</p></div>
-                <div><p className="text-xs text-gray-400">希望納期時刻</p><p className="text-sm text-gray-800">{val(record.desired_time)}</p></div>
+                <div><p className="text-xs text-gray-400">希望納期時刻</p><p className="text-sm text-gray-800">{val(desiredTimeLabel(record.desired_time_kbn, record.desired_time) || null)}</p></div>
                 <div><p className="text-xs text-gray-400">CAD依頼書No</p><p className="text-sm text-gray-800">{val(record.id_cad)}</p></div>
                 <div><p className="text-xs text-gray-400">目的</p><p className="text-sm text-gray-800">{val(record.purpose)}</p></div>
                 <div className="col-span-2"><p className="text-xs text-gray-400">備考</p><p className="text-sm text-gray-800 whitespace-pre-wrap">{val(record.remarks)}</p></div>
