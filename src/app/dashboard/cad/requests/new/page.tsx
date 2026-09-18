@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
+import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { DesiredTimeInput } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
@@ -150,22 +151,16 @@ export default function CadRequestNewPage() {
             <div className={rowCls}>
               <label className={labelCls}>依頼部署</label>
               <div className="flex-1">
-                <Input
+                <AutocompleteInput
                   value={form.department}
-                  onChange={e => handleDepartmentChange(e.target.value)}
+                  onChange={v => handleDepartmentChange(v)}
                   className={inputCls}
-                  autoComplete="off"
-                  list="dept-list"
                   placeholder="部署名を入力または選択"
+                  options={[
+                    ...departments.map(d => ({ id: d.id, label: d.name })),
+                    ...departments.flatMap(d => d.groups.map(g => ({ id: g.id, label: `${d.name} ${g.name}` }))),
+                  ]}
                 />
-                <datalist id="dept-list">
-                  {departments.map(d => (
-                    <option key={d.id} value={d.name} />
-                  ))}
-                  {departments.flatMap(d => d.groups.map(g => (
-                    <option key={g.id} value={`${d.name} ${g.name}`} />
-                  )))}
-                </datalist>
               </div>
             </div>
             <div className={rowCls}>
@@ -196,11 +191,11 @@ export default function CadRequestNewPage() {
             <div className={rowCls}>
               <label className={labelCls}>依頼内容</label>
               <div className="flex-1">
-                <SearchAssistInput
-                  label="依頼内容"
+                <AutocompleteInput
                   value={form.content}
                   onChange={v => set("content", v)}
                   options={contents.map(c => ({ id: c.id, label: c.name }))}
+                  className={inputCls}
                   placeholder="依頼内容を入力または選択"
                 />
               </div>
@@ -216,17 +211,13 @@ export default function CadRequestNewPage() {
             <div className={rowCls}>
               <label className={labelCls}>品目名</label>
               <div className="flex-1">
-                <Input
+                <SearchAssistInput
+                  label="品目名"
                   value={form.hinmoku}
-                  onChange={e => set("hinmoku", e.target.value)}
-                  className={inputCls}
-                  autoComplete="off"
-                  list="hinmoku-list"
+                  onChange={v => set("hinmoku", v)}
+                  options={optionsFor("hinmoku").map(o => ({ id: o.id, label: o.value }))}
                   placeholder="品目名を入力または選択"
                 />
-                <datalist id="hinmoku-list">
-                  {optionsFor("hinmoku").map(o => <option key={o.id} value={o.value} />)}
-                </datalist>
               </div>
             </div>
             <div className={rowCls}>
@@ -287,37 +278,25 @@ export default function CadRequestNewPage() {
                   <div className={rowCls}>
                     <label className={labelCls}>使用トレイ</label>
                     <div className="flex-1">
-                      <Input value={form.tray} onChange={e => set("tray", e.target.value)} className={inputCls} autoComplete="off" list="tray-list" />
-                      <datalist id="tray-list">
-                        {optionsFor("tray").map(o => <option key={o.id} value={o.value} />)}
-                      </datalist>
+                      <AutocompleteInput value={form.tray} onChange={v => set("tray", v)} className={inputCls} options={optionsFor("tray").map(o => ({ id: o.id, label: o.value }))} />
                     </div>
                   </div>
                   <div className={rowCls}>
                     <label className={labelCls}>デジ仕様</label>
                     <div className="flex-1">
-                      <Input value={form.degi_spec} onChange={e => set("degi_spec", e.target.value)} className={inputCls} autoComplete="off" list="degi-spec-list" />
-                      <datalist id="degi-spec-list">
-                        {optionsFor("degi_spec").map(o => <option key={o.id} value={o.value} />)}
-                      </datalist>
+                      <AutocompleteInput value={form.degi_spec} onChange={v => set("degi_spec", v)} className={inputCls} options={optionsFor("degi_spec").map(o => ({ id: o.id, label: o.value }))} />
                     </div>
                   </div>
                   <div className={rowCls}>
                     <label className={labelCls}>トレイ枚数</label>
                     <div className="flex-1">
-                      <Input value={form.tray_count} onChange={e => set("tray_count", e.target.value)} className={inputCls} autoComplete="off" list="tray-count-list" />
-                      <datalist id="tray-count-list">
-                        {optionsFor("tray_count").map(o => <option key={o.id} value={o.value} />)}
-                      </datalist>
+                      <AutocompleteInput value={form.tray_count} onChange={v => set("tray_count", v)} className={inputCls} options={optionsFor("tray_count").map(o => ({ id: o.id, label: o.value }))} />
                     </div>
                   </div>
                   <div className={rowCls}>
                     <label className={labelCls}>ポケット</label>
                     <div className="flex-1">
-                      <Input value={form.pocket} onChange={e => set("pocket", e.target.value)} className={inputCls} autoComplete="off" list="pocket-list" />
-                      <datalist id="pocket-list">
-                        {optionsFor("pocket").map(o => <option key={o.id} value={o.value} />)}
-                      </datalist>
+                      <AutocompleteInput value={form.pocket} onChange={v => set("pocket", v)} className={inputCls} options={optionsFor("pocket").map(o => ({ id: o.id, label: o.value }))} />
                     </div>
                   </div>
                 </div>
