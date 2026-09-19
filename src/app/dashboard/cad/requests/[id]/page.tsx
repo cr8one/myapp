@@ -7,6 +7,7 @@ import RequestMailModal from "@/components/cad/RequestMailModal"
 import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-input"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
+import { isPreviewableFile } from "@/lib/file-preview"
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
@@ -54,6 +55,7 @@ type CadRequest = {
   pocket: string | null
   remarks: string | null
   requester: { id: string; name: string | null; department: string | null } | null
+  files: { id: string; file_key: string; file_name: string; file_type: string }[]
 }
 
 export default function CadRequestDetailPage() {
@@ -70,11 +72,14 @@ export default function CadRequestDetailPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [flgTraySpec, setFlgTraySpec] = useState(false)
+  const [files, setFiles] = useState<{ id: string; file_key: string; file_name: string; file_type: string }[]>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/cad/requests/${id}`).then(r => r.json()).then((data: CadRequest) => {
       setRecord(data)
       setFlgTraySpec(!!data.flg_tray_spec)
+      setFiles(data.files ?? [])
       setForm({
         request_date: data.request_date?.slice(0, 10) ?? "",
         request_time: data.request_time ?? "",
@@ -111,6 +116,53 @@ export default function CadRequestDetailPage() {
 
   const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
   const optionsFor = (category: string) => options.filter(o => o.category === category)
+
+  const handleFileChange = async (fileList: FileList) => {
+    setUploading(true)
+    try {
+      for (const file of Array.from(fileList)) {
+        const presignRes = await fetch(`/api/cad/requests/${id}/presign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name }),
+        })
+        const { url, key } = await presignRes.json()
+        await fetch(url, { method: "PUT", body: file })
+        const fileRecord = await fetch(`/api/cad/requests/${id}/files`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileKey: key, fileName: file.name, fileType: file.type || "file" }),
+        }).then(r => r.json())
+        setFiles(prev => [...prev, { id: fileRecord.id, file_key: key, file_name: file.name, file_type: file.type || "file" }])
+      }
+    } catch (e) {
+      console.error(e)
+      alert("ファイルのアップロードに失敗しました")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const openFile = async (key: string) => {
+    const res = await fetch(`/api/cad/requests/${id}/signed-url?key=${encodeURIComponent(key)}`)
+    const { url } = await res.json()
+    window.open(url, "_blank")
+  }
+
+  const downloadFile = async (key: string, name: string) => {
+    const res = await fetch(`/api/cad/requests/${id}/signed-url?key=${encodeURIComponent(key)}`)
+    const { url } = await res.json()
+    const a = document.createElement("a")
+    a.href = url
+    a.download = name
+    a.click()
+  }
+
+  const deleteFile = async (fileId: string) => {
+    if (!confirm("この添付ファイルを削除しますか？")) return
+    await fetch(`/api/cad/requests/${id}/files?fileId=${fileId}`, { method: "DELETE" })
+    setFiles(prev => prev.filter(f => f.id !== fileId))
+  }
 
   const filteredUsers = form.department
     ? users.filter(u => u.departmentLabels.includes(form.department as string))
@@ -532,6 +584,47 @@ export default function CadRequestDetailPage() {
                 />
               ) : (
                 <p className="text-sm text-gray-800 whitespace-pre-wrap min-h-[8rem]">{record.remarks || "—"}</p>
+              )}
+            </div>
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold text-gray-500 mb-3">添付ファイル</h3>
+              <input
+                type="file"
+                multiple
+                disabled={uploading}
+                onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
+                className="text-sm"
+              />
+              {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
+
+              {files.filter(f => isPreviewableFile(f.file_name)).length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-400 mb-1">プレビュー可能</p>
+                  <ul className="space-y-1">
+                    {files.filter(f => isPreviewableFile(f.file_name)).map(f => (
+                      <li key={f.id} className="text-xs flex items-center gap-2">
+                        <button onClick={() => openFile(f.file_key)} className="text-blue-600 hover:underline">{f.file_name}</button>
+                        <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
+                        <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {files.filter(f => !isPreviewableFile(f.file_name)).length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-400 mb-1">ダウンロードのみ</p>
+                  <ul className="space-y-1">
+                    {files.filter(f => !isPreviewableFile(f.file_name)).map(f => (
+                      <li key={f.id} className="text-xs flex items-center gap-2">
+                        <span className="text-gray-700">{f.file_name}</span>
+                        <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
+                        <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </div>

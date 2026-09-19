@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const record = await prisma.cadRequest.findUnique({
     where: { id },
-    include: { requester: { select: { id: true, name: true } } },
+    include: { requester: { select: { id: true, name: true } }, files: true },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(record)

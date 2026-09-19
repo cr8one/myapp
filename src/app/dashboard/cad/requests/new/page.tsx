@@ -26,6 +26,9 @@ export default function CadRequestNewPage() {
   const [contents, setContents] = useState<CadContent[]>([])
   const [options, setOptions] = useState<CadOption[]>([])
   const [saving, setSaving] = useState(false)
+  const [recordId, setRecordId] = useState<string | null>(null)
+  const [files, setFiles] = useState<{ id: string; fileKey: string; fileName: string }[]>([])
+  const [uploading, setUploading] = useState(false)
   const [form, setForm] = useState({
     request_date: today(),
     request_time: nowTime(),
@@ -90,24 +93,72 @@ export default function CadRequestNewPage() {
     }
   }
 
-  const handleSubmit = async () => {
-    if (!form.requester_name) { alert("依頼営業名を入力してください"); return }
-    setSaving(true)
+  const buildBody = () => JSON.stringify({
+    ...form,
+    flg_tray_spec: form.flg_tray_spec ? 1 : 0,
+    develop_y: form.develop_y ? parseFloat(form.develop_y) : null,
+    develop_x: form.develop_x ? parseFloat(form.develop_x) : null,
+    finish_count: form.finish_count ? parseInt(form.finish_count) : null,
+    requester_id: form.requester_id || null,
+    desired_date: form.desired_date || null,
+    desired_time: form.desired_time || null,
+    desired_time_kbn: form.desired_time_kbn,
+  })
+
+  const ensureRecordId = async () => {
+    if (recordId) return recordId
     const res = await fetch("/api/cad/requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        flg_tray_spec: form.flg_tray_spec ? 1 : 0,
-        develop_y: form.develop_y ? parseFloat(form.develop_y) : null,
-        develop_x: form.develop_x ? parseFloat(form.develop_x) : null,
-        finish_count: form.finish_count ? parseInt(form.finish_count) : null,
-        requester_id: form.requester_id || null,
-        desired_date: form.desired_date || null,
-        desired_time: form.desired_time || null,
-        desired_time_kbn: form.desired_time_kbn,
-      }),
+      body: buildBody(),
     })
+    const data = await res.json()
+    setRecordId(data.id)
+    return data.id as string
+  }
+
+  const handleFileChange = async (fileList: FileList) => {
+    setUploading(true)
+    try {
+      const id = await ensureRecordId()
+      for (const file of Array.from(fileList)) {
+        const presignRes = await fetch(`/api/cad/requests/${id}/presign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name }),
+        })
+        const { url, key } = await presignRes.json()
+        await fetch(url, { method: "PUT", body: file })
+        const fileRecord = await fetch(`/api/cad/requests/${id}/files`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileKey: key, fileName: file.name, fileType: file.type || "file" }),
+        }).then(r => r.json())
+        setFiles(prev => [...prev, { id: fileRecord.id, fileKey: key, fileName: file.name }])
+      }
+    } catch (e) {
+      console.error(e)
+      alert("ファイルのアップロードに失敗しました")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!form.requester_name) { alert("依頼営業名を入力してください"); return }
+    setSaving(true)
+    const id = recordId
+    const res = id
+      ? await fetch(`/api/cad/requests/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: buildBody(),
+        })
+      : await fetch("/api/cad/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: buildBody(),
+        })
     if (res.ok) {
       const data = await res.json()
       router.push(`/dashboard/cad/requests/${data.id}`)
@@ -311,6 +362,26 @@ export default function CadRequestNewPage() {
                 rows={form.flg_tray_spec ? 8 : 16}
                 autoComplete="off"
               />
+            </div>
+            <div className="mt-4">
+              <label className="text-xs font-medium text-gray-500 block mb-1">添付ファイル</label>
+              <input
+                type="file"
+                multiple
+                disabled={uploading}
+                onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
+                className="text-sm"
+              />
+              {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
+              {files.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {files.map(f => (
+                    <li key={f.fileKey} className="text-xs text-gray-600 flex items-center gap-1">
+                      <span>{f.fileName}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

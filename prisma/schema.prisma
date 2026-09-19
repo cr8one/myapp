@@ -1097,8 +1097,20 @@ model CadRequest {
   updated_at      DateTime  @updatedAt
 
   requester       User?     @relation(fields: [requester_id], references: [id])
+  files           CadRequestFile[]
 
   @@map("t_cad_requests")
+}
+
+model CadRequestFile {
+  id          String     @id @default(cuid())
+  request_id  String
+  request     CadRequest @relation(fields: [request_id], references: [id])
+  file_key    String
+  file_name   String
+  file_type   String
+  uploaded_at DateTime   @default(now())
+  @@map("t_cad_request_files")
 }
 
 model MDepartment {

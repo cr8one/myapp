@@ -35,6 +35,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
     label: "CAD",
     tables: [
       { tableName: "t_cad_requests", label: "CAD依頼" },
+      { tableName: "t_cad_request_files", label: "CAD依頼添付ファイル" },
       { tableName: "m_cad_clients", label: "CAD得意先マスタ" },
       { tableName: "m_cad_contents", label: "CAD内容マスタ" },
       { tableName: "m_cad_options", label: "CADオプションマスタ" },
