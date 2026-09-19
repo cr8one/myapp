@@ -15,10 +15,13 @@ export function AutocompleteInput({
   value, onChange, options, placeholder, className,
 }: AutocompleteInputProps) {
   const [open, setOpen] = useState(false)
+  // 絞り込み専用の検索語。入力欄の値（value）とは別に持つことで、
+  // 「フォーカスした瞬間は常に全件表示、そこから打った分だけ絞り込む」を実現する。
+  const [query, setQuery] = useState("")
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const filtered = value
-    ? options.filter(o => o.label.toLowerCase().includes(value.toLowerCase()))
+  const filtered = query
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
     : options
 
   useEffect(() => {
@@ -36,8 +39,8 @@ export function AutocompleteInput({
       <input
         type="text"
         value={value}
-        onChange={e => onChange(e.target.value)}
-        onFocus={() => setOpen(true)}
+        onChange={e => { onChange(e.target.value); setQuery(e.target.value) }}
+        onFocus={() => { setQuery(""); setOpen(true) }}
         placeholder={placeholder}
         autoComplete="off"
         className={cn(
