@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Trash2, Pencil, X, Check } from "lucide-react"
 
 type Column = {
   name: string
@@ -18,6 +18,7 @@ type TableDetail = {
   count: number
   tableNote: string
   fieldNotes: Record<string, string>
+  primaryKeyColumn: string | null
 }
 
 type RecordsResponse = {
@@ -41,6 +42,12 @@ export default function DbManagementTableDetailPage() {
   const [records, setRecords] = useState<RecordsResponse | null>(null)
   const [recordsLoading, setRecordsLoading] = useState(true)
   const [page, setPage] = useState(1)
+  const [editingRow, setEditingRow] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState<Record<string, string | null>>({})
+  const [savingRow, setSavingRow] = useState(false)
+  const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("")
+  const [deleteAllModalOpen, setDeleteAllModalOpen] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
 
   const fetchDetail = useCallback(async () => {
     setLoading(true)
@@ -83,6 +90,81 @@ export default function DbManagementTableDetailPage() {
       body: JSON.stringify({ fieldName, note: fieldNoteDrafts[fieldName] ?? "" }),
     })
     setSavingField(null)
+  }
+
+  const startEdit = (row: Record<string, unknown>) => {
+    if (!detail?.primaryKeyColumn) return
+    setEditingRow(String(row[detail.primaryKeyColumn]))
+    const draft: Record<string, string | null> = {}
+    for (const [k, v] of Object.entries(row)) {
+      draft[k] = v === null ? null : typeof v === "object" ? JSON.stringify(v) : String(v)
+    }
+    setEditDraft(draft)
+  }
+
+  const cancelEdit = () => {
+    setEditingRow(null)
+    setEditDraft({})
+  }
+
+  const saveEdit = async () => {
+    if (!detail?.primaryKeyColumn || !editingRow) return
+    setSavingRow(true)
+    try {
+      const res = await fetch(`/api/db-management/tables/${encodeURIComponent(tableName)}/records`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pkValue: editingRow, data: editDraft }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        alert(err.error ?? "更新に失敗しました")
+        return
+      }
+      setEditingRow(null)
+      await fetchRecords(page)
+    } finally {
+      setSavingRow(false)
+    }
+  }
+
+  const deleteRow = async (row: Record<string, unknown>) => {
+    if (!detail?.primaryKeyColumn) return
+    if (!confirm("このレコードを完全に削除します。よろしいですか？")) return
+    const pkValue = String(row[detail.primaryKeyColumn])
+    const res = await fetch(
+      `/api/db-management/tables/${encodeURIComponent(tableName)}/records?pkValue=${encodeURIComponent(pkValue)}`,
+      { method: "DELETE" }
+    )
+    if (!res.ok) {
+      const err = await res.json()
+      alert(err.error ?? "削除に失敗しました")
+      return
+    }
+    await fetchRecords(page)
+    await fetchDetail()
+  }
+
+  const deleteAllRows = async () => {
+    if (deleteAllConfirmText !== "削除") return
+    setDeletingAll(true)
+    try {
+      const res = await fetch(`/api/db-management/tables/${encodeURIComponent(tableName)}/records?all=true`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        alert(err.error ?? "削除に失敗しました")
+        return
+      }
+      setDeleteAllModalOpen(false)
+      setDeleteAllConfirmText("")
+      setPage(1)
+      await fetchRecords(1)
+      await fetchDetail()
+    } finally {
+      setDeletingAll(false)
+    }
   }
 
   if (loading || !detail) {
@@ -170,8 +252,18 @@ export default function DbManagementTableDetailPage() {
       </div>
 
       <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-        <div className="px-4 py-3 bg-gray-50 border-b font-semibold text-sm text-gray-700">
-          レコード一覧（閲覧のみ）
+        <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+          <span className="font-semibold text-sm text-gray-700">
+            レコード一覧{detail.primaryKeyColumn ? "" : "（主キーが単一列でないため閲覧のみ）"}
+          </span>
+          {detail.primaryKeyColumn && (
+            <button
+              onClick={() => setDeleteAllModalOpen(true)}
+              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 border border-red-200 rounded px-2 py-1 hover:bg-red-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> 全レコード削除
+            </button>
+          )}
         </div>
         {recordsLoading || !records ? (
           <div className="text-center py-8 text-gray-400 text-sm">読み込み中...</div>
@@ -183,6 +275,9 @@ export default function DbManagementTableDetailPage() {
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    {detail.primaryKeyColumn && (
+                      <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">操作</th>
+                    )}
                     {Object.keys(records.rows[0]).map(key => (
                       <th key={key} className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">
                         {key}
@@ -191,21 +286,54 @@ export default function DbManagementTableDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {records.rows.map((row, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      {Object.keys(records.rows[0]).map(key => (
-                        <td key={key} className="px-3 py-2 text-gray-600 whitespace-nowrap max-w-xs truncate">
-                          {row[key] === null ? (
-                            <span className="text-gray-300">null</span>
-                          ) : typeof row[key] === "object" ? (
-                            JSON.stringify(row[key])
-                          ) : (
-                            String(row[key])
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {records.rows.map((row, i) => {
+                    const rowPk = detail.primaryKeyColumn ? String(row[detail.primaryKeyColumn]) : null
+                    const isEditing = detail.primaryKeyColumn && editingRow === rowPk
+                    return (
+                      <tr key={i} className="hover:bg-gray-50">
+                        {detail.primaryKeyColumn && (
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <button onClick={saveEdit} disabled={savingRow} className="text-green-600 hover:text-green-800 disabled:opacity-50">
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => startEdit(row)} className="text-blue-600 hover:text-blue-800">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={() => deleteRow(row)} className="text-red-500 hover:text-red-700">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {Object.keys(records.rows[0]).map(key => (
+                          <td key={key} className="px-3 py-2 text-gray-600 whitespace-nowrap max-w-xs">
+                            {isEditing && key !== detail.primaryKeyColumn ? (
+                              <input
+                                value={editDraft[key] ?? ""}
+                                onChange={e => setEditDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                                className="w-full border rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            ) : row[key] === null ? (
+                              <span className="text-gray-300">null</span>
+                            ) : typeof row[key] === "object" ? (
+                              <span className="truncate block">{JSON.stringify(row[key])}</span>
+                            ) : (
+                              <span className="truncate block">{String(row[key])}</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -235,6 +363,41 @@ export default function DbManagementTableDetailPage() {
           </>
         )}
       </div>
+
+      {deleteAllModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
+            <h2 className="text-lg font-bold text-red-600">{detail.label} 全レコード削除</h2>
+            <p className="text-sm text-gray-600 mt-2">
+              このテーブルの全レコード（{detail.count.toLocaleString()}件）を完全に削除します。この操作は元に戻せません。
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              続行する場合は下欄に「<span className="font-bold">削除</span>」と入力してください。
+            </p>
+            <input
+              value={deleteAllConfirmText}
+              onChange={e => setDeleteAllConfirmText(e.target.value)}
+              placeholder="削除"
+              className="w-full border rounded px-3 py-2 text-sm mt-3 focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => { setDeleteAllModalOpen(false); setDeleteAllConfirmText("") }}
+                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={deleteAllRows}
+                disabled={deleteAllConfirmText !== "削除" || deletingAll}
+                className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingAll ? "削除中..." : "全レコード削除を実行"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

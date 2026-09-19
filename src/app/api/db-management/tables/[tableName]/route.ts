@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { getTableColumns, getTableCount, NotAllowedTableError } from "@/lib/db-management/introspect"
+import { getTableColumns, getTableCount, getPrimaryKeyColumns, NotAllowedTableError } from "@/lib/db-management/introspect"
 import { getNotesForTable } from "@/lib/db-management/notes"
 import { findTableLabel } from "@/lib/db-management/schema-groups"
 
@@ -16,10 +16,11 @@ export async function GET(
   const { tableName } = await params
 
   try {
-    const [columns, count, notes] = await Promise.all([
+    const [columns, count, notes, primaryKeyColumns] = await Promise.all([
       getTableColumns(tableName),
       getTableCount(tableName),
       getNotesForTable(tableName),
+      getPrimaryKeyColumns(tableName),
     ])
 
     return NextResponse.json({
@@ -29,6 +30,7 @@ export async function GET(
       count,
       tableNote: notes.tableNote,
       fieldNotes: notes.fieldNotes,
+      primaryKeyColumn: primaryKeyColumns.length === 1 ? primaryKeyColumns[0] : null,
     })
   } catch (e) {
     if (e instanceof NotAllowedTableError) {

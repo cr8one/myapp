@@ -330,6 +330,19 @@ export default function CadRequestDetailPage() {
               <Button onClick={() => setEditing(true)}>編集</Button>
             </>
           )}
+          {!editing && (
+            <Button
+              variant="outline"
+              className="text-red-500 hover:text-red-700"
+              onClick={async () => {
+                if (!confirm("この依頼書を削除しますか？")) return
+                await fetch(`/api/cad/requests/${id}`, { method: "DELETE" })
+                router.push("/dashboard/cad/requests")
+              }}
+            >
+              削除
+            </Button>
+          )}
         </div>
       </div>
       {showMailModal && record && (

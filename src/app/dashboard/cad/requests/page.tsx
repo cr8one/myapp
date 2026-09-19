@@ -415,8 +415,20 @@ export default function CadRequestsPage() {
                           <div className="text-sm text-gray-700 break-words leading-snug mt-0.5">{r.title ?? ""}</div>
                         </td>
                         <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
-                          <Button variant="outline" size="sm"
-                            onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button variant="outline" size="sm"
+                              onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm("この依頼書を削除しますか？")) return
+                                await fetch(`/api/cad/requests/${r.id}`, { method: "DELETE" })
+                                fetchRecords()
+                              }}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
