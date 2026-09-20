@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import nodemailer from "nodemailer"
+import { createAuditLog } from "@/lib/audit"
+import { CAD_REQUEST_FIELD_LABELS } from "@/lib/cad/request-history"
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -61,6 +63,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const updated = await prisma.cadRequest.update({
       where: { id },
       data: { status: "依頼済", updated_at: new Date() },
+    })
+    await createAuditLog({
+      userId: session.user?.id,
+      service: "cad",
+      action: "UPDATE",
+      targetModel: "CadRequest",
+      targetId: id,
+      targetLabel: record.uid,
+      diff: {
+        classification: "依頼",
+        changedFields: [{ field: "status", label: CAD_REQUEST_FIELD_LABELS.status, before: record.status, after: "依頼済" }],
+      },
     })
     return NextResponse.json({ ok: true, record: updated })
   } catch (e) {

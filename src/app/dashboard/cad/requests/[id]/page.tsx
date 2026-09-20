@@ -9,6 +9,15 @@ import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
 import { isPreviewableFile } from "@/lib/file-preview"
 
+type ChangedFieldEntry = { field: string; label: string; before: string; after: string }
+type AuditLogEntry = {
+  id: string
+  action: string
+  diff: string | null
+  createdAt: string
+  user: { id: string; name: string | null } | null
+}
+
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
 type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
@@ -74,6 +83,10 @@ export default function CadRequestDetailPage() {
   const [flgTraySpec, setFlgTraySpec] = useState(false)
   const [files, setFiles] = useState<{ id: string; file_key: string; file_name: string; file_type: string }[]>([])
   const [uploading, setUploading] = useState(false)
+  const [history, setHistory] = useState<AuditLogEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  useEffect(() => { fetchHistory() }, [id])
 
   useEffect(() => {
     fetch(`/api/cad/requests/${id}`).then(r => r.json()).then((data: CadRequest) => {
@@ -164,6 +177,13 @@ export default function CadRequestDetailPage() {
     setFiles(prev => prev.filter(f => f.id !== fileId))
   }
 
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    const res = await fetch(`/api/cad/requests/${id}/history`)
+    if (res.ok) setHistory(await res.json())
+    setHistoryLoading(false)
+  }
+
   const filteredUsers = form.department
     ? users.filter(u => u.departmentLabels.includes(form.department as string))
     : users
@@ -209,6 +229,7 @@ export default function CadRequestDetailPage() {
       const data = await res.json()
       setRecord(data)
       setEditing(false)
+      fetchHistory()
     } else {
       alert("保存に失敗しました")
     }
@@ -253,6 +274,7 @@ export default function CadRequestDetailPage() {
     if (res.ok) {
       const data = await res.json()
       setRecord(data)
+      fetchHistory()
     } else {
       const data = await res.json().catch(() => ({}))
       alert(data.error ?? "ステータス変更に失敗しました")
@@ -349,7 +371,7 @@ export default function CadRequestDetailPage() {
         <RequestMailModal
           record={record}
           onClose={() => setShowMailModal(false)}
-          onSent={(updated) => setRecord(updated as typeof record)}
+          onSent={(updated) => { setRecord(updated as typeof record); fetchHistory() }}
         />
       )}
 
@@ -599,49 +621,105 @@ export default function CadRequestDetailPage() {
                 <p className="text-sm text-gray-800 whitespace-pre-wrap min-h-[8rem]">{record.remarks || "—"}</p>
               )}
             </div>
-            <div className="mt-4">
-              <h3 className="text-xs font-semibold text-gray-500 mb-3">添付ファイル</h3>
-              <input
-                type="file"
-                multiple
-                disabled={uploading}
-                onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
-                className="text-sm"
-              />
-              {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
-
-              {files.filter(f => isPreviewableFile(f.file_name)).length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-gray-400 mb-1">プレビュー可能</p>
-                  <ul className="space-y-1">
-                    {files.filter(f => isPreviewableFile(f.file_name)).map(f => (
-                      <li key={f.id} className="text-xs flex items-center gap-2">
-                        <button onClick={() => openFile(f.file_key)} className="text-blue-600 hover:underline">{f.file_name}</button>
-                        <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
-                        <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {files.filter(f => !isPreviewableFile(f.file_name)).length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-gray-400 mb-1">ダウンロードのみ</p>
-                  <ul className="space-y-1">
-                    {files.filter(f => !isPreviewableFile(f.file_name)).map(f => (
-                      <li key={f.id} className="text-xs flex items-center gap-2">
-                        <span className="text-gray-700">{f.file_name}</span>
-                        <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
-                        <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">添付ファイル</h2>
+        <input
+          type="file"
+          multiple
+          disabled={uploading}
+          onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
+          className="text-sm"
+        />
+        {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
+
+        {files.filter(f => isPreviewableFile(f.file_name)).length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs text-gray-400 mb-1">プレビュー可能</p>
+            <ul className="space-y-1">
+              {files.filter(f => isPreviewableFile(f.file_name)).map(f => (
+                <li key={f.id} className="text-xs flex items-center gap-2">
+                  <button onClick={() => openFile(f.file_key)} className="text-blue-600 hover:underline">{f.file_name}</button>
+                  <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
+                  <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {files.filter(f => !isPreviewableFile(f.file_name)).length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs text-gray-400 mb-1">ダウンロードのみ</p>
+            <ul className="space-y-1">
+              {files.filter(f => !isPreviewableFile(f.file_name)).map(f => (
+                <li key={f.id} className="text-xs flex items-center gap-2">
+                  <span className="text-gray-700">{f.file_name}</span>
+                  <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
+                  <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">履歴</h2>
+        {historyLoading ? (
+          <p className="text-xs text-gray-400">読み込み中...</p>
+        ) : history.length === 0 ? (
+          <p className="text-xs text-gray-400">履歴がありません</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">日時</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">ユーザー</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">分類</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">修正項目</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium">修正前</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium">修正後</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {history.flatMap(log => {
+                  const diff = log.diff ? JSON.parse(log.diff) as { classification?: string; changedFields?: ChangedFieldEntry[] } : null
+                  const classification = diff?.classification ?? (log.action === "CREATE" ? "新規" : "編集")
+                  const changedFields = diff?.changedFields ?? []
+                  const dt = new Date(log.createdAt)
+                  const dtStr = `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`
+                  if (changedFields.length === 0) {
+                    return [(
+                      <tr key={log.id}>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-500">{dtStr}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">{log.user?.name ?? "—"}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">{classification}</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                      </tr>
+                    )]
+                  }
+                  return changedFields.map((cf, i) => (
+                    <tr key={`${log.id}-${i}`}>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-500">{dtStr}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{log.user?.name ?? "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{classification}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{cf.label}</td>
+                      <td className="px-3 py-2 text-gray-600">{cf.before}</td>
+                      <td className="px-3 py-2 text-gray-600">{cf.after}</td>
+                    </tr>
+                  ))
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

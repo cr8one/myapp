@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { createAuditLog } from "@/lib/audit"
+import { CAD_REQUEST_FIELD_LABELS } from "@/lib/cad/request-history"
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "作成中": [],
@@ -27,6 +29,25 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const updated = await prisma.cadRequest.update({
     where: { id },
     data: { status: nextStatus, updated_at: new Date() },
+  })
+
+  const STATUS_CLASSIFICATION: Record<string, string> = {
+    "作成中": "依頼キャンセル",
+    "着手": "着手",
+    "完了": "完了",
+    "保留": "保留",
+  }
+  await createAuditLog({
+    userId: session.user?.id,
+    service: "cad",
+    action: "UPDATE",
+    targetModel: "CadRequest",
+    targetId: id,
+    targetLabel: record.uid,
+    diff: {
+      classification: STATUS_CLASSIFICATION[nextStatus] ?? nextStatus,
+      changedFields: [{ field: "status", label: CAD_REQUEST_FIELD_LABELS.status, before: record.status, after: nextStatus }],
+    },
   })
 
   if (nextStatus === "着手") {

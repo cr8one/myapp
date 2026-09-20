@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { desiredTimeSortKey } from "@/lib/desired-time"
+import { createAuditLog } from "@/lib/audit"
+import { diffCadRequestFields } from "@/lib/cad/request-history"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -20,6 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
   const body = await req.json()
+  const before = await prisma.cadRequest.findUnique({ where: { id } })
   const record = await prisma.cadRequest.update({
     where: { id },
     data: {
@@ -31,6 +34,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
     include: { requester: { select: { id: true, name: true } } },
   })
+
+  if (before) {
+    const changedFields = diffCadRequestFields(before, record)
+    if (changedFields.length > 0) {
+      await createAuditLog({
+        userId: session.user?.id,
+        service: "cad",
+        action: "UPDATE",
+        targetModel: "CadRequest",
+        targetId: record.id,
+        targetLabel: record.uid,
+        diff: { classification: "編集", changedFields },
+      })
+    }
+  }
+
   return NextResponse.json(record)
 }
 

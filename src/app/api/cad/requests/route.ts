@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { desiredTimeSortKey } from "@/lib/desired-time"
+import { createAuditLog } from "@/lib/audit"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -67,6 +68,16 @@ export async function POST(req: NextRequest) {
       desired_time_sort: desiredTimeSortKey(body.desired_time_kbn ?? 0, body.desired_time ?? null),
     },
     include: { requester: { select: { id: true, name: true } } },
+  })
+
+  await createAuditLog({
+    userId: session.user?.id,
+    service: "cad",
+    action: "CREATE",
+    targetModel: "CadRequest",
+    targetId: record.id,
+    targetLabel: record.uid,
+    diff: { classification: "新規" },
   })
 
   return NextResponse.json(record)
