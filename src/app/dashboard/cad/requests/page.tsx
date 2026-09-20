@@ -357,7 +357,7 @@ export default function CadRequestsPage() {
                 <col className="w-28" />
                 <col className="w-24" />
                 <col />
-                <col className="w-20" />
+                <col className="w-28" />
               </colgroup>
               <thead>
                 <tr className="border-b bg-gray-50 text-xs text-gray-500">
@@ -414,8 +414,8 @@ export default function CadRequestsPage() {
                           <div className="text-sm text-gray-700 break-words leading-snug">{r.hinban ?? ""}</div>
                           <div className="text-sm text-gray-700 break-words leading-snug mt-0.5">{r.title ?? ""}</div>
                         </td>
-                        <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1.5">
+                        <td className="px-3 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
                             <Button variant="outline" size="sm"
                               onClick={() => router.push(`/dashboard/cad/requests/${r.id}`)}>詳細</Button>
                             <button
