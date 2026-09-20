@@ -26,6 +26,24 @@ type CadOption = { id: string; category: string; value: string; sort_order: numb
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 
+const DUPLICATE_FIELD_OPTIONS: { key: string; label: string }[] = [
+  { key: "department", label: "依頼部署" },
+  { key: "requester", label: "依頼営業名" },
+  { key: "client", label: "クライアント" },
+  { key: "title", label: "タイトル" },
+  { key: "genre", label: "ジャンル" },
+  { key: "hinmoku", label: "品目名" },
+  { key: "hinban", label: "品番" },
+  { key: "content", label: "依頼内容" },
+  { key: "dieline_no", label: "型台帳番号" },
+  { key: "develop", label: "展開寸法" },
+  { key: "paper", label: "用紙" },
+  { key: "finish_count", label: "仕上個数" },
+  { key: "tray_spec", label: "トレイ仕様" },
+  { key: "remarks", label: "詳細記入欄" },
+  { key: "attachments", label: "添付ファイル" },
+]
+
 const STATUS_STYLE: Record<string, string> = {
   "作成中": "bg-gray-100 text-gray-600",
   "依頼済": "bg-blue-100 text-blue-700",
@@ -85,6 +103,13 @@ export default function CadRequestDetailPage() {
   const [uploading, setUploading] = useState(false)
   const [history, setHistory] = useState<AuditLogEntry[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
+  const [dupFields, setDupFields] = useState<Record<string, boolean>>({
+    department: true, requester: true, client: true, title: true, genre: true,
+    hinmoku: true, hinban: true, content: true, dieline_no: true, develop: true,
+    paper: true, finish_count: true, tray_spec: true, remarks: true, attachments: false,
+  })
 
   useEffect(() => { fetchHistory() }, [id])
 
@@ -184,6 +209,22 @@ export default function CadRequestDetailPage() {
     const res = await fetch(`/api/cad/requests/${id}/history`)
     if (res.ok) setHistory(await res.json())
     setHistoryLoading(false)
+  }
+
+  const handleDuplicateConfirm = async () => {
+    setDuplicating(true)
+    const res = await fetch(`/api/cad/requests/${id}/duplicate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: dupFields }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      router.push(`/dashboard/cad/requests/${data.id}`)
+    } else {
+      alert("複製に失敗しました")
+      setDuplicating(false)
+    }
   }
 
   const filteredUsers = form.department
@@ -353,6 +394,11 @@ export default function CadRequestDetailPage() {
               <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
               <Button onClick={() => setEditing(true)}>編集</Button>
             </>
+          )}
+          {!editing && (
+            <Button variant="outline" onClick={() => setShowDuplicateModal(true)}>
+              複製
+            </Button>
           )}
           {!editing && (
             <Button
@@ -668,6 +714,45 @@ export default function CadRequestDetailPage() {
           </div>
         )}
       </div>
+
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg max-h-[85vh] overflow-y-auto">
+            <h2 className="text-lg font-bold">依頼書を複製</h2>
+            <p className="text-sm text-amber-800 mt-3 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              ご注意：希望納期日・希望納期時刻は複製されません。新しい依頼書で改めて設定してください。
+            </p>
+            <p className="text-sm text-gray-600 mt-3 mb-2">複製する項目を選択してください：</p>
+            <div className="space-y-1.5">
+              {DUPLICATE_FIELD_OPTIONS.map(opt => (
+                <label key={opt.key} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={dupFields[opt.key]}
+                    onChange={e => setDupFields(prev => ({ ...prev, [opt.key]: e.target.checked }))}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleDuplicateConfirm}
+                disabled={duplicating}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {duplicating ? "複製中..." : "複製する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">履歴</h2>
