@@ -148,6 +148,7 @@ export default function CadRequestDetailPage() {
         }).then(r => r.json())
         setFiles(prev => [...prev, { id: fileRecord.id, file_key: key, file_name: file.name, file_type: file.type || "file" }])
       }
+      fetchHistory()
     } catch (e) {
       console.error(e)
       alert("ファイルのアップロードに失敗しました")
@@ -175,6 +176,7 @@ export default function CadRequestDetailPage() {
     if (!confirm("この添付ファイルを削除しますか？")) return
     await fetch(`/api/cad/requests/${id}/files?fileId=${fileId}`, { method: "DELETE" })
     setFiles(prev => prev.filter(f => f.id !== fileId))
+    fetchHistory()
   }
 
   const fetchHistory = async () => {
