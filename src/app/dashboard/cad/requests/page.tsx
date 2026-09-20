@@ -1,9 +1,9 @@
 "use client"
 import { useEffect, useState, useRef, Fragment } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle, Trash2, SlidersHorizontal } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { desiredTimeLabel } from "@/components/desired-time-input"
 type CadRequest = {
@@ -29,6 +29,7 @@ type SortMode = "created" | "nouki"
 const PAGE_SIZE = 50
 const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"]
 const STATUS_OPTIONS = ["作成中", "依頼済", "着手", "完了", "保留"] as const
+const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
 const STATUS_STYLE: Record<string, string> = {
   "作成中": "bg-gray-100 text-gray-600",
   "依頼済": "bg-blue-100 text-blue-700",
@@ -38,6 +39,7 @@ const STATUS_STYLE: Record<string, string> = {
 }
 export default function CadRequestsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "ADMIN"
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -56,21 +58,90 @@ export default function CadRequestsPage() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
   const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("")
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [genre, setGenre] = useState<string[]>([])
+  const [content, setContent] = useState<string[]>([])
+  const [catMode, setCatMode] = useState<"AND" | "OR">("AND")
+  const [uidFrom, setUidFrom] = useState("")
+  const [uidTo, setUidTo] = useState("")
+  const [requestDateFrom, setRequestDateFrom] = useState("")
+  const [requestDateTo, setRequestDateTo] = useState("")
+  const [desiredDateFrom, setDesiredDateFrom] = useState("")
+  const [desiredDateTo, setDesiredDateTo] = useState("")
+  const [contentOptions, setContentOptions] = useState<string[]>([])
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const fetchRecords = async (p = page, kw = keyword, st = statusFilter, sm = sortMode) => {
-    setLoading(true)
+
+  const buildQuery = (
+    p: number,
+    kw = keyword, st = statusFilter, sm = sortMode,
+    gn = genre, ct = content, cm = catMode,
+    uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
+  ) => {
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
     if (st) params.set("status", st)
-    params.set("sort", sm)
+    if (sm !== "created") params.set("sort", sm)
+    if (gn.length > 0) params.set("genre", gn.join(","))
+    if (ct.length > 0) params.set("content", ct.join(","))
+    if (cm === "OR") params.set("mode", "OR")
+    if (uf) params.set("uidFrom", uf)
+    if (ut) params.set("uidTo", ut)
+    if (rdf) params.set("requestDateFrom", rdf)
+    if (rdt) params.set("requestDateTo", rdt)
+    if (ddf) params.set("desiredDateFrom", ddf)
+    if (ddt) params.set("desiredDateTo", ddt)
     params.set("page", String(p))
+    return params
+  }
+
+  const fetchRecords = async (
+    p = page, kw = keyword, st = statusFilter, sm = sortMode,
+    gn = genre, ct = content, cm = catMode,
+    uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
+    syncUrl = true,
+  ) => {
+    setLoading(true)
+    const params = buildQuery(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt)
+    if (syncUrl) router.replace(`/dashboard/cad/requests?${params.toString()}`)
     const res = await fetch(`/api/cad/requests?${params.toString()}`)
     const data = await res.json()
     setRecords(data.records)
     setTotal(data.total)
     setLoading(false)
   }
-  useEffect(() => { fetchRecords(1) }, [])
+
+  useEffect(() => {
+    fetch("/api/cad/masters/contents").then(r => r.json()).then((list: { name: string; sort_order: number }[]) =>
+      setContentOptions(list.sort((a, b) => a.sort_order - b.sort_order).map(c => c.name))
+    )
+  }, [])
+
+  useEffect(() => {
+    const p = parseInt(searchParams.get("page") ?? "1")
+    const kw = searchParams.get("keyword") ?? ""
+    const st = searchParams.get("status") ?? ""
+    const sm = (searchParams.get("sort") === "nouki" ? "nouki" : "created") as SortMode
+    const gn = searchParams.get("genre")?.split(",").filter(Boolean) ?? []
+    const ct = searchParams.get("content")?.split(",").filter(Boolean) ?? []
+    const cm = searchParams.get("mode") === "OR" ? "OR" : "AND"
+    const uf = searchParams.get("uidFrom") ?? ""
+    const ut = searchParams.get("uidTo") ?? ""
+    const rdf = searchParams.get("requestDateFrom") ?? ""
+    const rdt = searchParams.get("requestDateTo") ?? ""
+    const ddf = searchParams.get("desiredDateFrom") ?? ""
+    const ddt = searchParams.get("desiredDateTo") ?? ""
+    setPage(p); setKeyword(kw); setStatusFilter(st); setSortMode(sm)
+    setGenre(gn); setContent(ct); setCatMode(cm)
+    setUidFrom(uf); setUidTo(ut); setRequestDateFrom(rdf); setRequestDateTo(rdt); setDesiredDateFrom(ddf); setDesiredDateTo(ddt)
+    fetchRecords(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, false)
+  }, [searchParams])
+  const handleClear = () => {
+    setKeyword(""); setGenre([]); setContent([]); setCatMode("AND")
+    setUidFrom(""); setUidTo(""); setRequestDateFrom(""); setRequestDateTo(""); setDesiredDateFrom(""); setDesiredDateTo("")
+    setPage(1)
+    fetchRecords(1, "", statusFilter, sortMode, [], [], "AND", "", "", "", "", "", "")
+  }
+
   const handleSearch = () => {
     setPage(1)
     fetchRecords(1, keyword, statusFilter, sortMode)
@@ -337,6 +408,74 @@ export default function CadRequestsPage() {
             </button>
           ))}
         </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <button onClick={() => setShowAdvanced(v => !v)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            <SlidersHorizontal className="w-3 h-3" />詳細検索{showAdvanced ? "を閉じる" : ""}
+          </button>
+          <Button size="sm" variant="outline" onClick={handleClear} className="flex items-center gap-1">
+            <X className="w-3 h-3" />クリア
+          </Button>
+        </div>
+
+        {showAdvanced && (
+          <div className="pt-3 border-t space-y-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-400 w-16">ジャンル</span>
+              {GENRE_OPTIONS.map(o => (
+                <button key={o} onClick={() => setGenre(g => g.includes(o) ? g.filter(v => v !== o) : [...g, o])}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${genre.includes(o) ? "bg-orange-600 text-white border-orange-600" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                  {o}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-400 w-16">依頼内容</span>
+              {contentOptions.map(o => (
+                <button key={o} onClick={() => setContent(c => c.includes(o) ? c.filter(v => v !== o) : [...c, o])}
+                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${content.includes(o) ? "bg-orange-600 text-white border-orange-600" : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                  {o}
+                </button>
+              ))}
+              <span className="text-xs text-gray-400 ml-2 mr-1">条件：</span>
+              <button onClick={() => setCatMode("AND")}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${catMode === "AND" ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}>AND</button>
+              <button onClick={() => setCatMode("OR")}
+                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${catMode === "OR" ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}>OR</button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼番号（範囲）</label>
+                <div className="flex items-center gap-1">
+                  <Input value={uidFrom} onChange={e => setUidFrom(e.target.value)} placeholder="以上" className="h-8 text-sm" autoComplete="off" />
+                  <span className="text-xs text-gray-400">〜</span>
+                  <Input value={uidTo} onChange={e => setUidTo(e.target.value)} placeholder="以下" className="h-8 text-sm" autoComplete="off" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼日（範囲）</label>
+                <div className="flex items-center gap-1">
+                  <Input type="date" value={requestDateFrom} onChange={e => setRequestDateFrom(e.target.value)} className="h-8 text-sm" autoComplete="off" />
+                  <span className="text-xs text-gray-400">〜</span>
+                  <Input type="date" value={requestDateTo} onChange={e => setRequestDateTo(e.target.value)} className="h-8 text-sm" autoComplete="off" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">希望納期日（範囲）</label>
+                <div className="flex items-center gap-1">
+                  <Input type="date" value={desiredDateFrom} onChange={e => setDesiredDateFrom(e.target.value)} className="h-8 text-sm" autoComplete="off" />
+                  <span className="text-xs text-gray-400">〜</span>
+                  <Input type="date" value={desiredDateTo} onChange={e => setDesiredDateTo(e.target.value)} className="h-8 text-sm" autoComplete="off" />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end pt-1">
+              <Button size="sm" onClick={handleSearch} className="flex items-center gap-1">
+                <Search className="w-3 h-3" />この条件で検索
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
       {/* 一覧 */}
       {loading ? (

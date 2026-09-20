@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { desiredTimeSortKey } from "@/lib/desired-time"
 import { createAuditLog } from "@/lib/audit"
+import { Prisma } from "@/generated/prisma"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -15,19 +16,62 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") ?? "1")
   const PAGE_SIZE = 50
 
-  const where = {
-    flg_del: 0,
-    ...(status ? { status } : {}),
-    ...(keyword ? {
+  const genreList = searchParams.get("genre")?.split(",").filter(Boolean) ?? []
+  const contentList = searchParams.get("content")?.split(",").filter(Boolean) ?? []
+  const mode = searchParams.get("mode") === "OR" ? "OR" : "AND"
+  const uidFrom = searchParams.get("uidFrom")
+  const uidTo = searchParams.get("uidTo")
+  const requestDateFrom = searchParams.get("requestDateFrom")
+  const requestDateTo = searchParams.get("requestDateTo")
+  const desiredDateFrom = searchParams.get("desiredDateFrom")
+  const desiredDateTo = searchParams.get("desiredDateTo")
+
+  const categoryConditions: Prisma.CadRequestWhereInput[] = []
+  if (genreList.length > 0) categoryConditions.push({ genre: { in: genreList } })
+  if (contentList.length > 0) categoryConditions.push({ content: { in: contentList } })
+
+  const andConditions: Prisma.CadRequestWhereInput[] = [{ flg_del: 0 }]
+  if (status) andConditions.push({ status })
+  if (categoryConditions.length > 0) {
+    andConditions.push(mode === "OR" ? { OR: categoryConditions } : { AND: categoryConditions })
+  }
+  if (keyword) {
+    andConditions.push({
       OR: [
         { uid: { contains: keyword } },
         { requester_name: { contains: keyword } },
         { client: { contains: keyword } },
         { title: { contains: keyword } },
         { hinban: { contains: keyword } },
-      ]
-    } : {}),
+      ],
+    })
   }
+  if (uidFrom || uidTo) {
+    andConditions.push({
+      uid: {
+        ...(uidFrom ? { gte: uidFrom.padStart(5, "0") } : {}),
+        ...(uidTo ? { lte: uidTo.padStart(5, "0") } : {}),
+      },
+    })
+  }
+  if (requestDateFrom || requestDateTo) {
+    andConditions.push({
+      request_date: {
+        ...(requestDateFrom ? { gte: new Date(requestDateFrom) } : {}),
+        ...(requestDateTo ? { lte: new Date(`${requestDateTo}T23:59:59`) } : {}),
+      },
+    })
+  }
+  if (desiredDateFrom || desiredDateTo) {
+    andConditions.push({
+      desired_date: {
+        ...(desiredDateFrom ? { gte: new Date(desiredDateFrom) } : {}),
+        ...(desiredDateTo ? { lte: new Date(`${desiredDateTo}T23:59:59`) } : {}),
+      },
+    })
+  }
+
+  const where: Prisma.CadRequestWhereInput = { AND: andConditions }
 
   const [total, records] = await Promise.all([
     prisma.cadRequest.count({ where }),
