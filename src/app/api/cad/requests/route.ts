@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       include: { requester: { select: { id: true, name: true } } },
       orderBy: sort === "nouki"
         ? [{ desired_date: "desc" }, { desired_time_sort: "desc" }]
-        : { uid: "desc" },
+        : { created_at: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
