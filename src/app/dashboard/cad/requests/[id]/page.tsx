@@ -8,6 +8,7 @@ import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-in
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
 import { isPreviewableFile } from "@/lib/file-preview"
+import { DielineNoSearchInput } from "@/components/cad/DielineNoSearchInput"
 
 type ChangedFieldEntry = { field: string; label: string; before: string; after: string }
 type AuditLogEntry = {
@@ -543,7 +544,9 @@ export default function CadRequestDetailPage() {
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>型台帳番号</label>
-                  <Input value={form.dieline_no} onChange={e => set("dieline_no", e.target.value)} className={inputCls} autoComplete="off" />
+                  <div className="flex-1">
+                    <DielineNoSearchInput value={(form.dieline_no as string) || ""} onChange={v => set("dieline_no", v)} />
+                  </div>
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>展開寸法</label>
