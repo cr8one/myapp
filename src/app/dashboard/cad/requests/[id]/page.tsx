@@ -391,6 +391,13 @@ export default function CadRequestDetailPage() {
                 着手に戻す
               </Button>
             </>
+          ) : record.status === "完了" ? (
+            <>
+              <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
+              <Button disabled className="bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200">
+                完了
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="outline" onClick={() => window.open(`/api/cad/requests/pdf?id=${record.id}`, "_blank")}>PDF出力</Button>
