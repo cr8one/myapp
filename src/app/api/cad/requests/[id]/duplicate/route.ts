@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (fields.dieline_no) data.dieline_no = original.dieline_no
   if (fields.develop) { data.develop_y = original.develop_y; data.develop_x = original.develop_x }
   if (fields.paper) data.paper = original.paper
-  if (fields.finish_count) data.finish_count = original.finish_count
+  if (fields.finish_count) { data.finish_count = original.finish_count; data.finish_count_note = original.finish_count_note }
   if (fields.tray_spec) {
     data.flg_tray_spec = original.flg_tray_spec
     data.tray = original.tray

@@ -72,6 +72,7 @@ type CadRequest = {
   develop_x: number | null
   paper: string | null
   finish_count: number | null
+  finish_count_note: string | null
   desired_date: string | null
   desired_time: string | null
   desired_time_kbn: number
@@ -135,6 +136,7 @@ export default function CadRequestDetailPage() {
         develop_x: data.develop_x?.toString() ?? "",
         paper: data.paper ?? "",
         finish_count: data.finish_count?.toString() ?? "",
+        finish_count_note: data.finish_count_note ?? "",
         desired_date: data.desired_date?.slice(0, 10) ?? "",
         desired_time: data.desired_time ?? "",
         desired_time_kbn: data.desired_time_kbn ?? 0,
@@ -551,7 +553,8 @@ export default function CadRequestDetailPage() {
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>仕上個数</label>
-                  <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={inputCls} autoComplete="off" />
+                  <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={`${inputCls} flex-1`} autoComplete="off" />
+                  <Input value={form.finish_count_note} onChange={e => set("finish_count_note", e.target.value)} placeholder="備考（例：各6/2種×各8枚）" className={`${inputCls} flex-[2]`} autoComplete="off" />
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>希望納期</label>
@@ -585,7 +588,7 @@ export default function CadRequestDetailPage() {
                   </span>
                 </div>
                 <div className={rowCls}><span className={valLabelCls}>用紙</span><span className={valCls}>{record.paper || "—"}</span></div>
-                <div className={rowCls}><span className={valLabelCls}>仕上個数</span><span className={valCls}>{record.finish_count != null ? `${record.finish_count}個` : "—"}</span></div>
+                <div className={rowCls}><span className={valLabelCls}>仕上個数</span><span className={valCls}>{record.finish_count != null ? `${record.finish_count}個` : "—"}{record.finish_count_note ? `　（${record.finish_count_note}）` : ""}</span></div>
                 <div className={rowCls}>
                   <span className={valLabelCls}>希望納期</span>
                   <span className={valCls}>{formatDate(record.desired_date)}{desiredTimeLabel(record.desired_time_kbn, record.desired_time) ? `　${desiredTimeLabel(record.desired_time_kbn, record.desired_time)}` : ""}</span>

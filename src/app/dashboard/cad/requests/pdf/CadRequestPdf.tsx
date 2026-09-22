@@ -76,6 +76,7 @@ type Props = {
   develop_x?: number
   paper?: string
   finish_count?: number
+  finish_count_note?: string
   desired_date?: string
   desired_time?: string
   tray?: string
@@ -179,7 +180,9 @@ export default function CadRequestPdf(props: Props) {
             </View>
             <View style={F.row}>
               <Text style={F.rowLabel}>仕上個数</Text>
-              <Text style={{ ...F.rowVal, textAlign: "center" }}>{props.finish_count ?? ""}</Text>
+              <Text style={{ ...F.rowVal, textAlign: "center" }}>
+                {props.finish_count ?? ""}{props.finish_count_note ? `（${props.finish_count_note}）` : ""}
+              </Text>
             </View>
             <View style={F.row}>
               <Text style={F.rowLabel}>希望納期</Text>

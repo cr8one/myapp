@@ -17,6 +17,7 @@ export const CAD_REQUEST_FIELD_LABELS: Record<string, string> = {
   develop_x: "展開寸法(横)",
   paper: "用紙",
   finish_count: "仕上個数",
+  finish_count_note: "仕上個数備考",
   desired_date: "希望納期日",
   desired_time: "希望納期時刻",
   flg_tray_spec: "トレイ仕様",

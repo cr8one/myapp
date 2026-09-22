@@ -46,6 +46,7 @@ export default function CadRequestNewPage() {
     develop_x: "",
     paper: "",
     finish_count: "",
+    finish_count_note: "",
     desired_date: "",
     desired_time: "",
     desired_time_kbn: 0,
@@ -294,7 +295,8 @@ export default function CadRequestNewPage() {
             </div>
             <div className={rowCls}>
               <label className={labelCls}>仕上個数</label>
-              <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={inputCls} autoComplete="off" />
+              <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={`${inputCls} flex-1`} autoComplete="off" />
+              <Input value={form.finish_count_note} onChange={e => set("finish_count_note", e.target.value)} placeholder="備考（例：各6/2種×各8枚）" className={`${inputCls} flex-[2]`} autoComplete="off" />
             </div>
             <div className={rowCls}>
               <label className={labelCls}>希望納期</label>

@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       develop_x: record.develop_x ?? undefined,
       paper: n(record.paper),
       finish_count: record.finish_count ?? undefined,
+      finish_count_note: n(record.finish_count_note),
       desired_date: record.desired_date?.toISOString() ?? undefined,
       desired_time: n(desiredTimeLabel(record.desired_time_kbn, record.desired_time)),
       tray: n(record.tray),

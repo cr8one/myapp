@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     const develop_x = str(row["展開左右"])
     const paper = str(row["用紙"])
     const finish_count = str(row["仕上個数"])
+    const finish_count_note = str(row["仕上個数備考"])
     const desired_date = toDateStr(row["希望納期日"])
     const desired_time_raw = str(row["希望納期時刻"])
     const { kbn: desired_time_kbn, time: desired_time } = parseDesiredTimeLabel(desired_time_raw)
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
       develop_x: develop_x ? parseFloat(develop_x) : null,
       paper: paper || null,
       finish_count: finish_count ? parseInt(finish_count) : null,
+      finish_count_note: finish_count_note || null,
       desired_date: desired_date ? new Date(desired_date) : null,
       desired_time: desired_time,
       desired_time_kbn,

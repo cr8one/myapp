@@ -1082,6 +1082,7 @@ model CadRequest {
   develop_x       Float?
   paper           String?
   finish_count    Int?
+  finish_count_note String?
   desired_date    DateTime?
   desired_time    String?
   desired_time_kbn Int      @default(0)
