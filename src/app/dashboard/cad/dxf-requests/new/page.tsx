@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,10 +13,11 @@ function nowTime() { return new Date().toTimeString().slice(0, 5) }
 
 export default function DxfRequestNewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [users, setUsers] = useState<User[]>([])
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    id_cad: "",
+    id_cad: searchParams.get("id_cad") ?? "",
     request_date: today(),
     request_time: nowTime(),
     desired_date: "",

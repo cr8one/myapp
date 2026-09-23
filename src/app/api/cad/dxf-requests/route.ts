@@ -9,12 +9,14 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const keyword = searchParams.get("keyword") ?? ""
   const status = searchParams.get("status") ?? ""
+  const idCad = searchParams.get("id_cad") ?? ""
   const page = parseInt(searchParams.get("page") ?? "1")
   const limit = 50
   const offset = (page - 1) * limit
 
   const where: Record<string, unknown> = { flg_del: 0 }
   if (status) where.status = status
+  if (idCad) where.id_cad = idCad
   if (keyword) {
     where.OR = [
       { uid: { contains: keyword, mode: "insensitive" } },

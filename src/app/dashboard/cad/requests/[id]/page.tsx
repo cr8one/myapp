@@ -18,6 +18,16 @@ type AuditLogEntry = {
   createdAt: string
   user: { id: string; name: string | null } | null
 }
+type LinkedDxfRequest = {
+  id: string
+  uid: string
+  desired_date: string | null
+  desired_time: string | null
+  desired_time_kbn: number
+  purpose: string | null
+  worker: string | null
+  status: string | null
+}
 
 type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
@@ -104,6 +114,8 @@ export default function CadRequestDetailPage() {
   const [files, setFiles] = useState<{ id: string; file_key: string; file_name: string; file_type: string }[]>([])
   const [uploading, setUploading] = useState(false)
   const [history, setHistory] = useState<AuditLogEntry[]>([])
+  const [dxfRequests, setDxfRequests] = useState<LinkedDxfRequest[]>([])
+  const [dxfLoading, setDxfLoading] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
@@ -114,6 +126,14 @@ export default function CadRequestDetailPage() {
   })
 
   useEffect(() => { fetchHistory() }, [id])
+  useEffect(() => {
+    if (!record?.uid) return
+    setDxfLoading(true)
+    fetch(`/api/cad/dxf-requests?id_cad=${encodeURIComponent(record.uid)}`)
+      .then(r => r.json())
+      .then(data => setDxfRequests(data.records ?? []))
+      .finally(() => setDxfLoading(false))
+  }, [record?.uid])
 
   useEffect(() => {
     fetch(`/api/cad/requests/${id}`).then(r => r.json()).then((data: CadRequest) => {
@@ -766,6 +786,45 @@ export default function CadRequestDetailPage() {
           </div>
         </div>
       )}
+
+      <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">DXF変換依頼書</h2>
+          {record && (
+            <button
+              onClick={() => router.push(`/dashboard/cad/dxf-requests/new?id_cad=${encodeURIComponent(record.uid)}`)}
+              className="text-xs px-3 py-1.5 border rounded-lg text-lime-700 border-lime-200 hover:bg-lime-50"
+            >
+              ＋ DXF変換依頼書を作成
+            </button>
+          )}
+        </div>
+        {dxfLoading ? (
+          <p className="text-xs text-gray-400">読み込み中...</p>
+        ) : dxfRequests.length === 0 ? (
+          <p className="text-xs text-gray-400">紐づくDXF変換依頼書がありません</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {dxfRequests.map(d => (
+              <li key={d.id} className="py-2 flex items-center justify-between text-sm gap-3">
+                <button
+                  onClick={() => router.push(`/dashboard/cad/dxf-requests/${d.id}`)}
+                  className="text-blue-600 hover:underline font-mono"
+                >
+                  {d.uid}
+                </button>
+                <span className="text-gray-500 text-xs flex-1 truncate">{d.purpose || "—"}</span>
+                <span className="text-gray-500 text-xs whitespace-nowrap">
+                  {d.desired_date ? new Date(d.desired_date).toLocaleDateString("ja-JP") : "—"}
+                  {desiredTimeLabel(d.desired_time_kbn, d.desired_time) ? `　${desiredTimeLabel(d.desired_time_kbn, d.desired_time)}` : ""}
+                </span>
+                <span className="text-gray-500 text-xs whitespace-nowrap">{d.worker || "—"}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">{d.status || "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">履歴</h2>
