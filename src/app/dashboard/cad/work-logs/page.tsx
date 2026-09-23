@@ -1,9 +1,9 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Trash2, Upload, Download, X } from "lucide-react"
 
 type CadWorkLog = {
   id: string
@@ -35,6 +35,13 @@ export default function CadWorkLogsPage() {
   const [keyword, setKeyword] = useState("")
   const [, forceTick] = useState(0)
   const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const [showImport, setShowImport] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importStatus, setImportStatus] = useState<"idle" | "uploading" | "importing" | "done" | "error">("idle")
+  const [importProgress, setImportProgress] = useState({ count: 0, total: 0 })
+  const [importError, setImportError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchRecords = async (p = page, kw = keyword) => {
     setLoading(true)
@@ -102,6 +109,58 @@ export default function CadWorkLogsPage() {
     fetchRecords(page, keyword)
   }
 
+  const handleExport = () => {
+    const params = new URLSearchParams()
+    if (keyword) params.set("keyword", keyword)
+    window.location.href = `/api/cad/work-logs/export?${params.toString()}`
+  }
+
+  const handleImport = async () => {
+    if (!importFile) return
+    setImportStatus("uploading")
+    setImportError("")
+    setImportProgress({ count: 0, total: 0 })
+    try {
+      const presignRes = await fetch("/api/cad/work-logs/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: importFile.name }),
+      })
+      const { url, key } = await presignRes.json()
+      await fetch(url, { method: "PUT", body: importFile, headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } })
+      setImportStatus("importing")
+      let offset = 0
+      let totalCount = 0
+      while (true) {
+        const res = await fetch("/api/cad/work-logs/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, offset }),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error ?? "インポートエラー")
+        totalCount += data.count
+        offset = data.offset
+        setImportProgress({ count: totalCount, total: data.total })
+        if (data.done) break
+      }
+      setImportStatus("done")
+      fetchRecords(1, keyword)
+      setPage(1)
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : "エラーが発生しました")
+      setImportStatus("error")
+    }
+  }
+
+  const resetImport = () => {
+    setImportStatus("idle")
+    setImportFile(null)
+    setImportProgress({ count: 0, total: 0 })
+    setImportError("")
+    setShowImport(false)
+  }
+
   const Pagination = () => (
     <div className="flex items-center justify-between py-3 px-1">
       <p className="text-sm text-gray-500">
@@ -123,8 +182,80 @@ export default function CadWorkLogsPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">CAD作業履歴</h1>
-        <Button onClick={() => router.push("/dashboard/cad/work-logs/new")}>新規作成</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImport(v => !v)} className="flex items-center gap-1">
+            <Upload className="w-4 h-4" />Excelインポート
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="flex items-center gap-1">
+            <Download className="w-4 h-4" />Excelエクスポート
+          </Button>
+          <Button onClick={() => router.push("/dashboard/cad/work-logs/new")}>新規作成</Button>
+        </div>
       </div>
+
+      {showImport && (
+        <div className="bg-white border rounded-lg p-5 mb-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">Excelインポート</h2>
+            <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+          </div>
+          <p className="text-xs text-gray-500">
+            シート名「CadWorkLogs」、列順：日付・開始時刻・終了時刻・依頼書No・所属G・担当者・顧客・タイトル・内容・パーツ名・用紙名・数量・備考・当日対応・作成者（依頼書Noのような一意キーがないため、インポートは常に新規追加になります。上書きはされません）
+          </p>
+          {importStatus === "idle" && (
+            <div>
+              <div
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${importFile ? "border-blue-300 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                onClick={() => fileInputRef.current?.click()}>
+                {importFile ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-sm text-gray-700 font-medium">{importFile.name}</span>
+                    <button onClick={e => { e.stopPropagation(); setImportFile(null) }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Excelファイルを選択</p>
+                    <p className="text-xs text-gray-400 mt-1">.xlsx形式</p>
+                  </>
+                )}
+              </div>
+              <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden"
+                onChange={e => setImportFile(e.target.files?.[0] ?? null)} />
+              <div className="flex justify-end mt-3">
+                <Button onClick={handleImport} disabled={!importFile} size="sm">インポート開始</Button>
+              </div>
+            </div>
+          )}
+          {(importStatus === "uploading" || importStatus === "importing") && (
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                {importStatus === "uploading" ? "S3にアップロード中..." : `インポート中... ${importProgress.count} / ${importProgress.total} 件`}
+              </div>
+              {importProgress.total > 0 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-gray-800 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round((importProgress.count / importProgress.total) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          {importStatus === "done" && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-green-700">インポートが完了しました（{importProgress.count}件追加）</p>
+              <button onClick={resetImport} className="text-sm text-gray-500 hover:text-gray-700">閉じる</button>
+            </div>
+          )}
+          {importStatus === "error" && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-600">{importError}</p>
+              <button onClick={() => setImportStatus("idle")} className="text-sm text-gray-500 hover:text-gray-700">やり直す</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
         <div className="flex gap-3">
