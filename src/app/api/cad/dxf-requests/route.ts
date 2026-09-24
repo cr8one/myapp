@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { createAuditLog } from "@/lib/audit"
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -63,10 +64,20 @@ export async function POST(req: Request) {
       desired_time_kbn: body.desired_time_kbn ?? 0,
       purpose: body.purpose || null,
       remarks: body.remarks || null,
-      history: body.history || null,
       worker: body.worker || null,
       status: body.status || null,
     },
   })
+
+  await createAuditLog({
+    userId: session.user?.id,
+    service: "cad",
+    action: "CREATE",
+    targetModel: "DxfRequest",
+    targetId: record.id,
+    targetLabel: record.uid,
+    diff: { classification: "新規" },
+  })
+
   return NextResponse.json(record)
 }

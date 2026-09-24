@@ -25,7 +25,6 @@ export default function DxfRequestNewPage() {
     desired_time_kbn: 0,
     purpose: "",
     remarks: "",
-    history: "",
     worker: "",
     status: "作成中",
   })
@@ -149,16 +148,6 @@ export default function DxfRequestNewPage() {
                 >
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-              </div>
-              <div className="col-span-2">
-                <label className={labelCls}>履歴</label>
-                <textarea
-                  value={form.history}
-                  onChange={e => set("history", e.target.value)}
-                  className="w-full border rounded px-3 py-2 text-sm resize-none"
-                  rows={4}
-                  autoComplete="off"
-                />
               </div>
             </div>
           </CardContent>

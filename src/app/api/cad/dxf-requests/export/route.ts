@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   const headers = [
     "依頼番号", "CAD依頼書No", "依頼日", "依頼時刻", "希望納期日", "希望納期時刻",
-    "目的", "備考", "作業担当", "ステータス", "履歴",
+    "目的", "備考", "作業担当", "ステータス",
   ]
 
   const rows = records.map(r => [
@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
     r.remarks ?? "",
     r.worker ?? "",
     r.status ?? "",
-    r.history ?? "",
   ])
 
   const buf = buildXlsxWorkbook([

@@ -146,7 +146,7 @@ export default function DxfRequestsPage() {
             <button onClick={resetImport} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
           <p className="text-xs text-gray-500">
-            シート名「DxfRequests」、列順：依頼番号・CAD依頼書No・依頼日・依頼時刻・希望納期日・希望納期時刻・目的・備考・作業担当・ステータス・履歴
+            シート名「DxfRequests」、列順：依頼番号・CAD依頼書No・依頼日・依頼時刻・希望納期日・希望納期時刻・目的・備考・作業担当・ステータス
           </p>
           {importStatus === "idle" && (
             <div>

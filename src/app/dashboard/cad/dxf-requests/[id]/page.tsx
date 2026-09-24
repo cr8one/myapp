@@ -18,9 +18,16 @@ type DxfRequest = {
   desired_time_kbn: number
   purpose: string | null
   remarks: string | null
-  history: string | null
   worker: string | null
   status: string | null
+}
+type ChangedFieldEntry = { field: string; label: string; before: string; after: string }
+type AuditLogEntry = {
+  id: string
+  action: string
+  diff: string | null
+  createdAt: string
+  user: { id: string; name: string | null } | null
 }
 
 const STATUS_OPTIONS = ["作成中", "依頼済み", "作業中", "完了"]
@@ -40,6 +47,8 @@ export default function DxfRequestDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string | number>>({})
+  const [history, setHistory] = useState<AuditLogEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
 
   useEffect(() => {
     fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json()).then((data: DxfRequest) => {
@@ -53,13 +62,22 @@ export default function DxfRequestDetailPage() {
         desired_time_kbn: data.desired_time_kbn ?? 0,
         purpose: data.purpose ?? "",
         remarks: data.remarks ?? "",
-        history: data.history ?? "",
         worker: data.worker ?? "",
         status: data.status ?? "",
       })
     })
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
   }, [id])
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    const res = await fetch(`/api/cad/dxf-requests/${id}/history`)
+    const data = await res.json()
+    setHistory(data)
+    setHistoryLoading(false)
+  }
+
+  useEffect(() => { fetchHistory() }, [id])
 
   const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
 
@@ -74,6 +92,7 @@ export default function DxfRequestDetailPage() {
       const data = await res.json()
       setRecord(data)
       setEditing(false)
+      fetchHistory()
     } else {
       alert("保存に失敗しました")
     }
@@ -209,20 +228,70 @@ export default function DxfRequestDetailPage() {
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>履歴</label>
-                  <textarea value={form.history} onChange={e => set("history", e.target.value)} className="w-full border rounded px-3 py-2 text-sm resize-none" rows={4} autoComplete="off" />
-                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 <div><p className="text-xs text-gray-400">作業担当</p><p className="text-sm text-gray-800">{val(record.worker)}</p></div>
                 <div><p className="text-xs text-gray-400">ステータス</p><p className="text-sm text-gray-800">{val(record.status)}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">履歴</p><p className="text-sm text-gray-800 whitespace-pre-wrap">{val(record.history)}</p></div>
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">履歴</h2>
+        {historyLoading ? (
+          <p className="text-xs text-gray-400">読み込み中...</p>
+        ) : history.length === 0 ? (
+          <p className="text-xs text-gray-400">履歴がありません</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">日時</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">ユーザー</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">分類</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium whitespace-nowrap">修正項目</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium">修正前</th>
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium">修正後</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {history.flatMap(log => {
+                  const diff = log.diff ? JSON.parse(log.diff) as { classification?: string; changedFields?: ChangedFieldEntry[] } : null
+                  const classification = diff?.classification ?? (log.action === "CREATE" ? "新規" : "編集")
+                  const changedFields = diff?.changedFields ?? []
+                  const dt = new Date(log.createdAt)
+                  const dtStr = `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`
+                  if (changedFields.length === 0) {
+                    return [(
+                      <tr key={log.id}>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-500">{dtStr}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">{log.user?.name ?? "—"}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-700">{classification}</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                        <td className="px-3 py-2 text-gray-300">—</td>
+                      </tr>
+                    )]
+                  }
+                  return changedFields.map((cf, i) => (
+                    <tr key={`${log.id}-${i}`}>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-500">{dtStr}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{log.user?.name ?? "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{classification}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-700">{cf.label}</td>
+                      <td className="px-3 py-2 text-gray-600">{cf.before}</td>
+                      <td className="px-3 py-2 text-gray-600">{cf.after}</td>
+                    </tr>
+                  ))
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

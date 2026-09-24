@@ -1268,7 +1268,6 @@ model DxfRequest {
   desired_time_kbn Int    @default(0)
   purpose      String?
   remarks      String?
-  history      String?
   worker       String?
   status       String?
   flg_del      Int       @default(0)

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { createAuditLog } from "@/lib/audit"
+import { diffDxfRequestFields } from "@/lib/cad/dxf-request-history"
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -16,6 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
   const body = await req.json()
+  const before = await prisma.dxfRequest.findUnique({ where: { id } })
   const record = await prisma.dxfRequest.update({
     where: { id },
     data: {
@@ -27,11 +30,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       desired_time_kbn: body.desired_time_kbn ?? 0,
       purpose: body.purpose || null,
       remarks: body.remarks || null,
-      history: body.history || null,
       worker: body.worker || null,
       status: body.status || null,
     },
   })
+
+  if (before) {
+    const changedFields = diffDxfRequestFields(before, record)
+    if (changedFields.length > 0) {
+      await createAuditLog({
+        userId: session.user?.id,
+        service: "cad",
+        action: "UPDATE",
+        targetModel: "DxfRequest",
+        targetId: record.id,
+        targetLabel: record.uid,
+        diff: { classification: "編集", changedFields },
+      })
+    }
+  }
+
   return NextResponse.json(record)
 }
 

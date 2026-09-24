@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
     const remarks = str(row["備考"])
     const worker = str(row["作業担当"])
     const status = str(row["ステータス"])
-    const history = str(row["履歴"])
 
     const data = {
       id_cad: id_cad || null,
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
       remarks: remarks || null,
       worker: worker || null,
       status: status || null,
-      history: history || null,
       flg_del: 0,
       updated_at: new Date(),
     }
