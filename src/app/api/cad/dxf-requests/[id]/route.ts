@@ -10,7 +10,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params
   const record = await prisma.dxfRequest.findUnique({ where: { id } })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json(record)
+
+  let linkedCad: { id: string; uid: string; hinban: string | null; hinmoku: string | null; title: string | null } | null = null
+  if (record.id_cad) {
+    linkedCad = await prisma.cadRequest.findUnique({
+      where: { uid: record.id_cad },
+      select: { id: true, uid: true, hinban: true, hinmoku: true, title: true },
+    })
+  }
+
+  return NextResponse.json({ ...record, linkedCad })
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +39,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       desired_time_kbn: body.desired_time_kbn ?? 0,
       purpose: body.purpose || null,
       remarks: body.remarks || null,
+      daishi_desired_date: body.daishi_desired_date ? new Date(body.daishi_desired_date) : null,
+      daishi_desired_time: body.daishi_desired_time || null,
+      daishi_desired_time_kbn: body.daishi_desired_time_kbn ?? 0,
+      daishi_remarks: body.daishi_remarks || null,
       worker: body.worker || null,
       status: body.status || null,
     },

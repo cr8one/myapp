@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
 
   const headers = [
     "依頼番号", "CAD依頼書No", "依頼日", "依頼時刻", "希望納期日", "希望納期時刻",
-    "目的", "備考", "作業担当", "ステータス",
+    "目的", "備考", "台紙希望納期日", "台紙希望納期時刻", "備考(台紙依頼)",
+    "作業担当", "ステータス",
   ]
 
   const rows = records.map(r => [
@@ -44,6 +45,9 @@ export async function GET(req: NextRequest) {
     desiredTimeLabel(r.desired_time_kbn, r.desired_time),
     r.purpose ?? "",
     r.remarks ?? "",
+    r.daishi_desired_date ? new Date(r.daishi_desired_date).toISOString().slice(0, 10) : "",
+    desiredTimeLabel(r.daishi_desired_time_kbn, r.daishi_desired_time),
+    r.daishi_remarks ?? "",
     r.worker ?? "",
     r.status ?? "",
   ])

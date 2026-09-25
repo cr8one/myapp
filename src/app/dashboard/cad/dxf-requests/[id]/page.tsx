@@ -7,6 +7,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-input"
 
 type User = { id: string; name: string | null }
+type LinkedCad = {
+  id: string
+  uid: string
+  hinban: string | null
+  hinmoku: string | null
+  title: string | null
+}
 type DxfRequest = {
   id: string
   uid: string
@@ -18,8 +25,13 @@ type DxfRequest = {
   desired_time_kbn: number
   purpose: string | null
   remarks: string | null
+  daishi_desired_date: string | null
+  daishi_desired_time: string | null
+  daishi_desired_time_kbn: number
+  daishi_remarks: string | null
   worker: string | null
   status: string | null
+  linkedCad?: LinkedCad | null
 }
 type ChangedFieldEntry = { field: string; label: string; before: string; after: string }
 type AuditLogEntry = {
@@ -62,6 +74,10 @@ export default function DxfRequestDetailPage() {
         desired_time_kbn: data.desired_time_kbn ?? 0,
         purpose: data.purpose ?? "",
         remarks: data.remarks ?? "",
+        daishi_desired_date: data.daishi_desired_date?.slice(0, 10) ?? "",
+        daishi_desired_time: data.daishi_desired_time ?? "",
+        daishi_desired_time_kbn: data.daishi_desired_time_kbn ?? 0,
+        daishi_remarks: data.daishi_remarks ?? "",
         worker: data.worker ?? "",
         status: data.status ?? "",
       })
@@ -90,7 +106,8 @@ export default function DxfRequestDetailPage() {
     })
     if (res.ok) {
       const data = await res.json()
-      setRecord(data)
+      const refreshed = await fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json())
+      setRecord(refreshed)
       setEditing(false)
       fetchHistory()
     } else {
@@ -115,6 +132,9 @@ export default function DxfRequestDetailPage() {
   const inputCls = "h-9 text-sm"
 
   if (!record) return <p className="p-8 text-gray-400 animate-pulse">読み込み中...</p>
+
+  const currentPurpose = editing ? (form.purpose as string) : record.purpose
+  const showDaishiSection = currentPurpose === "台紙データ作成"
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -146,7 +166,7 @@ export default function DxfRequestDetailPage() {
       <div className="space-y-6">
         <Card>
           <CardContent className="pt-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-4">依頼情報</h2>
+            <h2 className="text-base font-semibold text-gray-700 mb-4">DXF変換依頼情報</h2>
             {editing ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -200,8 +220,62 @@ export default function DxfRequestDetailPage() {
                 <div className="col-span-2"><p className="text-xs text-gray-400">備考</p><p className="text-sm text-gray-800 whitespace-pre-wrap">{val(record.remarks)}</p></div>
               </div>
             )}
+
+            {record.linkedCad && (
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+                <p className="text-xs text-gray-400 mb-2">紐づくCAD依頼書</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => router.push(`/dashboard/cad/requests/${record.linkedCad!.id}`)}
+                    className="text-sm font-mono text-blue-600 hover:underline"
+                  >
+                    No.{record.linkedCad.uid}
+                  </button>
+                  <span className="text-xs text-gray-400">→ 依頼書を開く</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 bg-lime-50 rounded-lg p-3 border border-lime-100">
+                  <div><p className="text-xs text-gray-400">品番</p><p className="text-sm text-gray-800">{record.linkedCad.hinban || "—"}</p></div>
+                  <div><p className="text-xs text-gray-400">品名</p><p className="text-sm text-gray-800">{record.linkedCad.title || "—"}</p></div>
+                  <div><p className="text-xs text-gray-400">パーツ</p><p className="text-sm text-gray-800">{record.linkedCad.hinmoku || "—"}</p></div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {showDaishiSection && (
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-base font-semibold text-gray-700 mb-4">台紙作成依頼情報</h2>
+              {editing ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>希望納期日</label>
+                    <Input type="date" value={form.daishi_desired_date} onChange={e => set("daishi_desired_date", e.target.value)} className={inputCls} autoComplete="off" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>希望納期時刻</label>
+                    <DesiredTimeInput
+                      kbn={Number(form.daishi_desired_time_kbn ?? 0)}
+                      time={(form.daishi_desired_time as string) || ""}
+                      onChange={(kbn, time) => { set("daishi_desired_time_kbn", kbn); set("daishi_desired_time", time) }}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className={labelCls}>備考（台紙依頼）</label>
+                    <textarea value={form.daishi_remarks} onChange={e => set("daishi_remarks", e.target.value)} className="w-full border rounded px-3 py-2 text-sm resize-none" rows={3} autoComplete="off" />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><p className="text-xs text-gray-400">希望納期日</p><p className="text-sm text-gray-800">{formatDate(record.daishi_desired_date)}</p></div>
+                  <div><p className="text-xs text-gray-400">希望納期時刻</p><p className="text-sm text-gray-800">{val(desiredTimeLabel(record.daishi_desired_time_kbn, record.daishi_desired_time) || null)}</p></div>
+                  <div className="col-span-2"><p className="text-xs text-gray-400">備考（台紙依頼）</p><p className="text-sm text-gray-800 whitespace-pre-wrap">{val(record.daishi_remarks)}</p></div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="pt-6">

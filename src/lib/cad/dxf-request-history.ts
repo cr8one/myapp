@@ -10,6 +10,9 @@ export const DXF_REQUEST_FIELD_LABELS: Record<string, string> = {
   worker: "作業担当",
   status: "ステータス",
   remarks: "備考",
+  daishi_desired_date: "台紙希望納期日",
+  daishi_desired_time: "台紙希望納期時刻",
+  daishi_remarks: "備考（台紙依頼）",
 }
 
 function formatFieldValue(field: string, value: unknown): string {

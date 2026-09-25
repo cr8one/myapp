@@ -25,6 +25,10 @@ export default function DxfRequestNewPage() {
     desired_time_kbn: 0,
     purpose: "",
     remarks: "",
+    daishi_desired_date: "",
+    daishi_desired_time: "",
+    daishi_desired_time_kbn: 0,
+    daishi_remarks: "",
     worker: "",
     status: "作成中",
   })
@@ -63,7 +67,7 @@ export default function DxfRequestNewPage() {
       <div className="space-y-6">
         <Card>
           <CardContent className="pt-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-4">依頼情報</h2>
+            <h2 className="text-base font-semibold text-gray-700 mb-4">DXF変換依頼情報</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>依頼日 <span className="text-red-500">*</span></label>
@@ -120,6 +124,38 @@ export default function DxfRequestNewPage() {
             </div>
           </CardContent>
         </Card>
+
+        {form.purpose === "台紙データ作成" && (
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-base font-semibold text-gray-700 mb-4">台紙作成依頼情報</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>希望納期日</label>
+                  <Input type="date" value={form.daishi_desired_date} onChange={e => set("daishi_desired_date", e.target.value)} className={inputCls} autoComplete="off" />
+                </div>
+                <div>
+                  <label className={labelCls}>希望納期時刻</label>
+                  <DesiredTimeInput
+                    kbn={form.daishi_desired_time_kbn}
+                    time={form.daishi_desired_time}
+                    onChange={(kbn, time) => { set("daishi_desired_time_kbn", kbn); set("daishi_desired_time", time) }}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelCls}>備考（台紙依頼）</label>
+                  <textarea
+                    value={form.daishi_remarks}
+                    onChange={e => set("daishi_remarks", e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm resize-none"
+                    rows={3}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="pt-6">

@@ -1268,6 +1268,10 @@ model DxfRequest {
   desired_time_kbn Int    @default(0)
   purpose      String?
   remarks      String?
+  daishi_desired_date     DateTime?
+  daishi_desired_time     String?
+  daishi_desired_time_kbn Int       @default(0)
+  daishi_remarks          String?
   worker       String?
   status       String?
   flg_del      Int       @default(0)

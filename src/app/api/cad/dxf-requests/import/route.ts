@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
     const { kbn: desired_time_kbn, time: desired_time } = parseDesiredTimeLabel(desired_time_raw)
     const purpose = str(row["目的"])
     const remarks = str(row["備考"])
+    const daishi_desired_date = toDateStr(row["台紙希望納期日"])
+    const daishi_desired_time_raw = str(row["台紙希望納期時刻"])
+    const { kbn: daishi_desired_time_kbn, time: daishi_desired_time } = parseDesiredTimeLabel(daishi_desired_time_raw)
+    const daishi_remarks = str(row["備考(台紙依頼)"])
     const worker = str(row["作業担当"])
     const status = str(row["ステータス"])
 
@@ -69,6 +73,10 @@ export async function POST(req: NextRequest) {
       desired_time_kbn,
       purpose: purpose || null,
       remarks: remarks || null,
+      daishi_desired_date: daishi_desired_date ? new Date(daishi_desired_date) : null,
+      daishi_desired_time,
+      daishi_desired_time_kbn,
+      daishi_remarks: daishi_remarks || null,
       worker: worker || null,
       status: status || null,
       flg_del: 0,
