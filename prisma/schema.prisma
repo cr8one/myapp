@@ -677,6 +677,32 @@ model PrinserMTray {
   @@map("prinser_m_tray")
 }
 
+model MTray {
+  id                  String       @id @default(cuid())
+  name                String
+  type                String
+  maker               String
+  rendo_tray_cd       String?      @map("rendo_tray_cd")
+  purchase_evaluation String       @default("通常")
+  sort_order          Int          @default(0)
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
+  images              MTrayImage[]
+  @@map("m_trays")
+}
+
+model MTrayImage {
+  id          String   @id @default(cuid())
+  tray_id     String
+  tray        MTray    @relation(fields: [tray_id], references: [id])
+  file_key    String
+  file_name   String
+  file_type   String
+  sort_order  Int      @default(0)
+  uploaded_at DateTime @default(now())
+  @@map("m_tray_images")
+}
+
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
   vendorName    String?   @map("vendor_name")

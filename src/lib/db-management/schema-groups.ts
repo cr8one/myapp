@@ -129,6 +129,14 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
     ],
   },
   {
+    key: "masters-items",
+    label: "品目マスタ",
+    tables: [
+      { tableName: "m_trays", label: "トレイマスタ" },
+      { tableName: "m_tray_images", label: "トレイマスタ画像" },
+    ],
+  },
+  {
     key: "prinser",
     label: "PRINSERマスタ",
     tables: [
