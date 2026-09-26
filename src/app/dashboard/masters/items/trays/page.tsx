@@ -134,9 +134,8 @@ export default function TraysPage() {
         body: JSON.stringify(body),
       })
       if (!res.ok) { setError("登録に失敗しました"); return }
-      const created = await res.json()
       await load()
-      openEdit({ ...created, images: created.images ?? [] })
+      setShowForm(false)
     }
   }
 
