@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { DesiredTimeInput, desiredTimeLabel } from "@/components/desired-time-input"
+import DxfMailModal from "@/components/cad/DxfMailModal"
 
 type User = { id: string; name: string | null }
 type LinkedCad = {
@@ -61,27 +62,33 @@ export default function DxfRequestDetailPage() {
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [history, setHistory] = useState<AuditLogEntry[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [showRequestMail, setShowRequestMail] = useState(false)
+  const [showCompleteMail, setShowCompleteMail] = useState(false)
+  const [statusChanging, setStatusChanging] = useState(false)
+
+  const fetchRecord = async () => {
+    const data: DxfRequest = await fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json())
+    setRecord(data)
+    setForm({
+      id_cad: data.id_cad ?? "",
+      request_date: data.request_date?.slice(0, 10) ?? "",
+      request_time: data.request_time ?? "",
+      desired_date: data.desired_date?.slice(0, 10) ?? "",
+      desired_time: data.desired_time ?? "",
+      desired_time_kbn: data.desired_time_kbn ?? 0,
+      purpose: data.purpose ?? "",
+      remarks: data.remarks ?? "",
+      daishi_desired_date: data.daishi_desired_date?.slice(0, 10) ?? "",
+      daishi_desired_time: data.daishi_desired_time ?? "",
+      daishi_desired_time_kbn: data.daishi_desired_time_kbn ?? 0,
+      daishi_remarks: data.daishi_remarks ?? "",
+      worker: data.worker ?? "",
+      status: data.status ?? "",
+    })
+  }
 
   useEffect(() => {
-    fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json()).then((data: DxfRequest) => {
-      setRecord(data)
-      setForm({
-        id_cad: data.id_cad ?? "",
-        request_date: data.request_date?.slice(0, 10) ?? "",
-        request_time: data.request_time ?? "",
-        desired_date: data.desired_date?.slice(0, 10) ?? "",
-        desired_time: data.desired_time ?? "",
-        desired_time_kbn: data.desired_time_kbn ?? 0,
-        purpose: data.purpose ?? "",
-        remarks: data.remarks ?? "",
-        daishi_desired_date: data.daishi_desired_date?.slice(0, 10) ?? "",
-        daishi_desired_time: data.daishi_desired_time ?? "",
-        daishi_desired_time_kbn: data.daishi_desired_time_kbn ?? 0,
-        daishi_remarks: data.daishi_remarks ?? "",
-        worker: data.worker ?? "",
-        status: data.status ?? "",
-      })
-    })
+    fetchRecord()
     fetch("/api/users/list").then(r => r.json()).then(setUsers)
   }, [id])
 
@@ -105,13 +112,12 @@ export default function DxfRequestDetailPage() {
       body: JSON.stringify(form),
     })
     if (res.ok) {
-      const data = await res.json()
-      const refreshed = await fetch(`/api/cad/dxf-requests/${id}`).then(r => r.json())
-      setRecord(refreshed)
+      await fetchRecord()
       setEditing(false)
       fetchHistory()
     } else {
-      alert("保存に失敗しました")
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? "保存に失敗しました")
     }
     setSaving(false)
   }
@@ -120,6 +126,42 @@ export default function DxfRequestDetailPage() {
     if (!confirm("この依頼書を削除しますか？")) return
     await fetch(`/api/cad/dxf-requests/${id}`, { method: "DELETE" })
     router.push("/dashboard/cad/dxf-requests")
+  }
+
+  const handleOpenRequestMail = () => {
+    if (!record) return
+    const errors: string[] = []
+    if (!record.id_cad) errors.push("CAD依頼書No")
+    if (!record.purpose) errors.push("目的")
+    if (!record.desired_date) errors.push("希望納期日")
+    if (errors.length > 0) {
+      alert(`以下の必須項目が未入力です:\n${errors.join("、")}`)
+      return
+    }
+    setShowRequestMail(true)
+  }
+
+  const handleStartWork = async () => {
+    if (!confirm("着手ステータスに変更しますか？")) return
+    setStatusChanging(true)
+    const res = await fetch(`/api/cad/dxf-requests/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "作業中" }),
+    })
+    if (res.ok) {
+      await fetchRecord()
+      fetchHistory()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? "ステータス変更に失敗しました")
+    }
+    setStatusChanging(false)
+  }
+
+  const handleMailSent = async () => {
+    await fetchRecord()
+    fetchHistory()
   }
 
   const formatDate = (str: string | null) => {
@@ -154,10 +196,28 @@ export default function DxfRequestDetailPage() {
               <Button variant="outline" onClick={() => setEditing(false)}>キャンセル</Button>
               <Button onClick={handleSave} disabled={saving}>{saving ? "保存中..." : "保存する"}</Button>
             </>
+          ) : record.status === "作成中" ? (
+            <>
+              <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600">削除</Button>
+              <Button variant="outline" onClick={() => setEditing(true)}>編集</Button>
+              <Button onClick={handleOpenRequestMail}>依頼</Button>
+            </>
+          ) : record.status === "依頼済み" ? (
+            <>
+              <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600">削除</Button>
+              <Button disabled={statusChanging} onClick={handleStartWork}>着手</Button>
+            </>
+          ) : record.status === "作業中" ? (
+            <>
+              <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600">削除</Button>
+              <Button onClick={() => setShowCompleteMail(true)}>完了</Button>
+            </>
+          ) : record.status === "完了" ? (
+            <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600">削除</Button>
           ) : (
             <>
               <Button variant="outline" onClick={handleDelete} className="text-red-500 hover:text-red-600">削除</Button>
-              <Button onClick={() => setEditing(true)}>編集</Button>
+              <Button variant="outline" onClick={() => setEditing(true)}>編集</Button>
             </>
           )}
         </div>
@@ -367,6 +427,13 @@ export default function DxfRequestDetailPage() {
           </div>
         )}
       </div>
+
+      {showRequestMail && (
+        <DxfMailModal record={record} mode="request" onClose={() => setShowRequestMail(false)} onSent={handleMailSent} />
+      )}
+      {showCompleteMail && (
+        <DxfMailModal record={record} mode="complete" onClose={() => setShowCompleteMail(false)} onSent={handleMailSent} />
+      )}
     </div>
   )
 }

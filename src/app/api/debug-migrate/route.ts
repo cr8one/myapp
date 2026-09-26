@@ -3,11 +3,10 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   await prisma.$executeRawUnsafe(`
-    ALTER TABLE t_dxf_requests
-      ADD COLUMN IF NOT EXISTS daishi_desired_date TIMESTAMP(3),
-      ADD COLUMN IF NOT EXISTS daishi_desired_time TEXT,
-      ADD COLUMN IF NOT EXISTS daishi_desired_time_kbn INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS daishi_remarks TEXT;
+    ALTER TABLE m_cad_mail_recipients ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'cad_request';
+  `)
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE m_cad_mail_templates ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'cad_request';
   `)
   return NextResponse.json({ ok: true })
 }

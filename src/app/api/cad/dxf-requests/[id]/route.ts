@@ -28,6 +28,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params
   const body = await req.json()
   const before = await prisma.dxfRequest.findUnique({ where: { id } })
+  if (before?.status === "完了") {
+    return NextResponse.json({ error: "完了済みの依頼書は編集できません" }, { status: 400 })
+  }
   const record = await prisma.dxfRequest.update({
     where: { id },
     data: {

@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks, Mail } from "lucide-react"
+import { MAIL_CATEGORIES, MailCategory } from "@/lib/cad/mail-categories"
 
 type CadClient = {
   id: string
@@ -50,6 +51,7 @@ export default function CadMastersPage() {
   const [mailRecipients, setMailRecipients] = useState<MailRecipient[]>([])
   const [mailTemplateBody, setMailTemplateBody] = useState("")
   const [mailTemplateSaving, setMailTemplateSaving] = useState(false)
+  const [mailCategory, setMailCategory] = useState<MailCategory>("cad_request")
   const [loading, setLoading] = useState(true)
 
   // クライアントフォーム
@@ -87,24 +89,30 @@ export default function CadMastersPage() {
 
   const fetchAll = async () => {
     setLoading(true)
-    const [cRes, pRes, ctRes, opRes, mrRes, mtRes] = await Promise.all([
+    const [cRes, pRes, ctRes, opRes] = await Promise.all([
       fetch("/api/cad/masters/clients"),
       fetch("/api/cad/masters/papers"),
       fetch("/api/cad/masters/contents"),
       fetch("/api/cad/masters/options"),
-      fetch("/api/cad/masters/mail-recipients"),
-      fetch("/api/cad/masters/mail-template"),
     ])
     setClients(await cRes.json())
     setPapers(await pRes.json())
     setContents(await ctRes.json())
     setOptions(await opRes.json())
-    setMailRecipients(await mrRes.json())
-    const template = await mtRes.json()
-    setMailTemplateBody(template.body ?? "")
     setLoading(false)
   }
   useEffect(() => { fetchAll() }, [])
+
+  const fetchMail = async (category: MailCategory) => {
+    const [mrRes, mtRes] = await Promise.all([
+      fetch(`/api/cad/masters/mail-recipients?category=${category}`),
+      fetch(`/api/cad/masters/mail-template?category=${category}`),
+    ])
+    setMailRecipients(await mrRes.json())
+    const template = await mtRes.json()
+    setMailTemplateBody(template.body ?? "")
+  }
+  useEffect(() => { fetchMail(mailCategory) }, [mailCategory])
 
   // クライアント保存
   const saveClient = async () => {
@@ -247,17 +255,17 @@ export default function CadMastersPage() {
       await fetch("/api/cad/masters/mail-recipients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: mailRecipientEmail, sort_order: mailRecipientOrder }),
+        body: JSON.stringify({ email: mailRecipientEmail, sort_order: mailRecipientOrder, category: mailCategory }),
       })
     }
     setShowMailRecipientForm(false); setEditMailRecipient(null)
     setMailRecipientEmail(""); setMailRecipientOrder(0)
-    fetchAll()
+    fetchMail(mailCategory)
   }
   const deleteMailRecipient = async (id: string) => {
     if (!confirm("この宛先を削除しますか？")) return
     await fetch(`/api/cad/masters/mail-recipients/${id}`, { method: "DELETE" })
-    fetchAll()
+    fetchMail(mailCategory)
   }
   const startEditMailRecipient = (r: MailRecipient) => {
     setEditMailRecipient(r); setMailRecipientEmail(r.email)
@@ -268,7 +276,7 @@ export default function CadMastersPage() {
     await fetch("/api/cad/masters/mail-template", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: mailTemplateBody }),
+      body: JSON.stringify({ body: mailTemplateBody, category: mailCategory }),
     })
     setMailTemplateSaving(false)
   }
@@ -488,10 +496,22 @@ export default function CadMastersPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          <div className="flex gap-2 flex-wrap">
+            {MAIL_CATEGORIES.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => setMailCategory(cat.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${mailCategory === cat.key ? "bg-lime-700 text-white border-lime-700" : "bg-white text-gray-600 border-gray-200 hover:border-lime-300"}`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-8">
           <div>
             <h2 className="text-sm font-semibold text-gray-700 mb-1">依頼メール送信先（To）</h2>
-            <p className="text-xs text-gray-400 mb-3">CAD依頼のメール送信時、固定の宛先として使用されます。</p>
+            <p className="text-xs text-gray-400 mb-3">{MAIL_CATEGORIES.find(c => c.key === mailCategory)?.label}のメール送信時、固定の宛先として使用されます。</p>
             <div className="flex justify-end mb-3">
               <button
                 onClick={() => { setShowMailRecipientForm(true); setEditMailRecipient(null); setMailRecipientEmail(""); setMailRecipientOrder(0) }}
@@ -542,6 +562,7 @@ export default function CadMastersPage() {
                 {mailTemplateSaving ? "保存中..." : "テンプレートを保存"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
