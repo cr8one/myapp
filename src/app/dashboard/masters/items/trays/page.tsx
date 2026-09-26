@@ -22,6 +22,7 @@ type PrinserTraySuggestion = {
   tray_cd: string
   tray_nm: string
   t_maker: string
+  rendo_tray_cd: string
 }
 type PrinserTrayDetail = {
   t_sort: number
@@ -30,6 +31,7 @@ type PrinserTrayDetail = {
   tray_cd: string
   tray_nm: string
   t_logo: string
+  rendo_tray_cd: string
 }
 
 const EVAL_OPTIONS = ["推奨", "通常", "非表示"]
@@ -115,7 +117,7 @@ export default function TraysPage() {
   }
 
   const selectSuggestion = (s: PrinserTraySuggestion) => {
-    setRendoTrayCd(s.tray_cd)
+    setRendoTrayCd(s.rendo_tray_cd)
     setShowSuggestions(false)
   }
 
@@ -127,7 +129,7 @@ export default function TraysPage() {
       .then(res => res.json())
       .then(data => {
         if (!active) return
-        const exact = (data.records ?? []).find((r: PrinserTrayDetail) => r.tray_cd === rendoTrayCd)
+        const exact = (data.records ?? []).find((r: PrinserTrayDetail) => r.rendo_tray_cd === rendoTrayCd)
         setPrinserDetail(exact ?? null)
       })
       .finally(() => { if (active) setPrinserDetailLoading(false) })
@@ -332,8 +334,8 @@ export default function TraysPage() {
                         className="block w-full px-3 py-2 text-left text-xs hover:bg-amber-50"
                         type="button"
                       >
-                        <span className="font-medium text-gray-800">{s.tray_cd}</span>
-                        <span className="ml-2 text-gray-400">{s.tray_nm} / {s.t_maker}</span>
+                        <span className="font-medium text-gray-800">{s.rendo_tray_cd}</span>
+                        <span className="ml-2 text-gray-400">{s.tray_nm} / {s.t_maker}（tray_cd: {s.tray_cd}）</span>
                       </button>
                     ))}
                   </div>
