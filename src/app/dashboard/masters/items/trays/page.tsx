@@ -23,6 +23,14 @@ type PrinserTraySuggestion = {
   tray_nm: string
   t_maker: string
 }
+type PrinserTrayDetail = {
+  t_sort: number
+  t_shop: string
+  t_maker: string
+  tray_cd: string
+  tray_nm: string
+  t_logo: string
+}
 
 const EVAL_OPTIONS = ["推奨", "通常", "非表示"]
 const EVAL_BADGE: Record<string, string> = {
@@ -48,6 +56,8 @@ export default function TraysPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [searching, setSearching] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [prinserDetail, setPrinserDetail] = useState<PrinserTrayDetail | null>(null)
+  const [prinserDetailLoading, setPrinserDetailLoading] = useState(false)
 
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
@@ -108,6 +118,21 @@ export default function TraysPage() {
     setRendoTrayCd(s.tray_cd)
     setShowSuggestions(false)
   }
+
+  useEffect(() => {
+    if (!rendoTrayCd.trim()) { setPrinserDetail(null); return }
+    let active = true
+    setPrinserDetailLoading(true)
+    fetch(`/api/prinser/m-tray?keyword=${encodeURIComponent(rendoTrayCd)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!active) return
+        const exact = (data.records ?? []).find((r: PrinserTrayDetail) => r.tray_cd === rendoTrayCd)
+        setPrinserDetail(exact ?? null)
+      })
+      .finally(() => { if (active) setPrinserDetailLoading(false) })
+    return () => { active = false }
+  }, [rendoTrayCd])
 
   const handleSave = async () => {
     if (!name.trim()) { setError("名前は必須です"); return }
@@ -314,6 +339,27 @@ export default function TraysPage() {
                   </div>
                 )}
                 {searching && <p className="mt-1 text-xs text-gray-400">検索中...</p>}
+
+                {prinserDetailLoading && (
+                  <p className="mt-2 text-xs text-gray-400">PRINSER情報を取得中...</p>
+                )}
+                {!prinserDetailLoading && rendoTrayCd.trim() && (
+                  prinserDetail ? (
+                    <div className="mt-2 rounded-md border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+                      <p className="mb-1.5 font-medium text-gray-500">PRINSER m_tray情報（参照のみ）</p>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                        <span>並び順(t_sort): {prinserDetail.t_sort}</span>
+                        <span>店舗(t_shop): {prinserDetail.t_shop || "—"}</span>
+                        <span>メーカー(t_maker): {prinserDetail.t_maker || "—"}</span>
+                        <span>トレイコード(tray_cd): {prinserDetail.tray_cd}</span>
+                        <span className="col-span-2">名称(tray_nm): {prinserDetail.tray_nm}</span>
+                        <span className="col-span-2">ロゴ(t_logo): {prinserDetail.t_logo || "—"}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-amber-500">一致するPRINSERデータが見つかりません</p>
+                  )
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

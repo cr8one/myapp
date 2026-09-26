@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       { tray_nm2: { contains: keyword } },
       { tray_ryaku_nm: { contains: keyword } },
       { t_maker: { contains: keyword } },
+      { rendo_tray_cd: { contains: keyword } },
     ]} : {}),
     ...(delFlg !== null && delFlg !== "" ? { del_flg: parseInt(delFlg) } : {}),
   }
