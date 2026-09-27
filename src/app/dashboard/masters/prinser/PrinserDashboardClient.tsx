@@ -1,110 +1,106 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Settings, Users, Building2, Boxes, Database } from "lucide-react"
+import { Database, Users } from "lucide-react"
 
-type Stats = {
+type PrinserCounts = {
   userCount: number
-  deptCount: number
-  itemsTableCount: number
-  prinserTableCount: number
+  tokuiCount: number
+  tokuiNonyuCount: number
+  trayCount: number
 }
 
-const cards = [
-  {
-    label: "ユーザー管理",
-    key: "userCount" as keyof Stats,
-    href: "/dashboard/users",
-    unit: "名",
-    icon: Users,
-    bg: "bg-slate-50",
-    text: "text-slate-600",
-    border: "border-slate-100",
-    hover: "hover:border-slate-300",
-  },
-  {
-    label: "所属マスタ",
-    key: "deptCount" as keyof Stats,
-    href: "/dashboard/masters/departments",
-    unit: "件",
-    icon: Building2,
-    bg: "bg-slate-50",
-    text: "text-slate-600",
-    border: "border-slate-100",
-    hover: "hover:border-slate-300",
-  },
-  {
-    label: "品目マスタ",
-    key: "itemsTableCount" as keyof Stats,
-    href: "/dashboard/masters/items",
-    unit: "テーブル",
-    icon: Boxes,
-    bg: "bg-amber-50",
-    text: "text-amber-600",
-    border: "border-amber-100",
-    hover: "hover:border-amber-300",
-  },
-  {
-    label: "PRINSERマスタ",
-    key: "prinserTableCount" as keyof Stats,
-    href: "/dashboard/masters/prinser",
-    unit: "テーブル",
-    icon: Database,
-    bg: "bg-sky-50",
-    text: "text-sky-600",
-    border: "border-sky-100",
-    hover: "hover:border-sky-300",
-  },
-]
-
-export default function MastersDashboardClient({ stats }: { stats: Stats }) {
+export default function PrinserDashboardClient({ counts }: { counts: PrinserCounts }) {
   const [phase, setPhase] = useState<0 | 1 | 2>(0)
   const [visibleChars, setVisibleChars] = useState(0)
-  const [spinAnim, setSpinAnim] = useState(false)
-  const fullText = "Master Data Management"
-
+  const [rotateAnim, setRotateAnim] = useState(false)
+  const fullText = "Master Data from Core System"
   useEffect(() => {
-    const t1 = setTimeout(() => setSpinAnim(true), 200)
-    const t2 = setTimeout(() => setSpinAnim(false), 800)
+    const t1 = setTimeout(() => setRotateAnim(true), 200)
+    const t2 = setTimeout(() => setRotateAnim(false), 900)
     const t3 = setTimeout(() => setPhase(1), 300)
     const t4 = setTimeout(() => setPhase(2), 900)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [])
-
   useEffect(() => {
     if (phase !== 2) return
     if (visibleChars < fullText.length) {
-      const t = setTimeout(() => setVisibleChars((v) => v + 1), 25)
+      const t = setTimeout(() => setVisibleChars(v => v + 1), 25)
       return () => clearTimeout(t)
     }
   }, [phase, visibleChars])
-
   const logoSize = phase >= 2 ? 52 : 72
+
+  const cards = [
+    {
+      label: "m_user",
+      desc: "ユーザーマスタ",
+      href: "/dashboard/masters/prinser/m-user",
+      count: counts.userCount,
+      icon: Users,
+      bg: "bg-sky-50",
+      text: "text-sky-600",
+      border: "border-sky-100",
+      hover: "hover:border-sky-300",
+    },
+    {
+      label: "m_tokui",
+      desc: "得意先マスタ",
+      href: "/dashboard/masters/prinser/m-tokui",
+      count: counts.tokuiCount,
+      icon: Database,
+      bg: "bg-blue-50",
+      text: "text-blue-600",
+      border: "border-blue-100",
+      hover: "hover:border-blue-300",
+    },
+    {
+      label: "m_tokui_nonyu",
+      desc: "納品先マスタ（得意先別）",
+      href: "/dashboard/masters/prinser/m-tokui-nonyu",
+      count: counts.tokuiNonyuCount,
+      icon: Database,
+      bg: "bg-indigo-50",
+      text: "text-indigo-600",
+      border: "border-indigo-100",
+      hover: "hover:border-indigo-300",
+    },
+    {
+      label: "m_tray",
+      desc: "トレイマスタ",
+      href: "/dashboard/masters/prinser/m-tray",
+      count: counts.trayCount,
+      icon: Database,
+      bg: "bg-teal-50",
+      text: "text-teal-600",
+      border: "border-teal-100",
+      hover: "hover:border-teal-300",
+    },
+  ]
 
   return (
     <div className="p-8">
       <style>{`
-        @keyframes gearspin {
-          0%   { transform: rotate(0deg); }
-          100% { transform: rotate(60deg); }
+        @keyframes prinser-spin {
+          0%   { transform: rotate(0deg) scale(1); }
+          50%  { transform: rotate(180deg) scale(1.1); }
+          100% { transform: rotate(360deg) scale(1); }
         }
-        .spin-anim { animation: gearspin 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .prinser-anim { animation: prinser-spin 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
       `}</style>
-
       <div className="mb-10 flex flex-col gap-2">
         <div className="flex items-center gap-4">
-          {/* ロゴ */}
           <div
             className="relative flex items-center justify-center rounded-2xl shadow-lg flex-shrink-0 overflow-hidden"
             style={{
               width: logoSize,
               height: logoSize,
-              background: "linear-gradient(135deg, #374151 0%, #6b7280 100%)",
+              background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
               transition: "width 0.5s ease, height 0.5s ease",
             }}
           >
-            <div className={spinAnim ? "spin-anim" : ""}>
-              <Settings
+            <div className={rotateAnim ? "prinser-anim" : ""}>
+              <Database
                 style={{
                   width: phase >= 2 ? 28 : 38,
                   height: phase >= 2 ? 28 : 38,
@@ -114,14 +110,12 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
               />
             </div>
             {phase < 2 && (
-              <span className="absolute inset-0 rounded-2xl ring-4 ring-gray-300 ring-opacity-50 animate-ping" />
+              <span className="absolute inset-0 rounded-2xl ring-4 ring-sky-300 ring-opacity-50 animate-ping" />
             )}
           </div>
-
-          {/* テキスト */}
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-2xl font-black tracking-tight text-gray-900">マスタ管理</span>
+              <span className="text-2xl font-black tracking-tight text-gray-900">PRINSERマスタ</span>
               {phase >= 2 && (
                 <span className="text-xs font-semibold text-gray-400 tracking-widest uppercase">
                   {fullText.slice(0, visibleChars)}
@@ -138,13 +132,11 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
                 transform: visibleChars === fullText.length ? "translateY(0)" : "translateY(4px)",
               }}
             >
-              システム設定・ユーザー管理の概要
+              基幹システム（PRINSER）のマスタデータ管理
             </p>
           </div>
         </div>
       </div>
-
-      {/* 統計カード */}
       <div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500"
         style={{
@@ -152,11 +144,11 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
           transform: visibleChars === fullText.length ? "translateY(0)" : "translateY(10px)",
         }}
       >
-        {cards.map((card) => {
+        {cards.map(card => {
           const Icon = card.icon
           return (
             <Link
-              key={card.key}
+              key={card.href}
               href={card.href}
               className={`group rounded-2xl border ${card.border} ${card.hover} bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5`}
             >
@@ -168,11 +160,9 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
                   一覧を見る →
                 </span>
               </div>
-              <p className="text-sm text-gray-500">{card.label}</p>
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {stats[card.key].toLocaleString()}
-                <span className="ml-1 text-base font-normal text-gray-400">{card.unit}</span>
-              </p>
+              <p className="text-sm text-gray-500">{card.desc}</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{card.label}</p>
+              <p className="mt-1 text-sm text-gray-400">{card.count.toLocaleString()}件</p>
             </Link>
           )
         })}
