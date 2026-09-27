@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { Plus, Pencil, Trash2, X, Upload, Image as ImageIcon, Search } from "lucide-react"
+import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 
 type TrayImage = {
   id: string
@@ -34,6 +35,8 @@ type PrinserTrayDetail = {
   rendo_tray_cd: string
 }
 
+const TYPE_OPTIONS = ["CD", "DVD", "BD", "その他"].map(v => ({ id: v, label: v }))
+const MAKER_OPTIONS = ["AGI（信越ポリマー）", "Finest社（旭日産業）", "㈱トキワ", "不二プラスチック", "天馬㈱"].map(v => ({ id: v, label: v }))
 const EVAL_OPTIONS = ["推奨", "通常", "非表示"]
 const EVAL_BADGE: Record<string, string> = {
   "推奨": "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -305,11 +308,11 @@ export default function TraysPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">タイプ</label>
-                  <input value={type} onChange={e => setType(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm" />
+                  <AutocompleteInput value={type} onChange={setType} options={TYPE_OPTIONS} className="h-[38px] py-2" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">メーカー</label>
-                  <input value={maker} onChange={e => setMaker(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm" />
+                  <AutocompleteInput value={maker} onChange={setMaker} options={MAKER_OPTIONS} className="h-[38px] py-2" />
                 </div>
               </div>
 
