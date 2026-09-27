@@ -703,6 +703,16 @@ model MTrayImage {
   @@map("m_tray_images")
 }
 
+model TrayInventory {
+  id              String   @id @default(cuid())
+  inventory_month String
+  rendo_tray_cd   String
+  remaining_qty   Int
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  @@map("t_tray_inventories")
+}
+
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
   vendorName    String?   @map("vendor_name")

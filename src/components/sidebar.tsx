@@ -97,6 +97,7 @@ const baseMenuItems = [
   ]},
   { label: "トレイ管理", href: "/dashboard/tray", icon: "tray", children: [
     { label: "トレイ一覧", href: "/dashboard/tray" },
+    { label: "棚卸しデータ", href: "/dashboard/tray/inventory" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
