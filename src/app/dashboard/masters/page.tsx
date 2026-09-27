@@ -7,17 +7,23 @@ export default async function MastersDashboardPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-const [userCount, adminCount, deptCount] = await Promise.all([
+const [userCount, deptCount, trayCount, prinserUserCount, prinserTokuiCount, prinserTokuiNonyuCount, prinserTrayCount] = await Promise.all([
     prisma.user.count(),
-    prisma.user.count({ where: { role: "ADMIN" } }),
     prisma.mDepartment.count(),
+    prisma.mTray.count(),
+    prisma.prinserMUser.count(),
+    prisma.prinserMTokui.count(),
+    prisma.prinserMTokuiNonyu.count(),
+    prisma.prinserMTray.count(),
   ])
+  const prinserCount = prinserUserCount + prinserTokuiCount + prinserTokuiNonyuCount + prinserTrayCount
   return (
     <MastersDashboardClient
       stats={{
         userCount,
-        adminCount,
         deptCount,
+        trayCount,
+        prinserCount,
       }}
     />
   )

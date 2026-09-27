@@ -1,12 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Settings, Users, ShieldCheck, Building2 } from "lucide-react"
+import { Settings, Users, Building2, Boxes, Database } from "lucide-react"
 
 type Stats = {
   userCount: number
-  adminCount: number
   deptCount: number
+  trayCount: number
+  prinserCount: number
 }
 
 const cards = [
@@ -14,6 +15,7 @@ const cards = [
     label: "ユーザー管理",
     key: "userCount" as keyof Stats,
     href: "/dashboard/users",
+    unit: "名",
     icon: Users,
     bg: "bg-slate-50",
     text: "text-slate-600",
@@ -21,24 +23,37 @@ const cards = [
     hover: "hover:border-slate-300",
   },
   {
-    label: "管理者ユーザー",
-    key: "adminCount" as keyof Stats,
-    href: "/dashboard/users",
-    icon: ShieldCheck,
-    bg: "bg-gray-50",
-    text: "text-gray-600",
-    border: "border-gray-100",
-    hover: "hover:border-gray-300",
-  },
-  {
     label: "所属マスタ",
     key: "deptCount" as keyof Stats,
     href: "/dashboard/masters/departments",
+    unit: "件",
     icon: Building2,
     bg: "bg-slate-50",
     text: "text-slate-600",
     border: "border-slate-100",
     hover: "hover:border-slate-300",
+  },
+  {
+    label: "品目マスタ",
+    key: "trayCount" as keyof Stats,
+    href: "/dashboard/masters/items",
+    unit: "件",
+    icon: Boxes,
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    border: "border-amber-100",
+    hover: "hover:border-amber-300",
+  },
+  {
+    label: "PRINSERマスタ",
+    key: "prinserCount" as keyof Stats,
+    href: "/dashboard/masters/prinser",
+    unit: "件",
+    icon: Database,
+    bg: "bg-sky-50",
+    text: "text-sky-600",
+    border: "border-sky-100",
+    hover: "hover:border-sky-300",
   },
 ]
 
@@ -156,7 +171,7 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
               <p className="text-sm text-gray-500">{card.label}</p>
               <p className="mt-1 text-3xl font-bold text-gray-900">
                 {stats[card.key].toLocaleString()}
-                <span className="ml-1 text-base font-normal text-gray-400">名</span>
+                <span className="ml-1 text-base font-normal text-gray-400">{card.unit}</span>
               </p>
             </Link>
           )

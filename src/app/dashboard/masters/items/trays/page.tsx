@@ -235,7 +235,7 @@ export default function TraysPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">トレイマスタ</h1>
-          <p className="text-sm text-gray-400 mt-1">自社独自のトレイ品目マスタ（PRINSER連動あり）</p>
+          <p className="text-sm text-gray-400 mt-1">Japan Sleeve System独自のトレイマスタ</p>
         </div>
         <button
           onClick={openNew}

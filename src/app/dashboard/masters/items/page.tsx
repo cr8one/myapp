@@ -88,7 +88,7 @@ export default function ItemsDashboardPage() {
                 transform: visibleChars === fullText.length ? "translateY(0)" : "translateY(4px)",
               }}
             >
-              自社独自の品目マスタデータ管理
+              Japan Sleeve System独自の品目マスタ
             </p>
           </div>
         </div>
