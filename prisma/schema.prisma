@@ -713,6 +713,24 @@ model TrayInventory {
   @@map("t_tray_inventories")
 }
 
+model TrayUsagePlan {
+  id                  String   @id @default(cuid())
+  submission_month    String
+  usage_month         String
+  rendo_tray_cd       String
+  usage_dept          String?
+  usage_person_id     String?
+  usage_person_name   String?
+  planned_qty         Int
+  item_name           String?
+  lock_flg            Boolean  @default(false)
+  approved_flg        Boolean  @default(false)
+  irregular_order_flg Boolean  @default(false)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  @@map("t_tray_usage_plans")
+}
+
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
   vendorName    String?   @map("vendor_name")

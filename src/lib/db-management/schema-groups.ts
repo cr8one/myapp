@@ -151,6 +151,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
     label: "トレイ管理",
     tables: [
       { tableName: "t_tray_inventories", label: "トレイ棚卸データ" },
+      { tableName: "t_tray_usage_plans", label: "トレイ使用予定情報" },
     ],
   },
   {
