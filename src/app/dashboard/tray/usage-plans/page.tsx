@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-import { Plus, Pencil, Trash2, X, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Search, Download, Upload, FileDown } from "lucide-react"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 
 type UsagePlan = {
@@ -56,6 +56,9 @@ export default function TrayUsagePlansPage() {
   const [suggestions, setSuggestions] = useState<PrinserTraySuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const importFileRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState("")
 
   const loadPlans = async () => {
     setLoading(true)
@@ -148,6 +151,66 @@ export default function TrayUsagePlansPage() {
     await loadPlans()
   }
 
+  const handleTemplateDownload = () => {
+    window.open("/api/tray/usage-plans/template", "_blank")
+  }
+
+  const handleExport = () => {
+    const params = new URLSearchParams()
+    if (filterSubmissionMonth) params.set("submission_month", filterSubmissionMonth)
+    if (filterUsageMonth) params.set("usage_month", filterUsageMonth)
+    window.open(`/api/tray/usage-plans/export?${params.toString()}`, "_blank")
+  }
+
+  const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportMessage("")
+    setImporting(true)
+    try {
+      const presignRes = await fetch("/api/tray/usage-plans/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name }),
+      })
+      if (!presignRes.ok) { setImportMessage("アップロードURLの取得に失敗しました"); return }
+      const { url, key } = await presignRes.json()
+
+      const putRes = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+      })
+      if (!putRes.ok) { setImportMessage("ファイルのアップロードに失敗しました"); return }
+
+      let offset = 0
+      let created = 0
+      let updated = 0
+      let skipped = 0
+      while (true) {
+        const res = await fetch("/api/tray/usage-plans/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, offset }),
+        })
+        if (!res.ok) { setImportMessage("インポートに失敗しました"); return }
+        const data = await res.json()
+        created += data.created
+        updated += data.updated
+        skipped += data.skipped
+        offset = data.offset
+        if (data.done) break
+      }
+      setImportMessage(`インポート完了：新規${created}件、更新${updated}件、スキップ${skipped}件`)
+      await loadPlans()
+    } catch {
+      setImportMessage("インポート中にエラーが発生しました")
+    } finally {
+      setImporting(false)
+      if (importFileRef.current) importFileRef.current.value = ""
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
@@ -155,10 +218,25 @@ export default function TrayUsagePlansPage() {
           <h1 className="text-xl font-bold text-gray-900">トレイ使用予定情報</h1>
           <p className="text-sm text-gray-400 mt-1">受注ごとのトレイ使用予定を管理</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
-          <Plus size={16} /> 新規登録
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleTemplateDownload} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <FileDown size={16} /> テンプレート
+          </button>
+          <button onClick={handleExport} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+            <Download size={16} /> エクスポート
+          </button>
+          <button onClick={() => importFileRef.current?.click()} disabled={importing} className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+            <Upload size={16} /> インポート
+          </button>
+          <input ref={importFileRef} type="file" accept=".xlsx" className="hidden" onChange={handleImportChange} />
+          <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+            <Plus size={16} /> 新規登録
+          </button>
+        </div>
       </div>
+
+      {importing && <p className="mb-4 text-sm text-amber-500">インポート中...</p>}
+      {importMessage && <p className="mb-4 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600">{importMessage}</p>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
