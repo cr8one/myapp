@@ -684,6 +684,7 @@ model MTray {
   maker               String
   rendo_tray_cd       String?      @map("rendo_tray_cd")
   purchase_evaluation String       @default("通常")
+  optimal_stock       Int?
   sort_order          Int          @default(0)
   created_at          DateTime     @default(now())
   updated_at          DateTime     @updatedAt
@@ -724,6 +725,7 @@ model TrayUsagePlan {
   planned_qty         Int
   item_name           String?
   lock_flg            Boolean  @default(false)
+  temp_lock_flg       Boolean  @default(false)
   approved_flg        Boolean  @default(false)
   irregular_order_flg Boolean  @default(false)
   created_at          DateTime @default(now())
