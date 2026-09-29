@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
       usage_person_id: personName ? (userIdByName.get(personName) ?? null) : null,
       planned_qty: toQty(row["使用予定数"]),
       lock_flg: toBool(row["ロック"]),
+      temp_lock_flg: toBool(row["仮ロック"]),
       approved_flg: toBool(row["上長承認"]),
       irregular_order_flg: toBool(row["イレギュラー発注"]),
     }

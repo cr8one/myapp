@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { name, type, maker, rendo_tray_cd, purchase_evaluation, sort_order } = await req.json()
+  const { name, type, maker, rendo_tray_cd, purchase_evaluation, optimal_stock, sort_order } = await req.json()
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 })
 
   const tray = await prisma.mTray.create({
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       maker: maker ?? "",
       rendo_tray_cd: rendo_tray_cd || null,
       purchase_evaluation: purchase_evaluation || "通常",
+      optimal_stock: optimal_stock === "" || optimal_stock === undefined ? null : Number(optimal_stock),
       sort_order: sort_order ?? 0,
     },
   })

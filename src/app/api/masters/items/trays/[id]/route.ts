@@ -6,7 +6,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { name, type, maker, rendo_tray_cd, purchase_evaluation, sort_order } = await req.json()
+  const { name, type, maker, rendo_tray_cd, purchase_evaluation, optimal_stock, sort_order } = await req.json()
 
   const tray = await prisma.mTray.update({
     where: { id },
@@ -16,6 +16,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       maker,
       rendo_tray_cd: rendo_tray_cd || null,
       purchase_evaluation,
+      optimal_stock: optimal_stock === "" || optimal_stock === undefined ? null : Number(optimal_stock),
       sort_order,
     },
   })

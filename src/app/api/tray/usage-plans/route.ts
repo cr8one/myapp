@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     submission_month, usage_month, rendo_tray_cd,
     usage_dept, usage_person_id, usage_person_name,
     planned_qty, item_name,
-    lock_flg, approved_flg, irregular_order_flg,
+    lock_flg, temp_lock_flg, approved_flg, irregular_order_flg,
   } = body
 
   if (!submission_month || !usage_month || !rendo_tray_cd) {
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       planned_qty: planned_qty ?? 0,
       item_name: item_name || null,
       lock_flg: !!lock_flg,
+      temp_lock_flg: !!temp_lock_flg,
       approved_flg: !!approved_flg,
       irregular_order_flg: !!irregular_order_flg,
     },

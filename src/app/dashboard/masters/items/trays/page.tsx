@@ -16,6 +16,7 @@ type Tray = {
   maker: string
   rendo_tray_cd: string | null
   purchase_evaluation: string
+  optimal_stock: number | null
   sort_order: number
   images: TrayImage[]
 }
@@ -55,6 +56,7 @@ export default function TraysPage() {
   const [maker, setMaker] = useState("")
   const [rendoTrayCd, setRendoTrayCd] = useState("")
   const [purchaseEvaluation, setPurchaseEvaluation] = useState("通常")
+  const [optimalStock, setOptimalStock] = useState<string>("")
   const [sortOrder, setSortOrder] = useState(0)
 
   const [suggestions, setSuggestions] = useState<PrinserTraySuggestion[]>([])
@@ -80,7 +82,7 @@ export default function TraysPage() {
 
   const resetForm = () => {
     setName(""); setType(""); setMaker(""); setRendoTrayCd("")
-    setPurchaseEvaluation("通常"); setSortOrder(0)
+    setPurchaseEvaluation("通常"); setOptimalStock(""); setSortOrder(0)
     setSuggestions([]); setShowSuggestions(false)
     setError("")
   }
@@ -96,6 +98,7 @@ export default function TraysPage() {
     setName(tray.name); setType(tray.type); setMaker(tray.maker)
     setRendoTrayCd(tray.rendo_tray_cd ?? "")
     setPurchaseEvaluation(tray.purchase_evaluation)
+    setOptimalStock(tray.optimal_stock === null ? "" : String(tray.optimal_stock))
     setSortOrder(tray.sort_order)
     setSuggestions([]); setShowSuggestions(false)
     setError("")
@@ -146,6 +149,7 @@ export default function TraysPage() {
       name, type, maker,
       rendo_tray_cd: rendoTrayCd || null,
       purchase_evaluation: purchaseEvaluation,
+      optimal_stock: optimalStock,
       sort_order: sortOrder,
     }
     if (editTray) {
@@ -275,6 +279,9 @@ export default function TraysPage() {
               {tray.rendo_tray_cd && (
                 <p className="mt-1 text-xs text-gray-400">連動: {tray.rendo_tray_cd}</p>
               )}
+              {tray.optimal_stock !== null && (
+                <p className="mt-0.5 text-xs text-gray-400">適正在庫: {tray.optimal_stock.toLocaleString()}</p>
+              )}
               <div className="mt-3 flex gap-2">
                 <button onClick={() => openEdit(tray)} className="flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50">
                   <Pencil size={12} /> 編集
@@ -367,12 +374,16 @@ export default function TraysPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">購買評価</label>
                   <select value={purchaseEvaluation} onChange={e => setPurchaseEvaluation(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
                     {EVAL_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">適正在庫</label>
+                  <input type="number" value={optimalStock} onChange={e => setOptimalStock(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">表示順</label>

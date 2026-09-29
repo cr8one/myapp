@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
         r.usage_person_name,
         r.planned_qty,
         r.lock_flg ? 1 : 0,
+        r.temp_lock_flg ? 1 : 0,
         r.approved_flg ? 1 : 0,
         r.irregular_order_flg ? 1 : 0,
       ]),

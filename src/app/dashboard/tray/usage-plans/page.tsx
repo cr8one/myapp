@@ -14,6 +14,7 @@ type UsagePlan = {
   planned_qty: number
   item_name: string | null
   lock_flg: boolean
+  temp_lock_flg: boolean
   approved_flg: boolean
   irregular_order_flg: boolean
 }
@@ -49,6 +50,7 @@ export default function TrayUsagePlansPage() {
   const [plannedQty, setPlannedQty] = useState(0)
   const [itemName, setItemName] = useState("")
   const [lockFlg, setLockFlg] = useState(false)
+  const [tempLockFlg, setTempLockFlg] = useState(false)
   const [approvedFlg, setApprovedFlg] = useState(false)
   const [irregularFlg, setIrregularFlg] = useState(false)
   const [error, setError] = useState("")
@@ -100,7 +102,7 @@ export default function TrayUsagePlansPage() {
     setSubmissionMonth(currentMonth()); setUsageMonth(""); setRendoTrayCd("")
     setUsageDept(""); setUsagePersonId(""); setUsagePersonName("")
     setPlannedQty(0); setItemName("")
-    setLockFlg(false); setApprovedFlg(false); setIrregularFlg(false)
+    setLockFlg(false); setTempLockFlg(false); setApprovedFlg(false); setIrregularFlg(false)
     setSuggestions([]); setShowSuggestions(false); setError("")
   }
 
@@ -110,7 +112,7 @@ export default function TrayUsagePlansPage() {
     setSubmissionMonth(p.submission_month); setUsageMonth(p.usage_month); setRendoTrayCd(p.rendo_tray_cd)
     setUsageDept(p.usage_dept ?? ""); setUsagePersonId(p.usage_person_id ?? ""); setUsagePersonName(p.usage_person_name ?? "")
     setPlannedQty(p.planned_qty); setItemName(p.item_name ?? "")
-    setLockFlg(p.lock_flg); setApprovedFlg(p.approved_flg); setIrregularFlg(p.irregular_order_flg)
+    setLockFlg(p.lock_flg); setTempLockFlg(p.temp_lock_flg); setApprovedFlg(p.approved_flg); setIrregularFlg(p.irregular_order_flg)
     setSuggestions([]); setShowSuggestions(false); setError("")
     setShowForm(true)
   }
@@ -134,6 +136,7 @@ export default function TrayUsagePlansPage() {
       planned_qty: plannedQty,
       item_name: itemName || null,
       lock_flg: lockFlg,
+      temp_lock_flg: tempLockFlg,
       approved_flg: approvedFlg,
       irregular_order_flg: irregularFlg,
     }
@@ -282,6 +285,7 @@ export default function TrayUsagePlansPage() {
                   <td className="px-3 py-2">
                     <div className="flex gap-1">
                       {p.lock_flg && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">ロック</span>}
+                      {p.temp_lock_flg && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">仮ロック</span>}
                       {p.approved_flg && <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-600">承認済</span>}
                       {p.irregular_order_flg && <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-500">イレギュラー</span>}
                     </div>
@@ -366,6 +370,9 @@ export default function TrayUsagePlansPage() {
               <div className="flex gap-4 pt-1">
                 <label className="flex items-center gap-1.5 text-sm text-gray-600">
                   <input type="checkbox" checked={lockFlg} onChange={e => setLockFlg(e.target.checked)} /> ロック
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <input type="checkbox" checked={tempLockFlg} onChange={e => setTempLockFlg(e.target.checked)} /> 仮ロック
                 </label>
                 <label className="flex items-center gap-1.5 text-sm text-gray-600">
                   <input type="checkbox" checked={approvedFlg} onChange={e => setApprovedFlg(e.target.checked)} /> 上長承認

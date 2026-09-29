@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     submission_month, usage_month, rendo_tray_cd,
     usage_dept, usage_person_id, usage_person_name,
     planned_qty, item_name,
-    lock_flg, approved_flg, irregular_order_flg,
+    lock_flg, temp_lock_flg, approved_flg, irregular_order_flg,
   } = body
 
   const record = await prisma.trayUsagePlan.update({
@@ -27,6 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       planned_qty: planned_qty ?? 0,
       item_name: item_name || null,
       lock_flg: !!lock_flg,
+      temp_lock_flg: !!temp_lock_flg,
       approved_flg: !!approved_flg,
       irregular_order_flg: !!irregular_order_flg,
     },
