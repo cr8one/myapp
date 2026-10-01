@@ -131,5 +131,8 @@ export async function POST(req: NextRequest) {
   const done = newOffset >= total
   if (done) rowCache = null
 
+  const mem = process.memoryUsage()
+  console.log(`[cad-import] offset=${newOffset}/${total} rssMB=${Math.round(mem.rss / 1048576)} heapUsedMB=${Math.round(mem.heapUsed / 1048576)}`)
+
   return NextResponse.json({ ok: true, count: chunk.length, total, offset: newOffset, done })
 }
