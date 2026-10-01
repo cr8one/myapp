@@ -13,6 +13,10 @@ const s3 = new S3Client({
 
 const CHUNK = 100
 
+// 100件ごとの呼び出しでExcel全体を再解析しないよう、解析済みの行を1ファイル分だけ保持する
+const CACHE_TTL_MS = 30 * 60 * 1000
+let rowCache: { key: string; rows: Record<string, unknown>[]; at: number } | null = null
+
 function str(v: unknown): string {
   if (v === null || v === undefined) return ""
   return String(v).trim()
@@ -30,15 +34,20 @@ export async function POST(req: NextRequest) {
 
   const { key, offset } = await req.json()
 
-  // S3からExcelファイル取得
-  const obj = await s3.send(new GetObjectCommand({
-    Bucket: "japan-sleeve-system-files-936533876784",
-    Key: key,
-  }))
-  const buf = Buffer.from(await obj.Body!.transformToByteArray())
-
-  const sheets = readXlsxWorkbook(buf)
-  const dataRows = sheets["CadRequests"] ?? []
+  let dataRows: Record<string, unknown>[]
+  if (offset > 0 && rowCache && rowCache.key === key && Date.now() - rowCache.at < CACHE_TTL_MS) {
+    dataRows = rowCache.rows
+  } else {
+    // S3からExcelファイル取得（CadRequestsシートのみ解析）
+    const obj = await s3.send(new GetObjectCommand({
+      Bucket: "japan-sleeve-system-files-936533876784",
+      Key: key,
+    }))
+    const buf = Buffer.from(await obj.Body!.transformToByteArray())
+    const sheets = readXlsxWorkbook(buf, ["CadRequests"])
+    dataRows = sheets["CadRequests"] ?? []
+    rowCache = { key, rows: dataRows, at: Date.now() }
+  }
   const total = dataRows.length
   const chunk = dataRows.slice(offset, offset + CHUNK)
 
@@ -120,6 +129,7 @@ export async function POST(req: NextRequest) {
 
   const newOffset = offset + chunk.length
   const done = newOffset >= total
+  if (done) rowCache = null
 
   return NextResponse.json({ ok: true, count: chunk.length, total, offset: newOffset, done })
 }
