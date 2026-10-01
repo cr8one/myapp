@@ -94,6 +94,9 @@ type CadRequest = {
   pocket: string | null
   remarks: string | null
   requester: { id: string; name: string | null; department: string | null } | null
+  source_type: string | null
+  source_request: { id: string; uid: string; status: string } | null
+  derived_requests: { id: string; uid: string; status: string; source_type: string | null; created_at: string }[]
   files: { id: string; file_key: string; file_name: string; file_type: string }[]
 }
 
@@ -119,6 +122,12 @@ export default function CadRequestDetailPage() {
   const [historyLoading, setHistoryLoading] = useState(true)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
+  const [dupType, setDupType] = useState<"複製" | "改訂" | "派生">("複製")
+  const [showReflectModal, setShowReflectModal] = useState(false)
+  const [reflecting, setReflecting] = useState(false)
+  const [reflectFields, setReflectFields] = useState<Record<string, boolean>>({
+    genre: true, hinmoku: true, hinban: true, title: true,
+  })
   const [dupFields, setDupFields] = useState<Record<string, boolean>>({
     department: true, requester: true, client: true, title: true, genre: true,
     hinmoku: true, hinban: true, content: true, dieline_no: true, develop: true,
@@ -239,14 +248,34 @@ export default function CadRequestDetailPage() {
     const res = await fetch(`/api/cad/requests/${id}/duplicate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields: dupFields }),
+      body: JSON.stringify({ fields: dupFields, type: dupType }),
     })
     if (res.ok) {
       const data = await res.json()
       router.push(`/dashboard/cad/requests/${data.id}`)
     } else {
-      alert("複製に失敗しました")
+      alert(`${dupType}に失敗しました`)
       setDuplicating(false)
+    }
+  }
+
+  const handleReflectConfirm = async () => {
+    const fields = Object.keys(reflectFields).filter(k => reflectFields[k])
+    if (fields.length === 0) { alert("反映する項目を選択してください"); return }
+    setReflecting(true)
+    const res = await fetch(`/api/cad/requests/${id}/reflect-to-source`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setReflecting(false)
+    if (res.ok) {
+      setShowReflectModal(false)
+      fetchHistory()
+      alert(`派生元に${data.count}項目を反映しました`)
+    } else {
+      alert(data.error ?? "反映に失敗しました")
     }
   }
 
@@ -339,7 +368,12 @@ export default function CadRequestDetailPage() {
     })
     if (res.ok) {
       const data = await res.json()
-      setRecord(data)
+      setRecord(prev => ({
+        ...data,
+        source_type: data.source_type ?? prev?.source_type ?? null,
+        source_request: data.source_request ?? prev?.source_request ?? null,
+        derived_requests: data.derived_requests ?? prev?.derived_requests ?? [],
+      }))
       fetchHistory()
     } else {
       const data = await res.json().catch(() => ({}))
@@ -426,9 +460,22 @@ export default function CadRequestDetailPage() {
             </>
           )}
           {!editing && (
-            <Button variant="outline" onClick={() => setShowDuplicateModal(true)}>
-              複製
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => { setDupType("複製"); setShowDuplicateModal(true) }}>
+                複製
+              </Button>
+              <Button variant="outline" onClick={() => { setDupType("改訂"); setShowDuplicateModal(true) }}>
+                改訂
+              </Button>
+              <Button variant="outline" onClick={() => { setDupType("派生"); setShowDuplicateModal(true) }}>
+                派生
+              </Button>
+              {record.source_type === "派生" && record.source_request && (
+                <Button variant="outline" onClick={() => setShowReflectModal(true)}>
+                  派生元に反映
+                </Button>
+              )}
+            </>
           )}
           {!editing && (
             <Button
@@ -449,9 +496,54 @@ export default function CadRequestDetailPage() {
         <RequestMailModal
           record={record}
           onClose={() => setShowMailModal(false)}
-          onSent={(updated) => { setRecord(updated as typeof record); fetchHistory() }}
+          onSent={(updated) => {
+            const u = updated as NonNullable<typeof record>
+            setRecord(prev => ({
+              ...u,
+              source_type: u.source_type ?? prev?.source_type ?? null,
+              source_request: u.source_request ?? prev?.source_request ?? null,
+              derived_requests: u.derived_requests ?? prev?.derived_requests ?? [],
+            }))
+            fetchHistory()
+          }}
         />
       )}
+
+      {(() => {
+        const derivedList = record.derived_requests ?? []
+        const revisions = derivedList.filter(d => d.source_type === "改訂")
+        const derivations = derivedList.filter(d => d.source_type === "派生")
+        const linkCls = "text-blue-600 underline hover:text-blue-800"
+        return (
+          <>
+            {revisions.length > 0 && (
+              <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                この依頼書は最新のバージョンではありません。最新の改訂版：
+                <a className={linkCls} href={`/dashboard/cad/requests/${revisions[0].id}`}>{revisions[0].uid}</a>
+                （{revisions[0].status}）
+              </div>
+            )}
+            {record.source_request && (
+              <div className="mb-3 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900">
+                {record.source_type}元：
+                <a className={linkCls} href={`/dashboard/cad/requests/${record.source_request.id}`}>{record.source_request.uid}</a>
+                （{record.source_request.status}）
+              </div>
+            )}
+            {derivations.length > 0 && (
+              <div className="mb-3 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900">
+                派生先：
+                {derivations.map((d, i) => (
+                  <span key={d.id}>
+                    {i > 0 && "、"}
+                    <a className={linkCls} href={`/dashboard/cad/requests/${d.id}`}>{d.uid}</a>（{d.status}）
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )
+      })()}
 
       <div className="bg-white border rounded-lg shadow-sm">
         {/* ヘッダー：ステータス・依頼日時 */}
@@ -748,14 +840,65 @@ export default function CadRequestDetailPage() {
         )}
       </div>
 
+      {showReflectModal && record?.source_request && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg">
+            <h2 className="text-lg font-bold">派生元に反映</h2>
+            <p className="text-sm text-gray-600 mt-3">
+              この依頼書の値を、派生元（{record.source_request.uid}）に反映します。値が異なる項目だけが更新されます。
+              {record.source_request.status === "完了" && "（派生元は完了済みですが、この4項目は反映できます）"}
+            </p>
+            <div className="space-y-1.5 mt-3">
+              {[
+                { key: "genre", label: "ジャンル" },
+                { key: "hinmoku", label: "品目名" },
+                { key: "hinban", label: "品番" },
+                { key: "title", label: "タイトル" },
+              ].map(opt => (
+                <label key={opt.key} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={reflectFields[opt.key]}
+                    onChange={e => setReflectFields(prev => ({ ...prev, [opt.key]: e.target.checked }))}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => setShowReflectModal(false)} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+                キャンセル
+              </button>
+              <button
+                onClick={handleReflectConfirm}
+                disabled={reflecting}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {reflecting ? "反映中..." : "反映する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDuplicateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg max-h-[85vh] overflow-y-auto">
-            <h2 className="text-lg font-bold">依頼書を複製</h2>
+            <h2 className="text-lg font-bold">依頼書を{dupType}</h2>
             <p className="text-sm text-amber-800 mt-3 bg-amber-50 border border-amber-200 rounded px-3 py-2">
               ご注意：希望納期日・希望納期時刻は複製されません。新しい依頼書で改めて設定してください。
             </p>
-            <p className="text-sm text-gray-600 mt-3 mb-2">複製する項目を選択してください：</p>
+            {dupType === "改訂" && (
+              <p className="text-sm text-gray-700 mt-3 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                この依頼書を元にした改訂版を作成します。依頼内容が「有型 白ダミー」「新規形 白ダミー」の場合は、「（修正）」付きになります。
+              </p>
+            )}
+            {dupType === "派生" && (
+              <p className="text-sm text-gray-700 mt-3 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                この依頼書を元にした派生版を作成します。派生元と派生先は、詳細画面のリンクで行き来できます。
+              </p>
+            )}
+            <p className="text-sm text-gray-600 mt-3 mb-2">{dupType}する項目を選択してください：</p>
             <div className="space-y-1.5">
               {DUPLICATE_FIELD_OPTIONS.map(opt => (
                 <label key={opt.key} className="flex items-center gap-2 text-sm text-gray-700">
@@ -780,7 +923,7 @@ export default function CadRequestDetailPage() {
                 disabled={duplicating}
                 className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               >
-                {duplicating ? "複製中..." : "複製する"}
+                {duplicating ? `${dupType}中...` : `${dupType}する`}
               </button>
             </div>
           </div>

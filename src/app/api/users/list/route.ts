@@ -14,8 +14,8 @@ export async function GET() {
       email: true,
       position: true,
       furiganaLastName: true,
-      departments: { select: { department: { select: { name: true } } } },
-      groups: { select: { group: { select: { name: true, department: { select: { name: true } } } } } },
+      departments: { select: { is_primary: true, department: { select: { name: true } } } },
+      groups: { select: { is_primary: true, group: { select: { name: true, department: { select: { name: true } } } } } },
     },
   })
   const userMap = new Map(users.map(u => [u.id, u]))
@@ -23,6 +23,15 @@ export async function GET() {
   const result = sortedUsers.map(u => {
     const deptNames = u.departments.map(d => d.department.name)
     const groupLabels = u.groups.map(g => `${g.group.department.name} ${g.group.name}`)
+    const mainDept = u.departments.find(d => d.is_primary)
+    const mainGroup = u.groups.find(g => g.is_primary)
+    const primaryLabel = mainDept && mainGroup
+      ? `${mainDept.department.name} ${mainGroup.group.name}`
+      : mainDept
+        ? mainDept.department.name
+        : mainGroup
+          ? `${mainGroup.group.department.name} ${mainGroup.group.name}`
+          : ""
     return {
       id: u.id,
       name: u.name,
@@ -30,6 +39,7 @@ export async function GET() {
       position: u.position,
       furiganaLastName: u.furiganaLastName,
       departmentLabels: Array.from(new Set([...deptNames, ...groupLabels])),
+      primaryLabel,
     }
   })
   return NextResponse.json(result)

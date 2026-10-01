@@ -8,7 +8,7 @@ import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { DesiredTimeInput } from "@/components/desired-time-input"
 import { DielineNoSearchInput } from "@/components/cad/DielineNoSearchInput"
 
-type User = { id: string; name: string | null; position: string | null; departmentLabels: string[] }
+type User = { id: string; name: string | null; position: string | null; departmentLabels: string[]; primaryLabel: string }
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
 type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
 type CadContent = { id: string; name: string; sort_order: number }
@@ -66,6 +66,21 @@ export default function CadRequestNewPage() {
     fetch("/api/cad/masters/contents").then(r => r.json()).then(setContents)
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
   }, [])
+
+  // 新規作成時の初期値：ログイン中ユーザーの メイン部署(+メイングループ) と 依頼営業名
+  useEffect(() => {
+    if (users.length === 0) return
+    fetch("/api/auth/session").then(r => r.json()).then(s => {
+      const me = users.find(u => u.id === s?.user?.id)
+      if (!me) return
+      setForm(f => ({
+        ...f,
+        department: me.primaryLabel || f.department,
+        requester_id: me.id,
+        requester_name: me.name ?? "",
+      }))
+    })
+  }, [users])
 
   const set = (k: string, v: string | boolean | number) => setForm(f => ({ ...f, [k]: v }))
 

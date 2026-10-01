@@ -1156,6 +1156,12 @@ model CadRequest {
   requester       User?     @relation(fields: [requester_id], references: [id])
   files           CadRequestFile[]
 
+  source_request_id String?
+  source_type       String?
+  source_request    CadRequest?  @relation("CadRequestSource", fields: [source_request_id], references: [id])
+  derived_requests  CadRequest[] @relation("CadRequestSource")
+
+  @@index([source_request_id])
   @@map("t_cad_requests")
 }
 

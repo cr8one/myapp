@@ -15,7 +15,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  const { fields } = await req.json() as { fields: Record<string, boolean> }
+  const { fields, type } = await req.json() as { fields: Record<string, boolean>; type?: string }
+  const sourceType = type === "改訂" || type === "派生" ? type : null
 
   const original = await prisma.cadRequest.findUnique({ where: { id }, include: { files: true } })
   if (!original) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     desired_time_sort: null,
   }
 
+  if (sourceType) {
+    data.source_request_id = original.id
+    data.source_type = sourceType
+  }
+
   if (fields.department) data.department = original.department
   if (fields.requester) { data.requester_name = original.requester_name; data.requester_id = original.requester_id }
   if (fields.client) data.client = original.client
@@ -47,7 +53,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (fields.genre) data.genre = original.genre
   if (fields.hinmoku) data.hinmoku = original.hinmoku
   if (fields.hinban) data.hinban = original.hinban
-  if (fields.content) data.content = original.content
+  if (fields.content) {
+    const c = original.content
+    data.content = sourceType === "改訂" && (c === "有型 白ダミー" || c === "新規形 白ダミー") ? `${c}（修正）` : c
+  }
   if (fields.dieline_no) data.dieline_no = original.dieline_no
   if (fields.develop) { data.develop_y = original.develop_y; data.develop_x = original.develop_x }
   if (fields.paper) data.paper = original.paper
@@ -85,8 +94,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     targetId: created.id,
     targetLabel: created.uid,
     diff: {
-      classification: "複製",
-      changedFields: [{ field: "duplicate_source", label: "複製元", before: original.uid, after: "—" }],
+      classification: sourceType ?? "複製",
+      changedFields: [{ field: "duplicate_source", label: `${sourceType ?? "複製"}元`, before: original.uid, after: "—" }],
     },
   })
 

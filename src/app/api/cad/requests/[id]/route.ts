@@ -11,7 +11,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const record = await prisma.cadRequest.findUnique({
     where: { id },
-    include: { requester: { select: { id: true, name: true } }, files: true },
+    include: {
+      requester: { select: { id: true, name: true } },
+      files: true,
+      source_request: { select: { id: true, uid: true, status: true } },
+      derived_requests: {
+        where: { flg_del: 0 },
+        orderBy: { created_at: "desc" },
+        select: { id: true, uid: true, status: true, source_type: true, created_at: true },
+      },
+    },
   })
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json(record)
@@ -35,7 +44,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       desired_time_sort: desiredTimeSortKey(body.desired_time_kbn ?? 0, body.desired_time ?? null),
       updated_at: new Date(),
     },
-    include: { requester: { select: { id: true, name: true } } },
+    include: {
+      requester: { select: { id: true, name: true } },
+      source_request: { select: { id: true, uid: true, status: true } },
+      derived_requests: {
+        where: { flg_del: 0 },
+        orderBy: { created_at: "desc" },
+        select: { id: true, uid: true, status: true, source_type: true, created_at: true },
+      },
+    },
   })
 
   if (before) {
