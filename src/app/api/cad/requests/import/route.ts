@@ -43,8 +43,10 @@ export async function POST(req: NextRequest) {
   const chunk = dataRows.slice(offset, offset + CHUNK)
 
   // 採番用：現在の最大uid取得
-  const last = await prisma.cadRequest.findFirst({ orderBy: { uid: "desc" } })
-  let nextNum = last ? parseInt(last.uid) + 1 : 10001
+  const maxResult = await prisma.$queryRaw<{ max: number | null }[]>`
+    SELECT MAX(CAST(uid AS INTEGER)) as max FROM t_cad_requests WHERE uid ~ '^[0-9]+$'
+  `
+  let nextNum = Math.max((maxResult[0]?.max ?? 10000) + 1, 10001)
 
   for (const row of chunk) {
     const uid = str(row["依頼番号"])
