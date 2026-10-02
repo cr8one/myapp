@@ -33,6 +33,7 @@ type User = { id: string; name: string | null; position: string | null; departme
 type Department = { id: string; name: string; sort_order: number; groups: { id: string; name: string }[] }
 type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
 type CadContent = { id: string; name: string; sort_order: number }
+type CadPaper = { id: string; name: string; width: number | null; height: number | null; sort_order: number }
 type CadOption = { id: string; category: string; value: string; sort_order: number }
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
@@ -110,6 +111,7 @@ export default function CadRequestDetailPage() {
   const [clients, setClients] = useState<CadClient[]>([])
   const [contents, setContents] = useState<CadContent[]>([])
   const [options, setOptions] = useState<CadOption[]>([])
+  const [papers, setPapers] = useState<CadPaper[]>([])
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string | number>>({})
@@ -182,6 +184,7 @@ export default function CadRequestDetailPage() {
     fetch("/api/cad/masters/clients").then(r => r.json()).then(setClients)
     fetch("/api/cad/masters/contents").then(r => r.json()).then(setContents)
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
+    fetch("/api/cad/masters/papers").then(r => r.json()).then(setPapers)
   }, [id])
 
   const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
@@ -671,7 +674,19 @@ export default function CadRequestDetailPage() {
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>用紙</label>
-                  <Input value={form.paper} onChange={e => set("paper", e.target.value)} className={inputCls} autoComplete="off" />
+                  <div className="flex-1">
+                    <SearchAssistInput
+                      label="用紙"
+                      value={form.paper as string}
+                      onChange={v => set("paper", v)}
+                      options={papers.map(p => ({
+                        id: p.id,
+                        label: p.name,
+                        sublabel: p.width && p.height ? `${p.width}×${p.height}` : undefined,
+                      }))}
+                      placeholder="用紙を入力または選択"
+                    />
+                  </div>
                 </div>
                 <div className={rowCls}>
                   <label className={labelCls}>仕上個数</label>
