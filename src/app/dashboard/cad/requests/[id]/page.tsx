@@ -800,13 +800,17 @@ export default function CadRequestDetailPage() {
 
       <div className="bg-white border rounded-lg shadow-sm mt-6 p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">添付ファイル</h2>
-        <input
-          type="file"
-          multiple
-          disabled={uploading}
-          onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
-          className="text-sm"
-        />
+        {record.status === "完了" ? (
+          <p className="text-xs text-gray-500">完了済みの依頼書は、添付ファイルの追加・削除はできません（閲覧・ダウンロードは可能です）。</p>
+        ) : (
+          <input
+            type="file"
+            multiple
+            disabled={uploading}
+            onChange={e => e.target.files && e.target.files.length > 0 && handleFileChange(e.target.files)}
+            className="text-sm"
+          />
+        )}
         {uploading && <p className="text-xs text-amber-700 mt-1">アップロード中...</p>}
 
         {files.filter(f => isPreviewableFile(f.file_name)).length > 0 && (
@@ -817,7 +821,7 @@ export default function CadRequestDetailPage() {
                 <li key={f.id} className="text-xs flex items-center gap-2">
                   <button onClick={() => openFile(f.file_key)} className="text-blue-600 hover:underline">{f.file_name}</button>
                   <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
-                  <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                  {record.status !== "完了" && <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>}
                 </li>
               ))}
             </ul>
@@ -832,7 +836,7 @@ export default function CadRequestDetailPage() {
                 <li key={f.id} className="text-xs flex items-center gap-2">
                   <span className="text-gray-700">{f.file_name}</span>
                   <button onClick={() => downloadFile(f.file_key, f.file_name)} className="text-gray-500 hover:underline">ダウンロード</button>
-                  <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>
+                  {record.status !== "完了" && <button onClick={() => deleteFile(f.id)} className="text-red-500 hover:underline">削除</button>}
                 </li>
               ))}
             </ul>

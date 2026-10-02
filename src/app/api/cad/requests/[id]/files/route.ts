@@ -3,10 +3,18 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
 import { createAuditLog } from "@/lib/audit"
 
+async function isCompleted(id: string) {
+  const r = await prisma.cadRequest.findUnique({ where: { id }, select: { status: true } })
+  return r?.status === "完了"
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
+  if (await isCompleted(id)) {
+    return NextResponse.json({ error: "完了済みの依頼書は添付ファイルを追加できません" }, { status: 400 })
+  }
   const { fileKey, fileName, fileType } = await req.json()
   const record = await prisma.cadRequestFile.create({
     data: {
@@ -36,6 +44,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
+  if (await isCompleted(id)) {
+    return NextResponse.json({ error: "完了済みの依頼書は添付ファイルを削除できません" }, { status: 400 })
+  }
   const { searchParams } = new URL(req.url)
   const fileId = searchParams.get("fileId")
   if (!fileId) return NextResponse.json({ error: "fileId required" }, { status: 400 })
