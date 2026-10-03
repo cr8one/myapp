@@ -36,15 +36,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "数量は0以上の整数で入力してください" }, { status: 400 })
   }
 
+  // 数量・使用年月が変わった場合、承認が必要な人（承認者の設定がある人）の明細は未承認に戻す
+  let resetApproval = false
+  if (before.approved_flg && (before.usage_month !== usage_month || before.planned_qty !== qty) && before.usage_person_id) {
+    const approverCount = await prisma.userApproverSetting.count({
+      where: { user_id: before.usage_person_id, service_type: "tray_usage_plan" },
+    })
+    resetApproval = approverCount > 0
+  }
+
   const record = await prisma.trayUsagePlan.update({
     where: { id },
-    data: { usage_month, planned_qty: qty, item_name: item_name || null },
+    data: {
+      usage_month,
+      planned_qty: qty,
+      item_name: item_name || null,
+      ...(resetApproval ? { approved_flg: false } : {}),
+    },
   })
 
   const changedFields: { field: string; label: string; before: string; after: string }[] = []
   if (before.usage_month !== record.usage_month) changedFields.push({ field: "usage_month", label: "使用年月", before: before.usage_month, after: record.usage_month })
   if (before.planned_qty !== record.planned_qty) changedFields.push({ field: "planned_qty", label: "数量", before: String(before.planned_qty), after: String(record.planned_qty) })
   if ((before.item_name ?? "") !== (record.item_name ?? "")) changedFields.push({ field: "item_name", label: "タイトル", before: before.item_name ?? "—", after: record.item_name ?? "—" })
+  if (resetApproval) changedFields.push({ field: "approved_flg", label: "承認", before: "承認済み", after: "未承認（数量・使用年月の変更のため）" })
   if (changedFields.length > 0) {
     await createAuditLog({
       userId: user.id,

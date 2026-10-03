@@ -70,6 +70,16 @@ export default function TrayUsageAdminPage() {
       d => `${d.count}件、仮ロックをかけました`,
     )
   }
+  const closeMonth = (month: string) => {
+    if (!confirm(`${fmt(month)}の締め作業を行います。\n明細に本ロックをかけ、翌月の提出月を作成し、翌々月以降の明細を複製します。よろしいですか？`)) return
+    run(
+      () => fetch("/api/tray/usage-admin/close", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submission_month: month }),
+      }),
+      d => `締め作業が完了しました（本ロック ${d.locked}件、${fmt(String(d.newMonth))}へ複製 ${d.copied}件）`,
+    )
+  }
   const tempUnlock = (month: string) => {
     if (!confirm("仮ロックを外します。よろしいですか？（本ロック済みの明細は外れません）")) return
     run(
@@ -159,7 +169,8 @@ export default function TrayUsageAdminPage() {
                       {r.lock_a_flg ? "ロックA解除" : "ロックA（新規登録を停止）"}
                     </Button>
                     <Button size="sm" variant="outline" disabled={busy} className="mr-2" onClick={() => tempLock(r.submission_month)}>仮ロック（ロックB）</Button>
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => tempUnlock(r.submission_month)}>仮ロック解除</Button>
+                    <Button size="sm" variant="outline" disabled={busy} className="mr-2" onClick={() => tempUnlock(r.submission_month)}>仮ロック解除</Button>
+                    <Button size="sm" disabled={busy} onClick={() => closeMonth(r.submission_month)}>締め作業</Button>
                   </td>
                 </tr>
               ))}
