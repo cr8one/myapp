@@ -98,6 +98,7 @@ const baseMenuItems = [
   { label: "トレイ管理", href: "/dashboard/tray", icon: "tray", children: [
     { label: "トレイ一覧", href: "/dashboard/tray" },
     { label: "棚卸しデータ", href: "/dashboard/tray/inventory" },
+    { label: "トレイ使用予定表", href: "/dashboard/tray/usage-sheet" },
     { label: "トレイ使用予定情報", href: "/dashboard/tray/usage-plans" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [

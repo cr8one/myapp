@@ -733,6 +733,16 @@ model TrayUsagePlan {
   @@map("t_tray_usage_plans")
 }
 
+model TrayUsageSetting {
+  id               String    @id @default(cuid())
+  submission_month String    @unique
+  deadline         DateTime?
+  lock_a_flg       Boolean   @default(false)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  @@map("t_tray_usage_settings")
+}
+
 model DeviceModel {
   modelId       Int       @id @default(autoincrement()) @map("model_id")
   vendorName    String?   @map("vendor_name")
