@@ -61,6 +61,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "使用年月は、提出月の翌月以降を指定してください" }, { status: 400 })
   }
 
+  // 承認者の設定がない人は承認不要：登録と同時に承認済みにする
+  const approverCount = await prisma.userApproverSetting.count({
+    where: { user_id: user.id, service_type: "tray_usage_plan" },
+  })
+
   const record = await prisma.trayUsagePlan.create({
     data: {
       submission_month,
@@ -70,6 +75,7 @@ export async function POST(req: NextRequest) {
       usage_person_name: user.name ?? null,
       planned_qty: qty,
       item_name: item_name || null,
+      approved_flg: approverCount === 0,
     },
   })
 

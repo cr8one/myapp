@@ -42,3 +42,21 @@ export async function requirePermission(key: PermissionKey) {
   }
   return null
 }
+
+// 購買担当（またはシステム管理者）かどうか。サービスの画面権限とは別の、担当区分のフラグ
+export async function hasPurchasingAccess(): Promise<boolean> {
+  const user = await getSessionUser()
+  if (!user) return false
+  if (user.role === "ADMIN") return true
+  return user.permission?.isPurchasingStaff === true
+}
+export async function requirePurchasingAccess() {
+  const allowed = await hasPurchasingAccess()
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: "購買担当者のみ操作できます" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+  return null
+}

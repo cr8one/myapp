@@ -26,6 +26,7 @@ type Permission = {
   ssssIsReceiver: boolean; ssssIsOutsourceReceiver: boolean
   addressBookView: boolean; addressBookEdit: boolean
   addressBookChangeRequestTarget: boolean
+  isPurchasingStaff: boolean
   dppStorageLedgerImport: boolean
 }
 type UserDept = {
@@ -75,6 +76,7 @@ const defaultPermission: Permission = {
   ssssIsReceiver: false, ssssIsOutsourceReceiver: false,
   addressBookView: true, addressBookEdit: false,
   addressBookChangeRequestTarget: false,
+  isPurchasingStaff: false,
   dppStorageLedgerImport: false,
 }
 const permissionGroups: { group: string; color: string; items: { key: keyof Permission; label: string }[] }[] = [
@@ -90,6 +92,7 @@ const permissionGroups: { group: string; color: string; items: { key: keyof Perm
   { group: "製造依頼書", color: "bg-fuchsia-50 text-fuchsia-700", items: [{ key: "manufacturingView", label: "閲覧" }, { key: "manufacturingEdit", label: "編集" }] },
   { group: "トレイ管理", color: "bg-emerald-50 text-emerald-700", items: [{ key: "trayView", label: "閲覧" }, { key: "trayEdit", label: "編集" }] },
   { group: "住所録",     color: "bg-amber-50 text-amber-700",  items: [{ key: "addressBookView", label: "閲覧" }, { key: "addressBookEdit", label: "編集" }, { key: "addressBookChangeRequestTarget", label: "変更依頼配信先" }] },
+  { group: "担当区分",   color: "bg-slate-50 text-slate-700",  items: [{ key: "isPurchasingStaff", label: "購買担当" }] },
   { group: "DPP予定表",  color: "bg-pink-50 text-pink-700",    items: [{ key: "dppView", label: "閲覧" }, { key: "dppEdit", label: "編集" }, { key: "dppStorageLedgerImport", label: "データ保管台帳 取込/出力" }] },
   { group: "SSSS",       color: "bg-yellow-50 text-yellow-700",items: [
     { key: "ssssView", label: "閲覧" }, { key: "ssssEdit", label: "編集" },

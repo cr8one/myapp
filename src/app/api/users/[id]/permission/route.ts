@@ -42,6 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       addressBookView: body.addressBookView ?? true,
       addressBookEdit: body.addressBookEdit ?? false,
       addressBookChangeRequestTarget: body.addressBookChangeRequestTarget ?? false,
+      isPurchasingStaff: body.isPurchasingStaff ?? false,
       dppStorageLedgerImport: body.dppStorageLedgerImport ?? false,
     },
     update: {
@@ -80,6 +81,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(body.addressBookView !== undefined && { addressBookView: body.addressBookView }),
       ...(body.addressBookEdit !== undefined && { addressBookEdit: body.addressBookEdit }),
       ...(body.addressBookChangeRequestTarget !== undefined && { addressBookChangeRequestTarget: body.addressBookChangeRequestTarget }),
+      ...(body.isPurchasingStaff !== undefined && { isPurchasingStaff: body.isPurchasingStaff }),
       ...(body.dppStorageLedgerImport !== undefined && { dppStorageLedgerImport: body.dppStorageLedgerImport }),
     },
   })

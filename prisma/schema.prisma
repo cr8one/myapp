@@ -100,6 +100,7 @@ model UserPermission {
   addressBookView              Boolean @default(true)  @map("address_book_view")
   addressBookEdit              Boolean @default(false) @map("address_book_edit")
   addressBookChangeRequestTarget Boolean @default(false) @map("address_book_change_request_target")
+  isPurchasingStaff            Boolean @default(false) @map("is_purchasing_staff")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
   @@map("user_permissions")

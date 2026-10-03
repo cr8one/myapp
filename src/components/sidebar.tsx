@@ -100,6 +100,7 @@ const baseMenuItems = [
     { label: "棚卸しデータ", href: "/dashboard/tray/inventory" },
     { label: "トレイ使用予定表", href: "/dashboard/tray/usage-sheet" },
     { label: "トレイ使用予定情報", href: "/dashboard/tray/usage-plans" },
+    { label: "使用予定 管理（購買担当）", href: "/dashboard/tray/usage-admin" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
