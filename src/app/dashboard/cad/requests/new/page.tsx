@@ -13,6 +13,7 @@ type Department = { id: string; name: string; sort_order: number; groups: { id: 
 type CadClient = { id: string; name: string; short_name: string | null; sort_order: number }
 type CadContent = { id: string; name: string; sort_order: number }
 type CadPaper = { id: string; name: string; width: number | null; height: number | null; sort_order: number }
+type TrayMaster = { id: string; name: string; type: string; sort_order: number }
 type CadOption = { id: string; category: string; value: string; sort_order: number }
 
 const GENRE_OPTIONS = ["CD", "BD", "DVD", "その他"]
@@ -28,6 +29,7 @@ export default function CadRequestNewPage() {
   const [contents, setContents] = useState<CadContent[]>([])
   const [options, setOptions] = useState<CadOption[]>([])
   const [papers, setPapers] = useState<CadPaper[]>([])
+  const [trays, setTrays] = useState<TrayMaster[]>([])
   const [saving, setSaving] = useState(false)
   const [recordId, setRecordId] = useState<string | null>(null)
   const [files, setFiles] = useState<{ id: string; fileKey: string; fileName: string }[]>([])
@@ -68,6 +70,7 @@ export default function CadRequestNewPage() {
     fetch("/api/cad/masters/contents").then(r => r.json()).then(setContents)
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
     fetch("/api/cad/masters/papers").then(r => r.json()).then(setPapers)
+    fetch("/api/masters/items/trays").then(r => r.json()).then(setTrays)
   }, [])
 
   // 新規作成時の初期値：ログイン中ユーザーの メイン部署(+メイングループ) と 依頼営業名
@@ -364,7 +367,14 @@ export default function CadRequestNewPage() {
                   <div className={rowCls}>
                     <label className={labelCls}>使用トレイ</label>
                     <div className="flex-1">
-                      <AutocompleteInput value={form.tray} onChange={v => set("tray", v)} className={inputCls} options={optionsFor("tray").map(o => ({ id: o.id, label: o.value }))} />
+                      <SearchAssistInput
+                        label="使用トレイ"
+                        value={form.tray}
+                        onChange={v => set("tray", v)}
+                        options={trays.map(t => ({ id: t.id, label: t.name, group: t.type }))}
+                        groupFilter={["CD", "DVD", "BD", "その他"]}
+                        placeholder="使用トレイを入力または選択"
+                      />
                     </div>
                   </div>
                   <div className={rowCls}>

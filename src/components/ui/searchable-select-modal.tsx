@@ -8,6 +8,7 @@ export type SelectOption = {
   label: string
   sublabel?: string
   kana?: string
+  group?: string
 }
 
 // ============================================================
@@ -262,15 +263,22 @@ type SearchAssistInputProps = {
   options: SelectOption[]
   placeholder?: string
   indexFilter?: boolean
+  groupFilter?: string[]
 }
 export function SearchAssistInput({
-  label, value, onChange, options, placeholder, indexFilter = false,
+  label, value, onChange, options, placeholder, indexFilter = false, groupFilter,
 }: SearchAssistInputProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [kanaGroup, setKanaGroup] = useState<string | null>(null)
+  const [typeGroup, setTypeGroup] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const filtered = options.filter((o) => {
+    if (groupFilter && typeGroup) {
+      const g = o.group ?? ""
+      const isKnown = groupFilter.filter((x) => x !== "その他").includes(g)
+      if (typeGroup === "その他" ? isKnown : g !== typeGroup) return false
+    }
     const matchesQuery = query === "" ||
       o.label.toLowerCase().includes(query.toLowerCase()) ||
       (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
@@ -278,7 +286,7 @@ export function SearchAssistInput({
     const matchesKana = !kanaGroup || (group ? group.chars.some((c) => toHiragana(o.kana ?? "").startsWith(c)) : true)
     return matchesQuery && matchesKana
   })
-  const handleOpen = () => { setQuery(""); setKanaGroup(null); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
+  const handleOpen = () => { setQuery(""); setKanaGroup(null); setTypeGroup(null); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
@@ -307,6 +315,20 @@ export function SearchAssistInput({
               <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                 placeholder="検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+            {groupFilter && (
+              <div className="px-4 py-2 border-b flex flex-wrap gap-1">
+                <button type="button" onClick={() => setTypeGroup(null)}
+                  className={`text-xs px-2 py-1 rounded ${typeGroup === null ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  全
+                </button>
+                {groupFilter.map((g) => (
+                  <button key={g} type="button" onClick={() => setTypeGroup(g)}
+                    className={`text-xs px-2 py-1 rounded ${typeGroup === g ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
             {indexFilter && (
               <div className="px-4 py-2 border-b flex flex-wrap gap-1">
                 <button type="button" onClick={() => setKanaGroup(null)}
