@@ -141,7 +141,7 @@ export default function UsersPage() {
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
   }
-  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi">("tokui_credit")
+  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
   const [showApproverForm, setShowApproverForm] = useState(false)
   const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
@@ -516,6 +516,10 @@ const handleInkanDelete = async () => {
                       onClick={() => { setApproverServiceType("ringi"); fetchApproverSettings(editUser.id, "ringi") }}
                       className={`text-xs px-2 py-1 rounded ${approverServiceType === "ringi" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
                     >稟議書</button>
+                    <button
+                      onClick={() => { setApproverServiceType("tray_usage_plan"); fetchApproverSettings(editUser.id, "tray_usage_plan") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "tray_usage_plan" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >トレイ使用予定</button>
                   </div>
                   <button
                     onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
