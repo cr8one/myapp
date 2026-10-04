@@ -43,7 +43,7 @@ export default function TrayUsageSheetPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/masters/departments").then(r => r.json()),
-      fetch("/api/users/list").then(r => r.json()),
+      fetch("/api/users/list?sort=org").then(r => r.json()),
       fetch("/api/auth/session").then(r => r.json()),
     ]).then(([deps, us, session]) => {
       setDepartments(deps)
