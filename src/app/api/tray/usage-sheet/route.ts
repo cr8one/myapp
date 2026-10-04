@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type") ?? ""
   const dept = searchParams.get("dept") ?? ""
+  const group = searchParams.get("group") ?? ""
   const personId = searchParams.get("person_id") ?? ""
 
   // 提出月：指定がなければ、設定のある最新の提出月
@@ -39,10 +40,11 @@ export async function GET(req: NextRequest) {
   const m3 = addMonths(submissionMonth, 3)
   const months = [m1, m2, m3]
 
-  // 部署の絞り込み：「部署名」なら「部署名」と「部署名 ○○」の両方、「部署名 グループ名」ならそのグループだけ
-  const deptWhere = dept
-    ? { OR: [{ usage_dept: dept }, { usage_dept: { startsWith: `${dept} ` } }] }
-    : {}
+  // 部署の絞り込み：部署だけならその部署の全明細（グループ空欄を含む）、グループも指定ならそのグループだけ
+  const deptWhere = {
+    ...(dept ? { usage_dept: dept } : {}),
+    ...(dept && group ? { usage_group: group } : {}),
+  }
 
   const plans = await prisma.trayUsagePlan.findMany({
     where: {

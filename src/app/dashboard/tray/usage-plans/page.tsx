@@ -9,6 +9,7 @@ type UsagePlan = {
   usage_month: string
   rendo_tray_cd: string
   usage_dept: string | null
+  usage_group: string | null
   usage_person_id: string | null
   usage_person_name: string | null
   planned_qty: number
@@ -45,6 +46,7 @@ export default function TrayUsagePlansPage() {
   const [usageMonth, setUsageMonth] = useState("")
   const [rendoTrayCd, setRendoTrayCd] = useState("")
   const [usageDept, setUsageDept] = useState("")
+  const [usageGroup, setUsageGroup] = useState("")
   const [usagePersonId, setUsagePersonId] = useState("")
   const [usagePersonName, setUsagePersonName] = useState("")
   const [plannedQty, setPlannedQty] = useState(0)
@@ -80,10 +82,8 @@ export default function TrayUsagePlansPage() {
 
   useEffect(() => { loadPlans() }, [filterSubmissionMonth, filterUsageMonth])
 
-  const deptOptions = departments.flatMap(d => [
-    { id: d.id, label: d.name },
-    ...d.groups.map(g => ({ id: g.id, label: `${d.name} ${g.name}` })),
-  ])
+  const deptOptions = departments.map(d => ({ id: d.id, label: d.name }))
+  const groupNames = departments.find(d => d.name === usageDept)?.groups.map(g => g.name) ?? []
   const userOptions = users.map(u => ({ id: u.id, label: u.name ?? "" }))
 
   const handleRendoCdChange = (v: string) => {
@@ -100,7 +100,7 @@ export default function TrayUsagePlansPage() {
 
   const resetForm = () => {
     setSubmissionMonth(currentMonth()); setUsageMonth(""); setRendoTrayCd("")
-    setUsageDept(""); setUsagePersonId(""); setUsagePersonName("")
+    setUsageDept(""); setUsageGroup(""); setUsagePersonId(""); setUsagePersonName("")
     setPlannedQty(0); setItemName("")
     setLockFlg(false); setTempLockFlg(false); setApprovedFlg(false); setIrregularFlg(false)
     setSuggestions([]); setShowSuggestions(false); setError("")
@@ -110,7 +110,7 @@ export default function TrayUsagePlansPage() {
   const openEdit = (p: UsagePlan) => {
     setEditPlan(p)
     setSubmissionMonth(p.submission_month); setUsageMonth(p.usage_month); setRendoTrayCd(p.rendo_tray_cd)
-    setUsageDept(p.usage_dept ?? ""); setUsagePersonId(p.usage_person_id ?? ""); setUsagePersonName(p.usage_person_name ?? "")
+    setUsageDept(p.usage_dept ?? ""); setUsageGroup(p.usage_group ?? ""); setUsagePersonId(p.usage_person_id ?? ""); setUsagePersonName(p.usage_person_name ?? "")
     setPlannedQty(p.planned_qty); setItemName(p.item_name ?? "")
     setLockFlg(p.lock_flg); setTempLockFlg(p.temp_lock_flg); setApprovedFlg(p.approved_flg); setIrregularFlg(p.irregular_order_flg)
     setSuggestions([]); setShowSuggestions(false); setError("")
@@ -131,6 +131,7 @@ export default function TrayUsagePlansPage() {
       usage_month: usageMonth,
       rendo_tray_cd: rendoTrayCd,
       usage_dept: usageDept || null,
+      usage_group: usageGroup || null,
       usage_person_id: usagePersonId || null,
       usage_person_name: usagePersonName || null,
       planned_qty: plannedQty,
@@ -279,7 +280,7 @@ export default function TrayUsagePlansPage() {
                   <td className="px-3 py-2">{formatMonth(p.usage_month)}</td>
                   <td className="px-3 py-2">{p.rendo_tray_cd}</td>
                   <td className="px-3 py-2">{p.item_name || "—"}</td>
-                  <td className="px-3 py-2">{p.usage_dept || "—"}</td>
+                  <td className="px-3 py-2">{p.usage_dept ? `${p.usage_dept}${p.usage_group ? " " + p.usage_group : ""}` : "—"}</td>
                   <td className="px-3 py-2">{p.usage_person_name || "—"}</td>
                   <td className="px-3 py-2 text-right">{p.planned_qty.toLocaleString()}</td>
                   <td className="px-3 py-2">
@@ -354,7 +355,15 @@ export default function TrayUsagePlansPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">使用予定部署</label>
-                  <AutocompleteInput value={usageDept} onChange={setUsageDept} options={deptOptions} className="h-[38px] py-2" />
+                  <AutocompleteInput value={usageDept} onChange={v => { setUsageDept(v); setUsageGroup("") }} options={deptOptions} className="h-[38px] py-2" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">使用予定グループ</label>
+                  <select value={usageGroup} onChange={e => setUsageGroup(e.target.value)} disabled={!usageDept || groupNames.length === 0}
+                    className="h-[38px] w-full rounded-md border border-gray-200 px-2 text-sm disabled:bg-gray-100">
+                    <option value="">（なし）</option>
+                    {groupNames.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">使用予定者</label>

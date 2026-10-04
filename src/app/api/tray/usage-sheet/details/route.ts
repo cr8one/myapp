@@ -66,11 +66,26 @@ export async function POST(req: NextRequest) {
     where: { user_id: user.id, service_type: "tray_usage_plan" },
   })
 
+  // 使用予定部署・グループ：登録した人のメイン部署とメイングループ（別々に保存）
+  const owner = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      departments: { select: { is_primary: true, department: { select: { name: true } } } },
+      groups: { select: { is_primary: true, group: { select: { name: true, department: { select: { name: true } } } } } },
+    },
+  })
+  const mainDept = owner?.departments.find(d => d.is_primary)
+  const mainGroup = owner?.groups.find(g => g.is_primary)
+  const usageDept = mainDept ? mainDept.department.name : mainGroup ? mainGroup.group.department.name : null
+  const usageGroup = mainGroup ? mainGroup.group.name : null
+
   const record = await prisma.trayUsagePlan.create({
     data: {
       submission_month,
       usage_month,
       rendo_tray_cd,
+      usage_dept: usageDept,
+      usage_group: usageGroup,
       usage_person_id: user.id,
       usage_person_name: user.name ?? null,
       planned_qty: qty,

@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
           usage_month: p.usage_month,
           rendo_tray_cd: p.rendo_tray_cd,
           usage_dept: p.usage_dept,
+          usage_group: p.usage_group,
           usage_person_id: p.usage_person_id,
           usage_person_name: p.usage_person_name,
           planned_qty: p.planned_qty,

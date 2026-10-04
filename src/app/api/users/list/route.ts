@@ -25,6 +25,8 @@ export async function GET() {
     const groupLabels = u.groups.map(g => `${g.group.department.name} ${g.group.name}`)
     const mainDept = u.departments.find(d => d.is_primary)
     const mainGroup = u.groups.find(g => g.is_primary)
+    const primaryDeptName = mainDept ? mainDept.department.name : mainGroup ? mainGroup.group.department.name : ""
+    const primaryGroupName = mainGroup ? mainGroup.group.name : ""
     const primaryLabel = mainDept && mainGroup
       ? `${mainDept.department.name} ${mainGroup.group.name}`
       : mainDept
@@ -40,6 +42,8 @@ export async function GET() {
       furiganaLastName: u.furiganaLastName,
       departmentLabels: Array.from(new Set([...deptNames, ...groupLabels])),
       primaryLabel,
+      primaryDept: primaryDeptName,
+      primaryGroup: primaryGroupName,
     }
   })
   return NextResponse.json(result)

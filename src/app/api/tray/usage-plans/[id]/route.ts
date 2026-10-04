@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json()
   const {
     submission_month, usage_month, rendo_tray_cd,
-    usage_dept, usage_person_id, usage_person_name,
+    usage_dept, usage_group, usage_person_id, usage_person_name,
     planned_qty, item_name,
     lock_flg, temp_lock_flg, approved_flg, irregular_order_flg,
   } = body
@@ -22,6 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       usage_month,
       rendo_tray_cd,
       usage_dept: usage_dept || null,
+      ...(usage_group !== undefined ? { usage_group: usage_group || null } : {}),
       usage_person_id: usage_person_id || null,
       usage_person_name: usage_person_name || null,
       planned_qty: planned_qty ?? 0,

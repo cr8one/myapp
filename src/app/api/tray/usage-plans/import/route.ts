@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       rendo_tray_cd,
       item_name: toText(row["品名"]) || null,
       usage_dept: toText(row["使用予定部署"]) || null,
+      ...("使用予定グループ" in row ? { usage_group: toText(row["使用予定グループ"]) || null } : {}),
       usage_person_name: personName || null,
       usage_person_id: personName ? (userIdByName.get(personName) ?? null) : null,
       planned_qty: toQty(row["使用予定数"]),

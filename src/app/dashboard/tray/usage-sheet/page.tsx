@@ -8,7 +8,7 @@ type Setting = { submission_month: string; deadline: string | null; lock_a_flg: 
 type Row = { id: string; name: string; type: string; rendo_tray_cd: string | null; qty: number[] }
 type SheetData = { setting: Setting | null; months: string[]; rows: Row[] }
 type Department = { id: string; name: string; groups: { id: string; name: string }[] }
-type User = { id: string; name: string | null; primaryLabel: string }
+type User = { id: string; name: string | null; primaryDept: string; primaryGroup: string }
 
 const TYPE_FILTERS = ["すべて", "CD", "DVD", "BD", "その他"]
 
@@ -30,6 +30,7 @@ export default function TrayUsageSheetPage() {
   const [submissionMonth, setSubmissionMonth] = useState("")
   const [typeFilter, setTypeFilter] = useState("すべて")
   const [dept, setDept] = useState("")
+  const [group, setGroup] = useState("")
   const [personId, setPersonId] = useState("")
   const [departments, setDepartments] = useState<Department[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -48,7 +49,8 @@ export default function TrayUsageSheetPage() {
       setDepartments(deps)
       setUsers(us)
       const me = (us as User[]).find(u => u.id === session?.user?.id)
-      if (me?.primaryLabel) setDept(me.primaryLabel)
+      if (me?.primaryDept) setDept(me.primaryDept)
+      if (me?.primaryGroup) setGroup(me.primaryGroup)
       setInitialized(true)
     })
   }, [])
@@ -59,6 +61,7 @@ export default function TrayUsageSheetPage() {
     if (submissionMonth) params.set("submission_month", submissionMonth)
     if (typeFilter !== "すべて") params.set("type", typeFilter)
     if (dept) params.set("dept", dept)
+    if (group) params.set("group", group)
     if (personId) params.set("person_id", personId)
     const res = await fetch(`/api/tray/usage-sheet?${params.toString()}`)
     if (res.ok) {
@@ -71,12 +74,10 @@ export default function TrayUsageSheetPage() {
 
   useEffect(() => {
     if (initialized) load()
-  }, [initialized, submissionMonth, typeFilter, dept, personId])
+  }, [initialized, submissionMonth, typeFilter, dept, group, personId])
 
-  const deptOptions = departments.flatMap(d => [
-    { id: d.id, label: d.name },
-    ...d.groups.map(g => ({ id: g.id, label: `${d.name} ${g.name}` })),
-  ])
+  const deptOptions = departments.map(d => ({ id: d.id, label: d.name }))
+  const groupNames = departments.find(d => d.name === dept)?.groups.map(g => g.name) ?? []
 
   const setting = data?.setting ?? null
   const status = !setting ? "準備中" : setting.lock_a_flg ? "新規登録 締め切り済み" : "入力受付中"
@@ -128,9 +129,17 @@ export default function TrayUsageSheetPage() {
             ))}
           </div>
         </div>
-        <div className="w-64">
+        <div className="w-56">
           <div className="mb-1 text-xs text-gray-500">部署</div>
-          <AutocompleteInput value={dept} onChange={setDept} options={deptOptions} className="h-[38px] py-2" />
+          <AutocompleteInput value={dept} onChange={v => { setDept(v); setGroup("") }} options={deptOptions} className="h-[38px] py-2" />
+        </div>
+        <div className="w-56">
+          <div className="mb-1 text-xs text-gray-500">グループ</div>
+          <select value={group} onChange={e => setGroup(e.target.value)} disabled={!dept || groupNames.length === 0}
+            className="h-[38px] w-full rounded-md border px-2 text-sm disabled:bg-gray-100">
+            <option value="">すべて（部署の全員）</option>
+            {groupNames.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
         </div>
         <div className="w-48">
           <div className="mb-1 text-xs text-gray-500">作成者</div>

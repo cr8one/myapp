@@ -721,6 +721,7 @@ model TrayUsagePlan {
   usage_month         String
   rendo_tray_cd       String
   usage_dept          String?
+  usage_group         String?
   usage_person_id     String?
   usage_person_name   String?
   planned_qty         Int

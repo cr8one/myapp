@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         r.rendo_tray_cd,
         r.item_name,
         r.usage_dept,
+        r.usage_group,
         r.usage_person_name,
         r.planned_qty,
         r.lock_flg ? 1 : 0,
