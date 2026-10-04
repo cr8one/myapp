@@ -8,7 +8,7 @@ type Setting = { submission_month: string; deadline: string | null; lock_a_flg: 
 type Row = { id: string; name: string; type: string; rendo_tray_cd: string | null; qty: number[] }
 type SheetData = { setting: Setting | null; months: string[]; rows: Row[] }
 type Department = { id: string; name: string; groups: { id: string; name: string }[] }
-type User = { id: string; name: string | null; primaryDept: string; primaryGroup: string }
+type User = { id: string; name: string | null; primaryDept: string; primaryGroup: string; departmentLabels: string[] }
 
 const TYPE_FILTERS = ["すべて", "CD", "DVD", "BD", "その他"]
 
@@ -76,8 +76,24 @@ export default function TrayUsageSheetPage() {
     if (initialized) load()
   }, [initialized, submissionMonth, typeFilter, dept, group, personId])
 
+  useEffect(() => {
+    if (!personId) return
+    const stillValid = users.some(u => u.id === personId && (
+      !dept ? true
+        : group ? u.departmentLabels.includes(`${dept} ${group}`)
+        : u.departmentLabels.some(l => l === dept || l.startsWith(`${dept} `))
+    ))
+    if (!stillValid) setPersonId("")
+  }, [dept, group, users])
+
   const deptOptions = departments.map(d => ({ id: d.id, label: d.name }))
   const groupNames = departments.find(d => d.name === dept)?.groups.map(g => g.name) ?? []
+  // 作成者の選択肢：部署・グループに合わせて絞り込む
+  const filteredUsers = users.filter(u => {
+    if (!dept) return true
+    if (group) return u.departmentLabels.includes(`${dept} ${group}`)
+    return u.departmentLabels.some(l => l === dept || l.startsWith(`${dept} `))
+  })
 
   const setting = data?.setting ?? null
   const status = !setting ? "準備中" : setting.lock_a_flg ? "新規登録 締め切り済み" : "入力受付中"
@@ -145,7 +161,7 @@ export default function TrayUsageSheetPage() {
           <div className="mb-1 text-xs text-gray-500">作成者</div>
           <select value={personId} onChange={e => setPersonId(e.target.value)} className="h-[38px] w-full rounded-md border px-2 text-sm">
             <option value="">すべて</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            {filteredUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </div>
       </div>
