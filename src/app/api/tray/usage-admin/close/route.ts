@@ -54,27 +54,29 @@ export async function POST(req: NextRequest) {
     where: { submission_month, usage_month: { gte: firstUsageOfNew } },
   })
 
-  await prisma.$transaction([
-    prisma.trayUsagePlan.updateMany({
+  await prisma.$transaction(async (tx) => {
+    await tx.trayUsagePlan.updateMany({
       where: { submission_month, lock_flg: false },
       data: { lock_flg: true },
-    }),
-    prisma.trayUsageSetting.create({ data: { submission_month: newMonth } }),
-    prisma.trayUsagePlan.createMany({
-      data: toCopy.map(p => ({
-        submission_month: newMonth,
-        usage_month: p.usage_month,
-        rendo_tray_cd: p.rendo_tray_cd,
-        usage_dept: p.usage_dept,
-        usage_person_id: p.usage_person_id,
-        usage_person_name: p.usage_person_name,
-        planned_qty: p.planned_qty,
-        item_name: p.item_name,
-        approved_flg: p.approved_flg,
-        irregular_order_flg: p.irregular_order_flg,
-      })),
-    }),
-  ])
+    })
+    await tx.trayUsageSetting.create({ data: { submission_month: newMonth } })
+    if (toCopy.length > 0) {
+      await tx.trayUsagePlan.createMany({
+        data: toCopy.map(p => ({
+          submission_month: newMonth,
+          usage_month: p.usage_month,
+          rendo_tray_cd: p.rendo_tray_cd,
+          usage_dept: p.usage_dept,
+          usage_person_id: p.usage_person_id,
+          usage_person_name: p.usage_person_name,
+          planned_qty: p.planned_qty,
+          item_name: p.item_name,
+          approved_flg: p.approved_flg,
+          irregular_order_flg: p.irregular_order_flg,
+        })),
+      })
+    }
+  })
 
   await createAuditLog({
     userId: user.id,
