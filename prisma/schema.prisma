@@ -730,9 +730,25 @@ model TrayUsagePlan {
   temp_lock_flg       Boolean  @default(false)
   approved_flg        Boolean  @default(false)
   irregular_order_flg Boolean  @default(false)
+  irregular_order_id  String?
+  irregular_order     TrayIrregularOrder? @relation(fields: [irregular_order_id], references: [id], onDelete: SetNull)
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
   @@map("t_tray_usage_plans")
+}
+
+model TrayIrregularOrder {
+  id             String   @id @default(cuid())
+  order_no       String   @unique
+  status         String   @default("作成中")
+  request_date   DateTime
+  title          String
+  requester_id   String?
+  requester_name String
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  items          TrayUsagePlan[]
+  @@map("t_tray_irregular_orders")
 }
 
 model TrayUsageSetting {
