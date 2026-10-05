@@ -4,7 +4,11 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 type Item = { id: string; usage_month: string; rendo_tray_cd: string; tray_name: string; planned_qty: number }
-type Order = { id: string; order_no: string; status: string; request_date: string; title: string; requester_name: string; items: Item[] }
+type Step = { id: string; stage: string; step_order: number; label: string | null; approver_name: string | null; status: string; inkan_image_url?: string }
+type Order = {
+  id: string; order_no: string; status: string; request_date: string; title: string; requester_name: string; items: Item[]
+  steps: Step[]; canApprove: boolean; requester_inkan_url?: string
+}
 type Tray = { id: string; name: string; type: string; rendo_tray_cd: string | null }
 
 const KNOWN_TYPES = ["CD", "DVD", "BD"]
@@ -86,6 +90,21 @@ export default function IrregularOrderDetailPage() {
     "タイトルを保存しました",
   )
 
+  const submit = () => {
+    if (!confirm("承認依頼を行います。依頼後は、明細やタイトルを編集できません。よろしいですか？")) return
+    call(
+      () => fetch(`/api/tray/irregular-orders/${id}/submit`, { method: "POST" }),
+      "承認依頼を行いました",
+    )
+  }
+  const approve = () => {
+    if (!confirm("承認します。よろしいですか？")) return
+    call(
+      () => fetch(`/api/tray/irregular-orders/${id}/approve`, { method: "POST" }),
+      "承認しました",
+    )
+  }
+
   const resetForm = () => {
     setEditItemId(null)
     setTrayCd(""); setQty(""); setTrayQuery("")
@@ -135,7 +154,11 @@ export default function IrregularOrderDetailPage() {
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-800">イレギュラートレイ発注書</h1>
-        <Button variant="outline" onClick={() => router.push("/dashboard/tray/irregular-orders")}>一覧へ戻る</Button>
+        <div className="flex gap-2">
+          {editable && <Button onClick={submit} disabled={busy || order.items.length === 0}>承認依頼</Button>}
+          {order.canApprove && <Button onClick={approve} disabled={busy}>承認する</Button>}
+          <Button variant="outline" onClick={() => router.push("/dashboard/tray/irregular-orders")}>一覧へ戻る</Button>
+        </div>
       </div>
 
       {error && <p className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -231,6 +254,33 @@ export default function IrregularOrderDetailPage() {
           )}
         </tbody>
       </table>
+
+      <div className="mt-8 flex justify-end">
+        <table className="border text-center text-xs">
+          <thead>
+            <tr className="bg-gray-50">
+              {order.steps.map(s => <th key={s.id} className="w-24 border px-2 py-1 font-medium">{s.label || s.stage}</th>)}
+              <th className="w-24 border px-2 py-1 font-medium">申請者</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="h-24">
+              {order.steps.map(s => (
+                <td key={s.id} className="border align-middle">
+                  {s.inkan_image_url
+                    ? <img src={s.inkan_image_url} alt={s.approver_name ?? ""} className="mx-auto h-16 w-16 object-contain" />
+                    : <span className="text-gray-300">{s.approver_name ?? ""}</span>}
+                </td>
+              ))}
+              <td className="border align-middle">
+                {order.requester_inkan_url
+                  ? <img src={order.requester_inkan_url} alt={order.requester_name} className="mx-auto h-16 w-16 object-contain" />
+                  : <span className="text-gray-300">{order.requester_name}</span>}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

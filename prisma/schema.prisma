@@ -748,7 +748,24 @@ model TrayIrregularOrder {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
   items          TrayUsagePlan[]
+  steps          TrayIrregularOrderStep[]
   @@map("t_tray_irregular_orders")
+}
+
+model TrayIrregularOrderStep {
+  id               String    @id @default(cuid())
+  order_id         String
+  order            TrayIrregularOrder @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  stage            String
+  step_order       Int
+  label            String?
+  approver_user_id String?
+  approver_name    String?
+  approver_email   String?
+  status           String    @default("未承認")
+  approved_at      DateTime?
+  created_at       DateTime  @default(now())
+  @@map("t_tray_irregular_order_steps")
 }
 
 model TrayUsageSetting {

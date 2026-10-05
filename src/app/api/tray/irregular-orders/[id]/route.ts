@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSessionUser, requirePermission } from "@/lib/permissions"
 import { createAuditLog } from "@/lib/audit"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+
+const s3 = new S3Client({
+  region: "ap-northeast-1",
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
+})
+const BUCKET = "japan-sleeve-system-files-936533876784"
 
 // 取得：発注書と明細（トレイ名つき）
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,9 +20,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const order = await prisma.trayIrregularOrder.findUnique({
     where: { id },
-    include: { items: { orderBy: [{ usage_month: "asc" }, { created_at: "asc" }] } },
+    include: {
+      items: { orderBy: [{ usage_month: "asc" }, { created_at: "asc" }] },
+      steps: { orderBy: { step_order: "asc" } },
+    },
   })
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  const me = await getSessionUser()
 
   const codes = Array.from(new Set(order.items.map(i => i.rendo_tray_cd)))
   const trays = await prisma.mTray.findMany({
@@ -22,8 +35,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   })
   const nameByCode = new Map(trays.map(t => [t.rendo_tray_cd, t.name]))
 
+  // 承認済みのステップだけ、承認者の印影を表示する
+  const approvedIds = order.steps.filter(s => s.status === "承認済" && s.approver_user_id).map(s => s.approver_user_id as string)
+  const approvers = approvedIds.length > 0
+    ? await prisma.user.findMany({ where: { id: { in: approvedIds } }, select: { id: true, inkanImageKey: true } })
+    : []
+  const inkanUrlById: Record<string, string> = {}
+  for (const u of approvers) {
+    if (u.inkanImageKey) {
+      inkanUrlById[u.id] = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: u.inkanImageKey }), { expiresIn: 300 })
+    }
+  }
+  const steps = order.steps.map(s => ({
+    ...s,
+    inkan_image_url: s.status === "承認済" && s.approver_user_id ? inkanUrlById[s.approver_user_id] : undefined,
+  }))
+
+  // 申請者の印影：承認依頼後（承認依頼中・承認済）のみ表示する
+  let requesterInkanUrl: string | undefined
+  if (order.status !== "作成中" && order.requester_id) {
+    const requester = await prisma.user.findUnique({ where: { id: order.requester_id }, select: { inkanImageKey: true } })
+    if (requester?.inkanImageKey) {
+      requesterInkanUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: requester.inkanImageKey }), { expiresIn: 300 })
+    }
+  }
+
+  // ログイン中のユーザーが、次の承認者か（システム管理者は常に承認できる）
+  const nextStep = order.status === "承認依頼中" ? order.steps.find(s => s.status !== "承認済") : undefined
+  const canApprove = !!me && !!nextStep && (me.role === "ADMIN" || nextStep.approver_user_id === me.id)
+
   return NextResponse.json({
     ...order,
+    steps,
+    canApprove,
+    requester_inkan_url: requesterInkanUrl,
     items: order.items.map(i => ({ ...i, tray_name: nameByCode.get(i.rendo_tray_cd) ?? i.rendo_tray_cd })),
   })
 }

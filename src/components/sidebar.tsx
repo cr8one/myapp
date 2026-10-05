@@ -103,6 +103,7 @@ const baseMenuItems = [
     { label: "イレギュラートレイ発注", href: "/dashboard/tray/irregular-orders" },
     { label: "トレイ使用予定 承認", href: "/dashboard/tray/usage-approval" },
     { label: "使用予定 管理（購買担当）", href: "/dashboard/tray/usage-admin" },
+    { label: "トレイ承認経路マスタ", href: "/dashboard/tray/approval-routes" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
