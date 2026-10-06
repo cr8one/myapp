@@ -153,6 +153,8 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_tray_inventories", label: "トレイ棚卸データ" },
       { tableName: "t_tray_usage_plans", label: "トレイ使用予定情報" },
       { tableName: "t_tray_usage_settings", label: "トレイ使用予定 提出月設定" },
+      { tableName: "t_tray_irregular_orders", label: "イレギュラートレイ発注書" },
+      { tableName: "t_tray_irregular_order_steps", label: "イレギュラートレイ発注書 承認ステップ" },
     ],
   },
   {
