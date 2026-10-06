@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Download } from "lucide-react"
 
 type Item = { id: string; usage_month: string; rendo_tray_cd: string; tray_name: string; planned_qty: number }
 type Step = { id: string; stage: string; step_order: number; label: string | null; approver_name: string | null; status: string; inkan_image_url?: string }
@@ -158,6 +159,11 @@ export default function IrregularOrderDetailPage() {
         <div className="flex gap-2">
           {editable && <Button onClick={() => setSubmitDialog(true)} disabled={busy || order.items.length === 0}>承認依頼</Button>}
           {order.canApprove && <Button onClick={approve} disabled={busy}>承認する</Button>}
+          {order.status !== "作成中" && (
+            <a href={`/api/tray/irregular-orders/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="flex items-center gap-1"><Download className="w-3 h-3" />PDF出力</Button>
+            </a>
+          )}
           <Button variant="outline" onClick={() => router.push("/dashboard/tray/irregular-orders")}>一覧へ戻る</Button>
         </div>
       </div>
