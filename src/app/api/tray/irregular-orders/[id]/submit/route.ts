@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSessionUser, requirePermission } from "@/lib/permissions"
 import { createAuditLog } from "@/lib/audit"
+import nodemailer from "nodemailer"
 
 const SERVICE_TYPE = "tray_irregular_order"
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT ?? "465"),
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+})
 
 // 承認依頼：承認ステップを作成し、状態を「承認依頼中」にする（ステップがなければそのまま「承認済」）
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -12,6 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
+  const body = await req.json().catch(() => ({}))
+  const sendMail = (body as { send_mail?: boolean }).send_mail === true
 
   const order = await prisma.trayIrregularOrder.findUnique({ where: { id }, include: { items: { select: { id: true } } } })
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -62,6 +75,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     targetLabel: order.order_no,
     diff: { classification: "承認依頼", changedFields: [{ field: "status", label: "ステータス", before: "作成中", after: nextStatus }] },
   })
+
+  // 承認依頼メール：全ステップの承認者へ一斉送信（同じアドレスには1通のみ）。送信失敗でも承認依頼は止めない
+  if (sendMail) {
+    const seen = new Set<string>()
+    for (const s of steps) {
+      const to = s.approver_email
+      if (to === null || to === "" || seen.has(to)) continue
+      seen.add(to)
+      try {
+        await transporter.sendMail({
+          from: `Japan Sleeve <${process.env.SMTP_FROM}>`,
+          to,
+          subject: `【イレギュラートレイ発注書】承認依頼: ${order.title}`,
+          text: `${s.approver_name ?? ""} 様\n\nイレギュラートレイ発注書「${order.title}」（${order.order_no}）の承認をお願いします。\n\nhttps://japansleevesystem.com/dashboard/tray/irregular-orders/${id}`,
+        })
+      } catch (e) {
+        console.error("イレギュラートレイ発注書 承認依頼メール送信エラー:", e)
+      }
+    }
+  }
 
   return NextResponse.json({ ok: true, status: nextStatus, steps: steps.length })
 }

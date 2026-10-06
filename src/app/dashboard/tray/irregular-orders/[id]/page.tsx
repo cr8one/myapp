@@ -51,6 +51,7 @@ export default function IrregularOrderDetailPage() {
   const [typeFilter, setTypeFilter] = useState("すべて")
   const [trayQuery, setTrayQuery] = useState("")
   const [busy, setBusy] = useState(false)
+  const [submitDialog, setSubmitDialog] = useState(false)
 
   const load = async () => {
     const res = await fetch(`/api/tray/irregular-orders/${id}`)
@@ -90,10 +91,10 @@ export default function IrregularOrderDetailPage() {
     "タイトルを保存しました",
   )
 
-  const submit = () => {
-    if (!confirm("承認依頼を行います。依頼後は、明細やタイトルを編集できません。よろしいですか？")) return
+  const submit = (sendMail: boolean) => {
+    setSubmitDialog(false)
     call(
-      () => fetch(`/api/tray/irregular-orders/${id}/submit`, { method: "POST" }),
+      () => fetch(`/api/tray/irregular-orders/${id}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ send_mail: sendMail }) }),
       "承認依頼を行いました",
     )
   }
@@ -155,7 +156,7 @@ export default function IrregularOrderDetailPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-800">イレギュラートレイ発注書</h1>
         <div className="flex gap-2">
-          {editable && <Button onClick={submit} disabled={busy || order.items.length === 0}>承認依頼</Button>}
+          {editable && <Button onClick={() => setSubmitDialog(true)} disabled={busy || order.items.length === 0}>承認依頼</Button>}
           {order.canApprove && <Button onClick={approve} disabled={busy}>承認する</Button>}
           <Button variant="outline" onClick={() => router.push("/dashboard/tray/irregular-orders")}>一覧へ戻る</Button>
         </div>
@@ -281,6 +282,19 @@ export default function IrregularOrderDetailPage() {
           </tbody>
         </table>
       </div>
+      {submitDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">承認依頼の確認</h3>
+            <p className="text-sm text-gray-600 mb-4">承認依頼を行います。依頼後は、明細やタイトルを編集できません。承認者の全員に、メールで依頼を通知しますか？</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => submit(true)} disabled={busy}>送信して承認依頼する</Button>
+              <Button variant="outline" onClick={() => submit(false)} disabled={busy}>送信せず承認依頼する</Button>
+              <button onClick={() => setSubmitDialog(false)} className="text-xs text-gray-400 hover:text-gray-600 mt-1">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
