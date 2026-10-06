@@ -259,13 +259,13 @@ export default function IrregularOrderDetailPage() {
         <table className="border text-center text-xs">
           <thead>
             <tr className="bg-gray-50">
-              {order.steps.map(s => <th key={s.id} className="w-24 border px-2 py-1 font-medium">{s.label || s.stage}</th>)}
+              {[...order.steps].reverse().map(s => <th key={s.id} className="w-24 border px-2 py-1 font-medium">{s.label || s.stage}</th>)}
               <th className="w-24 border px-2 py-1 font-medium">申請者</th>
             </tr>
           </thead>
           <tbody>
             <tr className="h-24">
-              {order.steps.map(s => (
+              {[...order.steps].reverse().map(s => (
                 <td key={s.id} className="border align-middle">
                   {s.inkan_image_url
                     ? <img src={s.inkan_image_url} alt={s.approver_name ?? ""} className="mx-auto h-16 w-16 object-contain" />
