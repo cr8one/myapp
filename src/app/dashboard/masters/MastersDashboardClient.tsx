@@ -12,7 +12,7 @@ type Stats = {
 
 const cards = [
   {
-    label: "ユーザー管理",
+    label: "ユーザーマスタ",
     key: "userCount" as keyof Stats,
     href: "/dashboard/users",
     unit: "名",
@@ -138,7 +138,7 @@ export default function MastersDashboardClient({ stats }: { stats: Stats }) {
                 transform: visibleChars === fullText.length ? "translateY(0)" : "translateY(4px)",
               }}
             >
-              システム設定・ユーザー管理の概要
+              システム設定・ユーザーマスタの概要
             </p>
           </div>
         </div>

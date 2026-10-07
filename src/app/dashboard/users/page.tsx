@@ -150,6 +150,27 @@ export default function UsersPage() {
   const [approverUserId, setApproverUserId] = useState("")
 
   const [sort, setSort] = useState("org")
+
+  // 一覧⇔編集の切り替え用：「戻る」で一覧に戻れるよう履歴を1件積み、一覧のスクロール位置を覚えておく
+  const listScrollRef = useRef<number | null>(null)
+  const formHistoryRef = useRef(false)
+  const resetFormRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    const onPopState = () => {
+      if (!formHistoryRef.current) return
+      formHistoryRef.current = false
+      resetFormRef.current()
+      setShowForm(false)
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [])
+  useEffect(() => {
+    if (!showForm && listScrollRef.current !== null) {
+      window.scrollTo({ top: listScrollRef.current })
+      listScrollRef.current = null
+    }
+  }, [showForm])
   const fetchUsers = async (sortValue?: string) => {
     setFetching(true)
     const res = await fetch(`/api/users?sort=${sortValue ?? sort}`)
@@ -212,8 +233,9 @@ export default function UsersPage() {
     setPermission({ ...defaultPermission, ...(user.permission ?? {}) })
     setSelectedDepts(user.departments.map(d => ({ department_id: d.department_id, is_primary: d.is_primary })))
     setSelectedGroups(user.groups.map(g => ({ group_id: g.group_id, is_primary: g.is_primary })))
+    openFormWithHistory()
     setShowForm(true)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    window.scrollTo({ top: 0 })
   }
 
   const handleInkanUpload = async (file: File) => {
@@ -259,7 +281,7 @@ const handleInkanDelete = async () => {
       ? await fetch(`/api/users/${editUser.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       : await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
     if (!res.ok) { setError((await res.json()).error ?? "処理に失敗しました"); setLoading(false); return }
-    resetForm(); setLoading(false); fetchUsers()
+    closeForm(); setLoading(false); fetchUsers()
   }
 
   const handleDelete = async (id: string) => {
@@ -316,19 +338,45 @@ const handleInkanDelete = async () => {
     setSelectedGroups(prev => prev.map(g => ({ ...g, is_primary: g.group_id === groupId })))
   }
 
+  resetFormRef.current = resetForm
+  const openFormWithHistory = () => {
+    if (listScrollRef.current === null) listScrollRef.current = window.scrollY
+    if (!formHistoryRef.current) { history.pushState({ userForm: true }, ""); formHistoryRef.current = true }
+  }
+  const openNewForm = () => {
+    resetForm()
+    openFormWithHistory()
+    setShowForm(true)
+    window.scrollTo({ top: 0 })
+  }
+  const closeForm = () => {
+    resetForm()
+    setShowForm(false)
+    if (formHistoryRef.current) { formHistoryRef.current = false; history.back() }
+  }
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">ユーザー管理</h1>
+        <h1 className="text-2xl font-bold">ユーザーマスタ</h1>
         <div className="flex gap-2">
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={handleExport}>Excelエクスポート</Button>
-              <Button variant="outline" onClick={() => importRef.current?.click()}>Excelインポート</Button>
-              <input ref={importRef} type="file" accept=".xlsx" className="hidden" onChange={handleImport} />
-              <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
-                {showForm ? "キャンセル" : "新規登録"}
-              </Button>
+              {showForm ? (
+                <>
+                  <Button variant="outline" onClick={closeForm}>キャンセル</Button>
+                  <Button onClick={handleSubmit} disabled={loading}>
+                    {loading ? "処理中..." : editUser ? "更新する" : "登録する"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleExport}>Excelエクスポート</Button>
+                  <Button variant="outline" onClick={() => importRef.current?.click()}>Excelインポート</Button>
+                  <input ref={importRef} type="file" accept=".xlsx" className="hidden" onChange={handleImport} />
+                  <Button onClick={openNewForm}>新規登録</Button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -611,6 +659,7 @@ const handleInkanDelete = async () => {
         </Card>
       )}
 
+      {!showForm && (<>
       <div className="mb-4">
         <Input placeholder="名前・メール・部署・グループ・役職で検索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
       </div>
@@ -634,7 +683,9 @@ const handleInkanDelete = async () => {
         ))}
       </div>
 
-      {fetching ? (
+      </>)}
+
+      {showForm ? null : fetching && users.length === 0 ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : filteredUsers.length === 0 ? (
         <p className="text-center text-gray-500 py-8">{searchQuery ? "検索結果がありません" : "ユーザーが登録されていません"}</p>
