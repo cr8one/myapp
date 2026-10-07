@@ -102,6 +102,7 @@ const baseMenuItems = [
     { label: "トレイ使用予定情報（購買）", href: "/dashboard/tray/usage-plans" },
     { label: "棚卸し情報（購買）", href: "/dashboard/tray/inventory" },
     { label: "使用予定管理（購買）", href: "/dashboard/tray/usage-admin" },
+    { label: "トレイ使用予定表（購買）", href: "/dashboard/tray/usage-sheet-purchase" },
     { label: "承認経路マスタ（システム）", href: "/dashboard/tray/approval-routes" },
     { label: "トレイマスタ", href: "/dashboard/tray/tray-master" },
   ]},
