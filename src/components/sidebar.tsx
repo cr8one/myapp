@@ -95,15 +95,15 @@ const baseMenuItems = [
   { label: "製造依頼書", href: "/dashboard/manufacturing-request", icon: "manufacturing", children: [
     { label: "依頼書一覧", href: "/dashboard/manufacturing-request" },
   ]},
-  { label: "トレイ管理", href: "/dashboard/tray", icon: "tray", children: [
-    { label: "トレイ一覧", href: "/dashboard/tray" },
-    { label: "棚卸しデータ", href: "/dashboard/tray/inventory" },
+  { label: "トレイ管理", href: "/dashboard/tray/usage-sheet", icon: "tray", children: [
     { label: "トレイ使用予定表", href: "/dashboard/tray/usage-sheet" },
-    { label: "トレイ使用予定情報", href: "/dashboard/tray/usage-plans" },
     { label: "イレギュラートレイ発注", href: "/dashboard/tray/irregular-orders" },
     { label: "トレイ使用予定 承認", href: "/dashboard/tray/usage-approval" },
-    { label: "使用予定 管理（購買担当）", href: "/dashboard/tray/usage-admin" },
-    { label: "トレイ承認経路マスタ", href: "/dashboard/tray/approval-routes" },
+    { label: "トレイ使用予定情報（購買）", href: "/dashboard/tray/usage-plans" },
+    { label: "棚卸し情報（購買）", href: "/dashboard/tray/inventory" },
+    { label: "使用予定管理（購買）", href: "/dashboard/tray/usage-admin" },
+    { label: "承認経路マスタ（システム）", href: "/dashboard/tray/approval-routes" },
+    { label: "トレイマスタ", href: "/dashboard/tray/tray-master" },
   ]},
   { label: "BPMS", href: "/dashboard/bpms", icon: "bpms", children: [
     { label: "会社管理", href: "/dashboard/dev/companies" },
