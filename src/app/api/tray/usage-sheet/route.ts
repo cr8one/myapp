@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type") ?? ""
+  const maker = searchParams.get("maker") ?? ""
   const dept = searchParams.get("dept") ?? ""
   const group = searchParams.get("group") ?? ""
   const personId = searchParams.get("person_id") ?? ""
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
 
   const trays = await prisma.mTray.findMany({
     orderBy: { sort_order: "asc" },
-    select: { id: true, name: true, type: true, rendo_tray_cd: true },
+    select: { id: true, name: true, type: true, maker: true, rendo_tray_cd: true },
   })
 
   const rows = trays
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
       if (!type) return true
       return type === "その他" ? !KNOWN_TYPES.includes(t.type) : t.type === type
     })
+    .filter(t => !maker || t.maker.includes(maker))
     .map(t => {
       const s = (t.rendo_tray_cd && sums.get(t.rendo_tray_cd)) || { m1: 0, m2: 0, m3: 0, later: 0 }
       return {
