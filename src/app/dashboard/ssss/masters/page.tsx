@@ -343,7 +343,7 @@ export default function MastersPage() {
             {tab === "staffs" && (
               <div className="space-y-3">
                 <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-                  担当者の追加・削除はユーザー管理画面から行ってください。ここではSSSSフラグと各役割のソート順を設定できます。
+                  担当者の追加・削除はユーザーマスタ画面から行ってください。ここではSSSSフラグと各役割のソート順を設定できます。
                 </div>
                 {staffs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400">
