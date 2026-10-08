@@ -15,8 +15,6 @@ if [ -n "$DB_HOST" ]; then
   echo "DATABASE_URL constructed."
 fi
 echo "Running prisma migrate deploy..."
-echo "Resolving failed migration record (one-time)..."
-npx prisma migrate resolve --applied 20261008040223_add_user_division_code || true
 npx prisma migrate deploy
 echo "Migration done. Starting app..."
 exec npm start
