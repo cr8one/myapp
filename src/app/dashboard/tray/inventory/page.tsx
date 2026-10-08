@@ -31,6 +31,8 @@ export default function TrayInventoryPage() {
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importYear, setImportYear] = useState(previousMonth().slice(0, 4))
+  const [importMon, setImportMon] = useState(previousMonth().slice(4, 6))
   const [error, setError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -61,6 +63,8 @@ export default function TrayInventoryPage() {
 
   const handleImportClick = () => {
     setError("")
+    setImportYear(previousMonth().slice(0, 4))
+    setImportMon(previousMonth().slice(4, 6))
     setShowConfirm(true)
   }
 
@@ -82,7 +86,7 @@ export default function TrayInventoryPage() {
         return { rendo_tray_cd: (rendo_tray_cd ?? "").trim(), remaining_qty: parseInt((qtyStr ?? "0").trim(), 10) || 0 }
       }).filter(r => r.rendo_tray_cd)
 
-      const inventory_month = previousMonth()
+      const inventory_month = targetMonth
       const res = await fetch("/api/tray/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,7 +112,7 @@ export default function TrayInventoryPage() {
     window.open(`/api/tray/inventory/export?month=${encodeURIComponent(selectedMonth)}`, "_blank")
   }
 
-  const targetMonth = previousMonth()
+  const targetMonth = `${importYear}${importMon}`
 
   return (
     <div className="p-8">
@@ -181,6 +185,18 @@ export default function TrayInventoryPage() {
               <button onClick={() => setShowConfirm(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
               </button>
+            </div>
+            <div className="mb-3 flex items-center gap-2">
+              <select value={importYear} onChange={e => setImportYear(e.target.value)} className="rounded-md border border-gray-200 px-2 py-1.5 text-sm">
+                {Array.from({ length: 12 }, (_, i) => String(new Date().getFullYear() + 1 - i)).map(y => (
+                  <option key={y} value={y}>{y}年</option>
+                ))}
+              </select>
+              <select value={importMon} onChange={e => setImportMon(e.target.value)} className="rounded-md border border-gray-200 px-2 py-1.5 text-sm">
+                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map(m => (
+                  <option key={m} value={m}>{Number(m)}月</option>
+                ))}
+              </select>
             </div>
             <p className="text-sm text-gray-600">
               <span className="font-bold text-amber-600">{formatMonth(targetMonth)}</span>分の棚卸しデータとしてインポートします。よろしいですか？
