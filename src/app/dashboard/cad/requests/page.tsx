@@ -68,6 +68,7 @@ export default function CadRequestsPage() {
   const [requestDateTo, setRequestDateTo] = useState("")
   const [desiredDateFrom, setDesiredDateFrom] = useState("")
   const [desiredDateTo, setDesiredDateTo] = useState("")
+  const [requesterName, setRequesterName] = useState("")
   const [contentOptions, setContentOptions] = useState<string[]>([])
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -76,6 +77,7 @@ export default function CadRequestsPage() {
     kw = keyword, st = statusFilter, sm = sortMode,
     gn = genre, ct = content, cm = catMode,
     uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
+    rq = requesterName,
   ) => {
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
@@ -89,6 +91,7 @@ export default function CadRequestsPage() {
     if (rdf) params.set("requestDateFrom", rdf)
     if (rdt) params.set("requestDateTo", rdt)
     if (ddf) params.set("desiredDateFrom", ddf)
+    if (rq) params.set("requester", rq)
     if (ddt) params.set("desiredDateTo", ddt)
     params.set("page", String(p))
     return params
@@ -99,9 +102,10 @@ export default function CadRequestsPage() {
     gn = genre, ct = content, cm = catMode,
     uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
     syncUrl = true,
+    rq = requesterName,
   ) => {
     setLoading(true)
-    const params = buildQuery(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt)
+    const params = buildQuery(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, rq)
     if (syncUrl) router.replace(`/dashboard/cad/requests?${params.toString()}`)
     const res = await fetch(`/api/cad/requests?${params.toString()}`)
     const data = await res.json()
@@ -130,16 +134,17 @@ export default function CadRequestsPage() {
     const rdt = searchParams.get("requestDateTo") ?? ""
     const ddf = searchParams.get("desiredDateFrom") ?? ""
     const ddt = searchParams.get("desiredDateTo") ?? ""
+    const rq = searchParams.get("requester") ?? ""
     setPage(p); setKeyword(kw); setStatusFilter(st); setSortMode(sm)
     setGenre(gn); setContent(ct); setCatMode(cm)
-    setUidFrom(uf); setUidTo(ut); setRequestDateFrom(rdf); setRequestDateTo(rdt); setDesiredDateFrom(ddf); setDesiredDateTo(ddt)
-    fetchRecords(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, false)
+    setUidFrom(uf); setUidTo(ut); setRequestDateFrom(rdf); setRequestDateTo(rdt); setDesiredDateFrom(ddf); setDesiredDateTo(ddt); setRequesterName(rq)
+    fetchRecords(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, false, rq)
   }, [searchParams])
   const handleClear = () => {
     setKeyword(""); setGenre([]); setContent([]); setCatMode("AND")
-    setUidFrom(""); setUidTo(""); setRequestDateFrom(""); setRequestDateTo(""); setDesiredDateFrom(""); setDesiredDateTo("")
+    setUidFrom(""); setUidTo(""); setRequestDateFrom(""); setRequestDateTo(""); setDesiredDateFrom(""); setDesiredDateTo(""); setRequesterName("")
     setPage(1)
-    fetchRecords(1, "", statusFilter, sortMode, [], [], "AND", "", "", "", "", "", "")
+    fetchRecords(1, "", statusFilter, sortMode, [], [], "AND", "", "", "", "", "", "", true, "")
   }
 
   const handleSearch = () => {
@@ -444,6 +449,10 @@ export default function CadRequestsPage() {
                 className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${catMode === "OR" ? "bg-gray-800 text-white border-gray-800" : "bg-white border-gray-200 text-gray-500"}`}>OR</button>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼営業名</label>
+                <Input value={requesterName} onChange={e => setRequesterName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSearch() }} placeholder="例: 山田" className="h-8 text-sm" autoComplete="off" />
+              </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼番号（範囲）</label>
                 <div className="flex items-center gap-1">
