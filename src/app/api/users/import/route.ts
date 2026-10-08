@@ -41,6 +41,14 @@ export async function POST(request: Request) {
     if (!email) { results.errors.push("emailなし行をスキップ"); continue }
     const rowId = str(row["id"])
 
+    // 部門コード：列がない古いExcelでは更新しない（undefined）。空欄はnull。数字1〜3桁は3桁に補う
+    let divisionCode: string | null | undefined = undefined
+    if (row["divisionCode"] !== undefined) {
+      const raw = str(row["divisionCode"])
+      if (raw !== null && !/^\d{1,3}$/.test(raw)) { results.errors.push(`${email}: 部門コードは数字3桁で入力してください（${raw}）`); continue }
+      divisionCode = raw === null ? null : raw.padStart(3, "0")
+    }
+
     const permissionData = {
       specView:     isDefaultTrueUnlessZero(row["specView"]),
       specEdit:     isChecked(row["specEdit"]),
@@ -77,6 +85,7 @@ export async function POST(request: Request) {
       positionId: str(row["positionId"]),
       phone: str(row["phone"]),
       employeeNo: str(row["employeeNo"]),
+      ...(divisionCode !== undefined ? { divisionCode } : {}),
       gender: str(row["gender"]),
       employmentType: str(row["employmentType"]),
       role: row["role"] === "ADMIN" ? ("ADMIN" as const) : ("USER" as const),

@@ -8,7 +8,7 @@ const userSelect = {
   id: true, name: true, email: true,
   lastName: true, firstName: true, furiganaLastName: true, furiganaFirstName: true,
   position: true, positionId: true, positionRef: { select: { id: true, name: true, sort_order: true } },
-  phone: true, employeeNo: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true, inkanImageKey: true,
+  phone: true, employeeNo: true, divisionCode: true, gender: true, employmentType: true, role: true, createdAt: true, updatedAt: true, permission: true, inkanImageKey: true,
   departments: {
     include: { department: { select: { id: true, name: true, sort_order: true, base: { select: { id: true, name: true, sort_order: true } } } } },
   },
@@ -49,7 +49,8 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "権限がありません" }, { status: 403 })
   const body = await request.json()
-  const { lastName, firstName, furiganaLastName, furiganaFirstName, email, password, positionId, phone, employeeNo, gender, employmentType, role, permission, departments, groups } = body
+  const { lastName, firstName, furiganaLastName, furiganaFirstName, email, password, positionId, phone, employeeNo, divisionCode, gender, employmentType, role, permission, departments, groups } = body
+  if (divisionCode && !/^\d{3}$/.test(String(divisionCode))) return NextResponse.json({ error: "部門コードは数字3桁で入力してください" }, { status: 400 })
   const name = [lastName, firstName].filter(Boolean).join(" ")
   const positionMaster = positionId ? await prisma.mPosition.findUnique({ where: { id: positionId } }) : null
   const hashedPassword = await bcrypt.hash(password, 10)
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
       furiganaLastName: furiganaLastName || null, furiganaFirstName: furiganaFirstName || null,
       position: positionMaster?.name ?? null, positionId: positionId || null,
       email, password: hashedPassword,
-      phone, employeeNo: employeeNo || null, gender: gender || null, employmentType: employmentType || null,
+      phone, employeeNo: employeeNo || null, divisionCode: divisionCode || null, gender: gender || null, employmentType: employmentType || null,
       role: role ?? "USER",
       permission: {
         create: {

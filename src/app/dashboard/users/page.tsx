@@ -43,7 +43,7 @@ type User = {
   id: string; name: string; email: string
   lastName?: string; firstName?: string; furiganaLastName?: string; furiganaFirstName?: string
   position?: string; positionId?: string; positionRef?: { id: string; name: string; sort_order: number } | null
-  phone?: string; employeeNo?: string; gender?: string; employmentType?: string
+  phone?: string; employeeNo?: string; divisionCode?: string; gender?: string; employmentType?: string
   inkanImageKey?: string | null
   role: "ADMIN" | "USER"; createdAt: string
   permission?: Permission
@@ -124,6 +124,7 @@ export default function UsersPage() {
   const [positionId, setPositionId] = useState("")
   const [positions, setPositions] = useState<{ id: string; name: string; sort_order: number }[]>([])
   const [employeeNo, setEmployeeNo] = useState("")
+  const [divisionCode, setDivisionCode] = useState("")
   const [gender, setGender] = useState("")
   const [employmentType, setEmploymentType] = useState("")
   const [phone, setPhone] = useState("")
@@ -198,7 +199,7 @@ export default function UsersPage() {
 
   const resetForm = () => {
     setLastName(""); setFirstName(""); setFuriganaLastName(""); setFuriganaFirstName(""); setEmail(""); setPassword("")
-    setPositionId(""); setPhone(""); setEmployeeNo(""); setGender(""); setEmploymentType("")
+    setPositionId(""); setPhone(""); setEmployeeNo(""); setDivisionCode(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
     setApproverSettings([]); setShowApproverForm(false); setEditApprover(null)
@@ -224,6 +225,7 @@ export default function UsersPage() {
     setEmail(user.email)
     setPositionId(user.positionId ?? "")
     setEmployeeNo(user.employeeNo ?? "")
+    setDivisionCode(user.divisionCode ?? "")
     setGender(user.gender ?? "")
     setEmploymentType(user.employmentType ?? "")
     setPhone(user.phone ?? ""); setPassword(""); setRole(user.role)
@@ -269,10 +271,11 @@ const handleInkanDelete = async () => {
   }
 
   const handleSubmit = async () => {
+    if (divisionCode && !/^\d{3}$/.test(divisionCode)) { setError("部門コードは数字3桁で入力してください"); return }
     setLoading(true); setError("")
     const body = {
       lastName, firstName, furiganaLastName, furiganaFirstName,
-      email, password: password || undefined, positionId: positionId || null, phone, employeeNo, gender, employmentType, role,
+      email, password: password || undefined, positionId: positionId || null, phone, employeeNo, divisionCode, gender, employmentType, role,
       permission: role === "ADMIN" ? undefined : permission,
       departments: selectedDepts,
       groups: selectedGroups,
@@ -417,6 +420,7 @@ const handleInkanDelete = async () => {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2"><Label>社員番号</Label><Input autoComplete="off" value={employeeNo} onChange={e => setEmployeeNo(e.target.value)} /></div>
+              <div className="space-y-2"><Label>部門コード（数字3桁）</Label><Input autoComplete="off" inputMode="numeric" maxLength={3} placeholder="例: 001" value={divisionCode} onChange={e => setDivisionCode(e.target.value.replace(/\D/g, "").slice(0, 3))} /></div>
               {editUser && (
                   <div className="space-y-2">
                   <Label>印影画像</Label>
@@ -739,7 +743,8 @@ const handleInkanDelete = async () => {
                     {user.positionRef && <p>役職: {user.positionRef.name}</p>}
                     {user.phone && <p>電話: {user.phone}</p>}
                     {user.employeeNo && <p>社員番号: {user.employeeNo}</p>}
-                    {!user.positionRef && !user.phone && !user.employeeNo && <span className="text-gray-300">-</span>}
+                    {user.divisionCode && <p>部門コード: {user.divisionCode}</p>}
+                    {!user.positionRef && !user.phone && !user.employeeNo && !user.divisionCode && <span className="text-gray-300">-</span>}
                   </td>
                   <td className="px-3 py-2">
                     {user.role === "USER" && user.permission ? (

@@ -11,7 +11,7 @@ export async function GET() {
     select: {
       id: true, email: true, lastName: true, firstName: true,
       furiganaLastName: true, furiganaFirstName: true, positionId: true,
-      phone: true, employeeNo: true, gender: true, employmentType: true,
+      phone: true, employeeNo: true, divisionCode: true, gender: true, employmentType: true,
       role: true, dppMember: true, shortName: true, createdAt: true,
       permission: true,
       departments: true,
@@ -23,7 +23,7 @@ export async function GET() {
 
   const usersHeader = [
     "id", "email", "lastName", "firstName", "furiganaLastName", "furiganaFirstName",
-    "positionId", "phone", "employeeNo", "gender", "employmentType", "role",
+    "positionId", "phone", "employeeNo", "divisionCode", "gender", "employmentType", "role",
     "dppMember", "shortName",
     "specView", "specEdit", "estimateView", "estimateEdit",
     "eappView", "eappEdit", "travelView", "travelEdit",
@@ -36,7 +36,7 @@ export async function GET() {
   const usersRows = users.map((u) => [
     u.id, u.email, u.lastName ?? "", u.firstName ?? "",
     u.furiganaLastName ?? "", u.furiganaFirstName ?? "", u.positionId ?? "",
-    u.phone ?? "", u.employeeNo ?? "", u.gender ?? "", u.employmentType ?? "",
+    u.phone ?? "", u.employeeNo ?? "", u.divisionCode ?? "", u.gender ?? "", u.employmentType ?? "",
     u.role, u.dppMember ? "1" : "0", u.shortName ?? "",
     u.permission?.specView ? "1" : "0",
     u.permission?.specEdit ? "1" : "0",
