@@ -9,6 +9,25 @@ type InventoryRecord = {
   remaining_qty: number
 }
 
+// CSVの1行を項目に分ける（ダブルクォートで囲まれた項目、項目内のカンマ、"" による引用符の表記に対応）
+function parseCsvLine(line: string): string[] {
+  const out: string[] = []
+  let cur = ""
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuote) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++ } else inQuote = false
+      } else cur += ch
+    } else if (ch === '"') inQuote = true
+    else if (ch === ",") { out.push(cur); cur = "" }
+    else cur += ch
+  }
+  out.push(cur)
+  return out
+}
+
 function formatMonth(m: string) {
   if (m.length !== 6) return m
   return `${m.slice(0, 4)}年${m.slice(4, 6)}月`
@@ -79,12 +98,21 @@ export default function TrayInventoryPage() {
     setError("")
     setImporting(true)
     try {
-      const text = await file.text()
+      const text = (await file.text()).replace(/^\uFEFF/, "")
       const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0)
-      const parsed = lines.map(line => {
-        const [rendo_tray_cd, qtyStr] = line.split(",")
-        return { rendo_tray_cd: (rendo_tray_cd ?? "").trim(), remaining_qty: parseInt((qtyStr ?? "0").trim(), 10) || 0 }
-      }).filter(r => r.rendo_tray_cd)
+      const badRows: string[] = []
+      const parsed = lines.flatMap((line, idx) => {
+        const [code, q] = parseCsvLine(line)
+        const rendo_tray_cd = (code ?? "").trim()
+        if (!rendo_tray_cd) return []
+        const qs = (q ?? "").replace(/,/g, "").trim()
+        if (qs !== "" && !/^-?\d+$/.test(qs)) { badRows.push(`${idx + 1}件目（${rendo_tray_cd}）`); return [] }
+        return [{ rendo_tray_cd, remaining_qty: qs === "" ? 0 : parseInt(qs, 10) }]
+      })
+      if (badRows.length > 0) {
+        setError(`残数が数字でない行があるため、取り込みを中止しました：${badRows.slice(0, 5).join("、")}${badRows.length > 5 ? ` ほか${badRows.length - 5}件` : ""}`)
+        return
+      }
 
       const inventory_month = targetMonth
       const res = await fetch("/api/tray/inventory", {
