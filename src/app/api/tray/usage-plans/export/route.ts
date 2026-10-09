@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       ...(usageMonth ? { usage_month: usageMonth } : {}),
     },
     orderBy: [{ usage_month: "asc" }, { rendo_tray_cd: "asc" }],
+    include: { irregular_order: { select: { order_no: true } } },
   })
 
   const buf = buildXlsxWorkbook([
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
         r.temp_lock_flg ? 1 : 0,
         r.approved_flg ? 1 : 0,
         r.irregular_order_flg ? 1 : 0,
+        r.irregular_order?.order_no ?? "",
       ]),
     },
   ])

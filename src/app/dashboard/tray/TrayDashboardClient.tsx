@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Boxes, ClipboardCheck, ClipboardList, Package, SlidersHorizontal, Table, Route } from "lucide-react"
+import { Boxes, ClipboardCheck, ClipboardList, FileSpreadsheet, Package, SlidersHorizontal, Table, Route } from "lucide-react"
 
 const cards = [
   { label: "トレイ使用予定 承認", href: "/dashboard/tray/usage-approval", icon: ClipboardCheck, bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", hover: "hover:border-emerald-300" },
@@ -11,6 +11,8 @@ const cards = [
   { label: "トレイ使用予定表（購買）", href: "/dashboard/tray/usage-sheet-purchase", icon: Table, bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", hover: "hover:border-amber-300" },
   { label: "承認経路マスタ（システム）", href: "/dashboard/tray/approval-routes", icon: Route, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
   { label: "トレイマスタ", href: "/dashboard/tray/tray-master", icon: Boxes, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
+  { label: "イレギュラートレイ発注書 インポート・エクスポート（システム）", href: "/dashboard/tray/irregular-orders-migration", icon: FileSpreadsheet, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
+  { label: "トレイ使用予定情報 インポート・エクスポート（システム）", href: "/dashboard/tray/usage-plans", icon: FileSpreadsheet, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
 ]
 
 export default function TrayDashboardClient() {
@@ -112,7 +114,7 @@ export default function TrayDashboardClient() {
           const Icon = card.icon
           return (
             <Link
-              key={card.href}
+              key={card.label}
               href={card.href}
               className={`group rounded-2xl border ${card.border} ${card.hover} bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5`}
             >

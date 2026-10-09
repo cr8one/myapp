@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
     if (u.name && !userIdByName.has(u.name)) userIdByName.set(u.name, u.id)
   }
 
+  // 発注書の管理No.→ID（移行時は、IDではなく管理No.で紐づける）
+  const orders = await prisma.trayIrregularOrder.findMany({ select: { id: true, order_no: true } })
+  const orderIdByNo = new Map(orders.map(o => [o.order_no, o.id]))
+
   let created = 0
   let updated = 0
   let skipped = 0
@@ -69,6 +73,19 @@ export async function POST(req: NextRequest) {
     if (!submission_month || !usage_month || !rendo_tray_cd) {
       skipped++
       continue
+    }
+
+    // 発注書管理No.：列がない古いファイルでは紐づきに触れない。空欄は紐づきを外す。見つからない行はスキップ
+    let irregularOrderLink: { irregular_order_id: string | null } | Record<string, never> = {}
+    if ("発注書管理No." in row) {
+      const orderNo = toText(row["発注書管理No."])
+      if (orderNo === "") {
+        irregularOrderLink = { irregular_order_id: null }
+      } else {
+        const orderId = orderIdByNo.get(orderNo)
+        if (!orderId) { skipped++; continue }
+        irregularOrderLink = { irregular_order_id: orderId }
+      }
     }
 
     const personName = toText(row["使用予定者"])
@@ -86,6 +103,7 @@ export async function POST(req: NextRequest) {
       temp_lock_flg: toBool(row["仮ロック"]),
       approved_flg: toBool(row["上長承認"]),
       irregular_order_flg: toBool(row["イレギュラー発注"]),
+      ...irregularOrderLink,
     }
 
     const id = toText(row["ID"])

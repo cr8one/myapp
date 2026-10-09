@@ -12,4 +12,5 @@ export const USAGE_PLAN_HEADERS = [
   "仮ロック",
   "上長承認",
   "イレギュラー発注",
+  "発注書管理No.",
 ]
