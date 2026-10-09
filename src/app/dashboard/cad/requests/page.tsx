@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Search, ChevronLeft, ChevronRight, Download, Upload, X, CheckCircle, AlertCircle, Trash2, SlidersHorizontal } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { desiredTimeLabel } from "@/components/desired-time-input"
+import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
 type CadRequest = {
   id: string
   uid: string
@@ -69,6 +70,7 @@ export default function CadRequestsPage() {
   const [desiredDateFrom, setDesiredDateFrom] = useState("")
   const [desiredDateTo, setDesiredDateTo] = useState("")
   const [requesterName, setRequesterName] = useState("")
+  const [userOptions, setUserOptions] = useState<{ id: string; label: string; sublabel?: string; kana?: string }[]>([])
   const [contentOptions, setContentOptions] = useState<string[]>([])
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -113,6 +115,12 @@ export default function CadRequestsPage() {
     setTotal(data.total)
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetch("/api/users/list").then(r => r.json()).then((list: { id: string; name: string | null; furiganaLastName: string | null; primaryLabel: string }[]) =>
+      setUserOptions(list.filter(u => u.name).map(u => ({ id: u.id, label: u.name as string, sublabel: u.primaryLabel || undefined, kana: u.furiganaLastName ?? undefined })))
+    )
+  }, [])
 
   useEffect(() => {
     fetch("/api/cad/masters/contents").then(r => r.json()).then((list: { name: string; sort_order: number }[]) =>
@@ -451,7 +459,7 @@ export default function CadRequestsPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼営業名</label>
-                <Input value={requesterName} onChange={e => setRequesterName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSearch() }} placeholder="例: 山田" className="h-8 text-sm" autoComplete="off" />
+                <SearchAssistInput label="依頼営業名" value={requesterName} onChange={setRequesterName} options={userOptions} placeholder="入力または検索ボタンで選択" indexFilter />
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼番号（範囲）</label>
