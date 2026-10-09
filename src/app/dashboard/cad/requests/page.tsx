@@ -471,14 +471,6 @@ export default function CadRequestsPage() {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">依頼営業名</label>
-                <SearchAssistInput label="依頼営業名" value={requesterName} onChange={setRequesterName} options={userOptions} placeholder="入力または検索ボタンで選択" indexFilter />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">依頼部署</label>
-                <SearchAssistInput label="依頼部署" value={requesterDept} onChange={setRequesterDept} options={deptOptions} placeholder="入力または検索ボタンで選択" />
-              </div>
-              <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼番号（範囲）</label>
                 <div className="flex items-center gap-1">
                   <Input value={uidFrom} onChange={e => setUidFrom(e.target.value)} placeholder="以上" className="h-8 text-sm" autoComplete="off" />
@@ -486,6 +478,18 @@ export default function CadRequestsPage() {
                   <Input value={uidTo} onChange={e => setUidTo(e.target.value)} placeholder="以下" className="h-8 text-sm" autoComplete="off" />
                 </div>
               </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼部署</label>
+                <SearchAssistInput label="依頼部署" value={requesterDept} onChange={setRequesterDept} options={deptOptions} placeholder="入力または検索ボタンで選択" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼営業名</label>
+                <SearchAssistInput label="依頼営業名" value={requesterName} onChange={setRequesterName} options={userOptions} placeholder="入力または検索ボタンで選択" indexFilter />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼日（範囲）</label>
                 <div className="flex items-center gap-1">
