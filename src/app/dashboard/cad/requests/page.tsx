@@ -70,6 +70,8 @@ export default function CadRequestsPage() {
   const [desiredDateFrom, setDesiredDateFrom] = useState("")
   const [desiredDateTo, setDesiredDateTo] = useState("")
   const [requesterName, setRequesterName] = useState("")
+  const [requesterDept, setRequesterDept] = useState("")
+  const [deptOptions, setDeptOptions] = useState<{ id: string; label: string }[]>([])
   const [userOptions, setUserOptions] = useState<{ id: string; label: string; sublabel?: string; kana?: string }[]>([])
   const [contentOptions, setContentOptions] = useState<string[]>([])
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -79,7 +81,7 @@ export default function CadRequestsPage() {
     kw = keyword, st = statusFilter, sm = sortMode,
     gn = genre, ct = content, cm = catMode,
     uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
-    rq = requesterName,
+    rq = requesterName, dp = requesterDept,
   ) => {
     const params = new URLSearchParams()
     if (kw) params.set("keyword", kw)
@@ -94,6 +96,7 @@ export default function CadRequestsPage() {
     if (rdt) params.set("requestDateTo", rdt)
     if (ddf) params.set("desiredDateFrom", ddf)
     if (rq) params.set("requester", rq)
+    if (dp) params.set("department", dp)
     if (ddt) params.set("desiredDateTo", ddt)
     params.set("page", String(p))
     return params
@@ -104,10 +107,10 @@ export default function CadRequestsPage() {
     gn = genre, ct = content, cm = catMode,
     uf = uidFrom, ut = uidTo, rdf = requestDateFrom, rdt = requestDateTo, ddf = desiredDateFrom, ddt = desiredDateTo,
     syncUrl = true,
-    rq = requesterName,
+    rq = requesterName, dp = requesterDept,
   ) => {
     setLoading(true)
-    const params = buildQuery(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, rq)
+    const params = buildQuery(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, rq, dp)
     if (syncUrl) router.replace(`/dashboard/cad/requests?${params.toString()}`)
     const res = await fetch(`/api/cad/requests?${params.toString()}`)
     const data = await res.json()
@@ -115,6 +118,15 @@ export default function CadRequestsPage() {
     setTotal(data.total)
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetch("/api/masters/departments").then(r => r.json()).then((list: { id: string; name: string; groups: { id: string; name: string }[] }[]) =>
+      setDeptOptions([
+        ...list.map(d => ({ id: d.id, label: d.name })),
+        ...list.flatMap(d => d.groups.map(g => ({ id: g.id, label: `${d.name} ${g.name}` }))),
+      ])
+    )
+  }, [])
 
   useEffect(() => {
     fetch("/api/users/list").then(r => r.json()).then((list: { id: string; name: string | null; furiganaLastName: string | null; primaryLabel: string }[]) =>
@@ -143,16 +155,17 @@ export default function CadRequestsPage() {
     const ddf = searchParams.get("desiredDateFrom") ?? ""
     const ddt = searchParams.get("desiredDateTo") ?? ""
     const rq = searchParams.get("requester") ?? ""
+    const dp = searchParams.get("department") ?? ""
     setPage(p); setKeyword(kw); setStatusFilter(st); setSortMode(sm)
     setGenre(gn); setContent(ct); setCatMode(cm)
-    setUidFrom(uf); setUidTo(ut); setRequestDateFrom(rdf); setRequestDateTo(rdt); setDesiredDateFrom(ddf); setDesiredDateTo(ddt); setRequesterName(rq)
-    fetchRecords(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, false, rq)
+    setUidFrom(uf); setUidTo(ut); setRequestDateFrom(rdf); setRequestDateTo(rdt); setDesiredDateFrom(ddf); setDesiredDateTo(ddt); setRequesterName(rq); setRequesterDept(dp)
+    fetchRecords(p, kw, st, sm, gn, ct, cm, uf, ut, rdf, rdt, ddf, ddt, false, rq, dp)
   }, [searchParams])
   const handleClear = () => {
     setKeyword(""); setGenre([]); setContent([]); setCatMode("AND")
-    setUidFrom(""); setUidTo(""); setRequestDateFrom(""); setRequestDateTo(""); setDesiredDateFrom(""); setDesiredDateTo(""); setRequesterName("")
+    setUidFrom(""); setUidTo(""); setRequestDateFrom(""); setRequestDateTo(""); setDesiredDateFrom(""); setDesiredDateTo(""); setRequesterName(""); setRequesterDept("")
     setPage(1)
-    fetchRecords(1, "", statusFilter, sortMode, [], [], "AND", "", "", "", "", "", "", true, "")
+    fetchRecords(1, "", statusFilter, sortMode, [], [], "AND", "", "", "", "", "", "", true, "", "")
   }
 
   const handleSearch = () => {
@@ -460,6 +473,10 @@ export default function CadRequestsPage() {
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼営業名</label>
                 <SearchAssistInput label="依頼営業名" value={requesterName} onChange={setRequesterName} options={userOptions} placeholder="入力または検索ボタンで選択" indexFilter />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">依頼部署</label>
+                <SearchAssistInput label="依頼部署" value={requesterDept} onChange={setRequesterDept} options={deptOptions} placeholder="入力または検索ボタンで選択" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">依頼番号（範囲）</label>

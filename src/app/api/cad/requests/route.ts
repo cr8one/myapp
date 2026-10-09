@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   const desiredDateFrom = searchParams.get("desiredDateFrom")
   const desiredDateTo = searchParams.get("desiredDateTo")
   const requester = searchParams.get("requester")
+  const department = searchParams.get("department")
 
   const categoryConditions: Prisma.CadRequestWhereInput[] = []
   if (genreList.length > 0) categoryConditions.push({ genre: { in: genreList } })
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
     })
   }
   if (requester) andConditions.push({ requester_name: { contains: requester } })
+  if (department) andConditions.push({ department: { contains: department } })
   if (uidFrom || uidTo) {
     andConditions.push({
       uid: {
