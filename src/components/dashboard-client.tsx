@@ -93,7 +93,7 @@ const SERVICE_CARDS = [
   { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",              color: "text-purple-600 bg-purple-50" },
   { label: "住所録",      href: "/dashboard/address-book", icon: "addressbook", desc: "取引先・連絡先管理",          color: "text-amber-600 bg-amber-50" },
   { label: "製造依頼書",  href: "/dashboard/manufacturing-request", icon: "manufacturing", desc: "製造依頼の作成・管理",     color: "text-fuchsia-600 bg-fuchsia-50" },
-  { label: "トレイ管理",  href: "/dashboard/tray",      icon: "tray",     desc: "トレイの在庫・使用管理",          color: "text-emerald-600 bg-emerald-50" },
+  { label: "トレイ使用予定",  href: "/dashboard/tray/usage-sheet",      icon: "tray",     desc: "トレイの在庫・使用管理",          color: "text-emerald-600 bg-emerald-50" },
   { label: "BPMS",        href: "/dashboard/bpms",      icon: "bpms",     desc: "会社・案件・展示会管理",          color: "text-violet-600 bg-violet-50" },
   { label: "CAD/台紙",    href: "/dashboard/cad",       icon: "cad",      desc: "CAD・DXF・台紙データ管理",        color: "text-lime-600 bg-lime-50" },
   { label: "抜き型/図面", href: "/dashboard/dlms",      icon: "dlms",     desc: "抜き型・図面管理",                color: "text-orange-600 bg-orange-50" },
