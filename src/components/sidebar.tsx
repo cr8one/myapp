@@ -272,7 +272,7 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   }
 
   return (
-    <aside className={`${collapsed ? "w-16" : "w-56"} min-h-screen bg-white border-r transition-all duration-200 flex-shrink-0`}>
+    <aside className={`${collapsed ? "w-16" : "w-56 overflow-y-auto"} sticky top-14 self-start h-[calc(100vh-3.5rem)] bg-white border-r transition-all duration-200 flex-shrink-0`}>
       <div className="border-b">
         {collapsed ? (
           <button onClick={() => setCollapsed(c => !c)} title="サイドバーを開く"
