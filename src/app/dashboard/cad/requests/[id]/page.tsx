@@ -9,6 +9,7 @@ import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { SearchAssistInput } from "@/components/ui/searchable-select-modal"
 import { isPreviewableFile } from "@/lib/file-preview"
 import { DielineNoSearchInput } from "@/components/cad/DielineNoSearchInput"
+import { RequiredMark, RequiredLegend } from "@/components/ui/required-mark"
 
 type ChangedFieldEntry = { field: string; label: string; before: string; after: string }
 type AuditLogEntry = {
@@ -495,6 +496,11 @@ export default function CadRequestDetailPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      {editing && (
+        <div className="mb-2">
+          <RequiredLegend />
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/cad/requests")}>← 一覧</Button>
@@ -652,7 +658,7 @@ export default function CadRequestDetailPage() {
           {editing ? (
             <>
               <div className={rowCls}>
-                <label className={labelCls + " pt-0"}>依頼日</label>
+                <label className={labelCls + " pt-0"}>依頼日<RequiredMark kind="save" /></label>
                 <Input type="date" value={form.request_date} onChange={e => set("request_date", e.target.value)} className="h-8 text-sm w-40" autoComplete="off" />
               </div>
               <div className={rowCls}>
@@ -789,7 +795,7 @@ export default function CadRequestDetailPage() {
                   </div>
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>依頼営業名</label>
+                  <label className={labelCls}>依頼営業名<RequiredMark kind="save" /></label>
                   <select value={form.requester_id} onChange={e => handleUserSelect(e.target.value)}
                     className="flex-1 h-8 border rounded px-2 text-sm bg-white">
                     <option value="">-- 選択してください --</option>
@@ -807,11 +813,11 @@ export default function CadRequestDetailPage() {
                   </select>
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>タイトル</label>
+                  <label className={labelCls}>タイトル<RequiredMark kind="request" /></label>
                   <Input value={form.title} onChange={e => set("title", e.target.value)} className={inputCls} autoComplete="off" />
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>依頼内容</label>
+                  <label className={labelCls}>依頼内容<RequiredMark kind="request" /></label>
                   <div className="flex-1">
                     <AutocompleteInput
                       value={(form.content as string) || ""}
@@ -861,7 +867,7 @@ export default function CadRequestDetailPage() {
                   </div>
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>用紙</label>
+                  <label className={labelCls}>用紙<RequiredMark kind="request" /></label>
                   <div className="flex-1">
                     <SearchAssistInput
                       label="用紙"
@@ -877,12 +883,12 @@ export default function CadRequestDetailPage() {
                   </div>
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>仕上個数</label>
+                  <label className={labelCls}>仕上個数<RequiredMark kind="request" /></label>
                   <Input type="number" value={form.finish_count} onChange={e => set("finish_count", e.target.value)} className={`${inputCls} flex-1`} autoComplete="off" />
                   <Input value={form.finish_count_note} onChange={e => set("finish_count_note", e.target.value)} placeholder="備考（例：各6/2種×各8枚）" className={`${inputCls} flex-[2]`} autoComplete="off" />
                 </div>
                 <div className={rowCls}>
-                  <label className={labelCls}>希望納期</label>
+                  <label className={labelCls}>希望納期<RequiredMark kind="request" /></label>
                   <div className="flex-1 flex items-center gap-2">
                     <Input type="date" value={form.desired_date as string} onChange={e => set("desired_date", e.target.value)} className="h-8 text-sm w-36" autoComplete="off" />
                     <DesiredTimeInput
