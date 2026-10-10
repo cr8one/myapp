@@ -1,7 +1,8 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks, Mail } from "lucide-react"
+import { Plus, Pencil, Trash2, Users, FileText, ClipboardList, ListChecks, Mail, Clock } from "lucide-react"
 import { MAIL_CATEGORIES, MailCategory } from "@/lib/cad/mail-categories"
+import StandardTimeTab from "./StandardTimeTab"
 
 type CadClient = {
   id: string
@@ -42,7 +43,7 @@ const OPTION_CATEGORIES = [
 ]
 
 export default function CadMastersPage() {
-  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents" | "options" | "mail">("clients")
+  const [activeTab, setActiveTab] = useState<"clients" | "papers" | "contents" | "options" | "standardTimes" | "mail">("clients")
   const [clients, setClients] = useState<CadClient[]>([])
   const [papers, setPapers] = useState<CadPaper[]>([])
   const [contents, setContents] = useState<CadContent[]>([])
@@ -315,13 +316,21 @@ export default function CadMastersPage() {
           <ListChecks className="w-4 h-4" /> 入力候補
         </button>
         <button
+          onClick={() => setActiveTab("standardTimes")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "standardTimes" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+        >
+          <Clock className="w-4 h-4" /> 標準時間
+        </button>
+        <button
           onClick={() => setActiveTab("mail")}
           className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${activeTab === "mail" ? "border-lime-600 text-lime-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <Mail className="w-4 h-4" /> メール設定
         </button>
       </div>
-      {loading ? (
+      {activeTab === "standardTimes" ? (
+        <StandardTimeTab />
+      ) : loading ? (
         <p className="text-sm text-gray-400">読み込み中...</p>
       ) : activeTab === "clients" ? (
         <div>
