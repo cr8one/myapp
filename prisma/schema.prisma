@@ -1201,6 +1201,7 @@ model CadRequest {
 
   requester       User?     @relation(fields: [requester_id], references: [id])
   files           CadRequestFile[]
+  work_time       CadWorkTime?
 
   source_request_id String?
   source_type       String?
@@ -1321,6 +1322,7 @@ model MCadOption {
   sort_order Int      @default(0)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  standard_time MCadStandardTime?
   @@map("m_cad_options")
 }
 
@@ -1736,4 +1738,29 @@ model DbManagementNote {
 
   @@unique([tableName, fieldName])
   @@map("t_db_management_notes")
+}
+
+model MCadStandardTime {
+  id         String     @id @default(cuid())
+  option_id  String     @unique
+  min_kosei  Int?
+  min_yugata Int?
+  min_shinki Int?
+  note       String?
+  sort_order Int        @default(0)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  option     MCadOption @relation(fields: [option_id], references: [id])
+  @@map("m_cad_standard_times")
+}
+
+model CadWorkTime {
+  id               String     @id @default(cuid())
+  request_id       String     @unique
+  standard_minutes Int?
+  updated_by       String?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+  request          CadRequest @relation(fields: [request_id], references: [id])
+  @@map("t_cad_work_times")
 }

@@ -46,6 +46,8 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_daishi_db", label: "台紙DB" },
       { tableName: "t_daishi_tags", label: "台紙タグ" },
       { tableName: "t_cad_work_logs", label: "CAD作業記録" },
+      { tableName: "m_cad_standard_times", label: "CAD標準時間マスタ" },
+      { tableName: "t_cad_work_times", label: "CAD作業時間" },
     ],
   },
   {

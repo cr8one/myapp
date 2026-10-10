@@ -115,6 +115,9 @@ export default function CadRequestDetailPage() {
   const [papers, setPapers] = useState<CadPaper[]>([])
   const [trays, setTrays] = useState<TrayMaster[]>([])
   const [editing, setEditing] = useState(false)
+  const [workMinutes, setWorkMinutes] = useState("")
+  const [workMinutesSaved, setWorkMinutesSaved] = useState("")
+  const [workMinutesSaving, setWorkMinutesSaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [flgTraySpec, setFlgTraySpec] = useState(false)
@@ -188,10 +191,37 @@ export default function CadRequestDetailPage() {
     fetch("/api/cad/masters/options").then(r => r.json()).then(setOptions)
     fetch("/api/cad/masters/papers").then(r => r.json()).then(setPapers)
     fetch("/api/masters/items/trays").then(r => r.json()).then(setTrays)
+    fetch(`/api/cad/requests/${id}/work-time`).then(r => r.json()).then(d => {
+      const v = String(d.standard_minutes ?? "")
+      setWorkMinutes(v)
+      setWorkMinutesSaved(v)
+    })
   }, [id])
 
   const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
   const optionsFor = (category: string) => options.filter(o => o.category === category)
+
+  const saveWorkMinutes = async () => {
+    setWorkMinutesSaving(true)
+    try {
+      const res = await fetch(`/api/cad/requests/${id}/work-time`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ standard_minutes: workMinutes === "" ? null : Number(workMinutes) }),
+      })
+      const data = await res.json()
+      if (res.ok === false) {
+        alert(data.error ?? "作業標準時間の保存に失敗しました")
+        return
+      }
+      const v = String(data.standard_minutes ?? "")
+      setWorkMinutes(v)
+      setWorkMinutesSaved(v)
+      fetchHistory()
+    } finally {
+      setWorkMinutesSaving(false)
+    }
+  }
 
   const handleFileChange = async (fileList: FileList) => {
     setUploading(true)
@@ -579,6 +609,36 @@ export default function CadRequestDetailPage() {
                 <span className={valCls}>{record.request_time || "—"}</span>
               </div>
             </>
+          )}
+          {record.status !== "作成中" && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className={valLabelCls}>作業標準時間</span>
+              {["依頼済", "着手", "保留"].includes(record.status) ? (
+                <>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    list="work-minutes-options"
+                    value={workMinutes}
+                    onChange={e => setWorkMinutes(e.target.value)}
+                    className="h-8 text-sm w-24 text-right"
+                    autoComplete="off"
+                  />
+                  <datalist id="work-minutes-options">
+                    {[15, 20, 25, 30, 35, 60].map(m => <option key={m} value={m} />)}
+                  </datalist>
+                  <span className="text-sm text-gray-500">分</span>
+                  {workMinutes !== workMinutesSaved && (
+                    <Button size="sm" onClick={saveWorkMinutes} disabled={workMinutesSaving}>
+                      {workMinutesSaving ? "保存中..." : "保存"}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <span className={valCls}>{workMinutesSaved === "" ? "—" : `${workMinutesSaved} 分`}</span>
+              )}
+            </div>
           )}
         </div>
 
