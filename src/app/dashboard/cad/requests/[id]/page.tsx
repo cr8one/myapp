@@ -118,6 +118,11 @@ export default function CadRequestDetailPage() {
   const [workMinutes, setWorkMinutes] = useState("")
   const [workMinutesSaved, setWorkMinutesSaved] = useState("")
   const [workMinutesSaving, setWorkMinutesSaving] = useState(false)
+  const [hasMishin, setHasMishin] = useState(false)
+  const [needsPrep, setNeedsPrep] = useState(false)
+  const [extraParts, setExtraParts] = useState("0")
+  const [condSaved, setCondSaved] = useState({ has_mishin: false, needs_prep: false, extra_parts: "0" })
+  const [calc, setCalc] = useState<{ total: number | null; base: number | null; over: number; mishin: number; prep: number; extra: number; warnings: string[] } | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [flgTraySpec, setFlgTraySpec] = useState(false)
@@ -195,11 +200,68 @@ export default function CadRequestDetailPage() {
       const v = String(d.standard_minutes ?? "")
       setWorkMinutes(v)
       setWorkMinutesSaved(v)
+      const ep = String(d.extra_parts ?? 0)
+      setHasMishin(d.has_mishin === true)
+      setNeedsPrep(d.needs_prep === true)
+      setExtraParts(ep)
+      setCondSaved({ has_mishin: d.has_mishin === true, needs_prep: d.needs_prep === true, extra_parts: ep })
     })
   }, [id])
 
+  useEffect(() => {
+    if (!record) return
+    if (["依頼済", "着手", "保留"].includes(record.status) === false) {
+      setCalc(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/cad/requests/${id}/work-time`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ has_mishin: hasMishin, needs_prep: needsPrep, extra_parts: extraParts === "" ? 0 : Number(extraParts) }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (cancelled === false) setCalc(d) })
+    return () => { cancelled = true }
+  }, [id, record?.status, record?.hinmoku, record?.content, record?.finish_count, hasMishin, needsPrep, extraParts])
+
   const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
   const optionsFor = (category: string) => options.filter(o => o.category === category)
+
+  const saveConditions = async (applyTotal: boolean) => {
+    setWorkMinutesSaving(true)
+    try {
+      const payload: Record<string, unknown> = {
+        has_mishin: hasMishin,
+        needs_prep: needsPrep,
+        extra_parts: extraParts === "" ? 0 : Number(extraParts),
+      }
+      if (applyTotal && calc && calc.total !== null) {
+        payload.standard_minutes = calc.total
+      }
+      const res = await fetch(`/api/cad/requests/${id}/work-time`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok === false) {
+        alert(data.error ?? "作業時間の保存に失敗しました")
+        return
+      }
+      const v = String(data.standard_minutes ?? "")
+      const ep = String(data.extra_parts ?? 0)
+      setWorkMinutes(v)
+      setWorkMinutesSaved(v)
+      setHasMishin(data.has_mishin === true)
+      setNeedsPrep(data.needs_prep === true)
+      setExtraParts(ep)
+      setCondSaved({ has_mishin: data.has_mishin === true, needs_prep: data.needs_prep === true, extra_parts: ep })
+      fetchHistory()
+    } finally {
+      setWorkMinutesSaving(false)
+    }
+  }
 
   const saveWorkMinutes = async () => {
     setWorkMinutesSaving(true)
@@ -641,6 +703,69 @@ export default function CadRequestDetailPage() {
             </div>
           )}
         </div>
+
+        {["依頼済", "着手", "保留"].includes(record.status) && (() => {
+          const condChanged =
+            hasMishin !== condSaved.has_mishin ||
+            needsPrep !== condSaved.needs_prep ||
+            extraParts !== condSaved.extra_parts
+          const canApply =
+            calc !== null && calc.total !== null && (String(calc.total) !== workMinutesSaved || condChanged)
+          return (
+            <div className="border-b px-6 py-3 bg-gray-50 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <span className={valLabelCls}>作業時間の条件</span>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={hasMishin} onChange={e => setHasMishin(e.target.checked)} />
+                ミシン罫あり
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={needsPrep} onChange={e => setNeedsPrep(e.target.checked)} />
+                前準備（断裁・スミ切り未実施）
+              </label>
+              <label className="flex items-center gap-1.5">
+                追加パーツ
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  step={1}
+                  value={extraParts}
+                  onChange={e => setExtraParts(e.target.value)}
+                  className="h-8 text-sm w-16 text-right"
+                  autoComplete="off"
+                />
+                点
+              </label>
+              {calc && (
+                <div className="basis-full text-gray-700">
+                  <span className="font-semibold">候補：{calc.total === null ? "—" : `${calc.total} 分`}</span>
+                  <span className="ml-3 text-gray-500">
+                    基本 {calc.base ?? "—"}分 ＋ 5個目以降 {calc.over}分 ＋ ミシン罫 {calc.mishin}分 ＋ 前準備 {calc.prep}分 ＋ 追加パーツ {calc.extra}分
+                  </span>
+                </div>
+              )}
+              {calc && calc.warnings.length > 0 && (
+                <div className="basis-full text-amber-700">
+                  {calc.warnings.map(w => <div key={w}>※ {w}</div>)}
+                </div>
+              )}
+              {(condChanged || canApply) && (
+                <div className="basis-full flex gap-2">
+                  {condChanged && (
+                    <Button size="sm" variant="outline" onClick={() => saveConditions(false)} disabled={workMinutesSaving}>
+                      条件を保存
+                    </Button>
+                  )}
+                  {canApply && (
+                    <Button size="sm" onClick={() => saveConditions(true)} disabled={workMinutesSaving}>
+                      候補を作業標準時間に反映
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* 本体：2カラム */}
         <div className="grid grid-cols-2 divide-x">

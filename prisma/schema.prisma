@@ -1758,6 +1758,9 @@ model CadWorkTime {
   id               String     @id @default(cuid())
   request_id       String     @unique
   standard_minutes Int?
+  has_mishin       Boolean    @default(false)
+  needs_prep       Boolean    @default(false)
+  extra_parts      Int        @default(0)
   updated_by       String?
   created_at       DateTime   @default(now())
   updated_at       DateTime   @updatedAt
