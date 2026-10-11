@@ -125,6 +125,8 @@ export type ScheduleBlock = {
   workMinutes: number
   startAbs: number
   endAbs: number
+  machine: "main" | "sub"
+  manual: boolean
 }
 
 export type UnscheduledItem = {
@@ -134,6 +136,7 @@ export type UnscheduledItem = {
   client: string | null
   hinmoku: string | null
   status: string
+  workMinutes: number | null
   reason: string
 }
 
@@ -142,7 +145,7 @@ export function buildMainSchedule(items: ScheduleSource[]): { blocks: ScheduleBl
   const targets: (ScheduleSource & { deadlineAbs: number; workMinutes: number })[] = []
 
   for (const it of items) {
-    const base = { id: it.id, uid: it.uid, title: it.title, client: it.client, hinmoku: it.hinmoku, status: it.status }
+    const base = { id: it.id, uid: it.uid, title: it.title, client: it.client, hinmoku: it.hinmoku, status: it.status, workMinutes: it.workMinutes }
     if (it.workMinutes === null) {
       unscheduled.push({ ...base, reason: "作業標準時間が未入力" })
       continue
@@ -173,6 +176,7 @@ export function buildMainSchedule(items: ScheduleSource[]): { blocks: ScheduleBl
     blocks.push({
       id: t.id, uid: t.uid, title: t.title, client: t.client, hinmoku: t.hinmoku, status: t.status,
       workMinutes: t.workMinutes, startAbs, endAbs,
+      machine: "main", manual: false,
     })
     limit = startAbs
   }

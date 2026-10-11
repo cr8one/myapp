@@ -1202,6 +1202,7 @@ model CadRequest {
   requester       User?     @relation(fields: [requester_id], references: [id])
   files           CadRequestFile[]
   work_time       CadWorkTime?
+  schedule_placement CadSchedulePlacement?
 
   source_request_id String?
   source_type       String?
@@ -1766,4 +1767,15 @@ model CadWorkTime {
   updated_at       DateTime   @updatedAt
   request          CadRequest @relation(fields: [request_id], references: [id])
   @@map("t_cad_work_times")
+}
+
+model CadSchedulePlacement {
+  id         String     @id @default(cuid())
+  request_id String     @unique
+  machine    String
+  start_abs  Int
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  request    CadRequest @relation(fields: [request_id], references: [id])
+  @@map("t_cad_schedule_placements")
 }
