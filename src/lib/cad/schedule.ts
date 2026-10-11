@@ -168,8 +168,8 @@ export function buildMainSchedule(items: ScheduleSource[]): { blocks: ScheduleBl
   const blocks: ScheduleBlock[] = []
   let limit = Number.POSITIVE_INFINITY
   for (const t of targets) {
-    const endAbs = snapBackToWork(Math.min(t.deadlineAbs, limit))
-    const startAbs = subtractWorkMinutes(endAbs, t.workMinutes)
+    const endAbs = Math.min(t.deadlineAbs, limit)
+    const startAbs = endAbs - t.workMinutes
     blocks.push({
       id: t.id, uid: t.uid, title: t.title, client: t.client, hinmoku: t.hinmoku, status: t.status,
       workMinutes: t.workMinutes, startAbs, endAbs,
