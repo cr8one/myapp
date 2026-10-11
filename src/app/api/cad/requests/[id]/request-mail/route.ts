@@ -35,6 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!record.paper) errors.push("用紙")
   if (record.finish_count == null) errors.push("仕上個数")
   if (!record.desired_date) errors.push("希望納期日")
+  if (!record.desired_time_kbn) errors.push("希望納期の区分（時刻指定・AM・PM・中）")
   if (errors.length > 0) {
     return NextResponse.json({ error: `以下の項目が未入力です: ${errors.join("、")}` }, { status: 400 })
   }
