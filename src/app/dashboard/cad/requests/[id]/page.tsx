@@ -443,6 +443,7 @@ export default function CadRequestDetailPage() {
     if (record.finish_count == null) errors.push("仕上個数")
     if (!record.desired_date) errors.push("希望納期日")
     if (!record.desired_time_kbn) errors.push("希望納期の区分（時刻指定・AM・PM・中）")
+    if (record.desired_time_kbn === 1 && !record.desired_time) errors.push("希望納期の時刻")
     if (errors.length > 0) {
       alert(`以下の必須項目が未入力です:\n${errors.join("、")}`)
       return
