@@ -84,6 +84,23 @@ export function subtractWorkMinutes(endAbs: number, workMinutes: number): number
   return cursor
 }
 
+export function snapBackToWork(abs: number): number {
+  let dayNumber = fromAbsoluteMinutes(abs).dayNumber
+  let cursor = abs
+  let guard = 0
+  while (guard < 400) {
+    guard += 1
+    const segments = workSegmentsOfDay(dayNumber)
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i]
+      if (cursor > seg.start) return Math.min(cursor, seg.end)
+    }
+    dayNumber -= 1
+    cursor = toAbsoluteMinutes(dayNumber, DAY_MIN)
+  }
+  return abs
+}
+
 export type ScheduleSource = {
   id: string
   uid: string
@@ -151,7 +168,7 @@ export function buildMainSchedule(items: ScheduleSource[]): { blocks: ScheduleBl
   const blocks: ScheduleBlock[] = []
   let limit = Number.POSITIVE_INFINITY
   for (const t of targets) {
-    const endAbs = Math.min(t.deadlineAbs, limit)
+    const endAbs = snapBackToWork(Math.min(t.deadlineAbs, limit))
     const startAbs = subtractWorkMinutes(endAbs, t.workMinutes)
     blocks.push({
       id: t.id, uid: t.uid, title: t.title, client: t.client, hinmoku: t.hinmoku, status: t.status,

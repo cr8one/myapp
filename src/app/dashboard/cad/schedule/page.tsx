@@ -16,12 +16,15 @@ import {
 
 const WIN_START = 8 * 60
 const WIN_END = 24 * 60
-const PX_PER_MIN = 0.6
-const DAY_W = (WIN_END - WIN_START) * PX_PER_MIN
 const LABEL_W = 160
 const ROW_H = 64
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"]
 const HOUR_LABELS = [9, 12, 15, 18, 21]
+const SCALES = [
+  { label: "小", pxPerMin: 0.6 },
+  { label: "中", pxPerMin: 1.2 },
+  { label: "大", pxPerMin: 2.4 },
+]
 
 const BLOCK_STYLE: Record<string, string> = {
   "依頼済": "bg-blue-200 border-blue-400 text-blue-900",
@@ -47,6 +50,7 @@ export default function CadSchedulePage() {
   const [unscheduled, setUnscheduled] = useState<UnscheduledItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [scaleIndex, setScaleIndex] = useState(1)
 
   useEffect(() => {
     fetch("/api/cad/schedule")
@@ -64,6 +68,9 @@ export default function CadSchedulePage() {
 
   if (loading) return <div className="p-8"><p className="text-sm text-gray-400">読み込み中...</p></div>
   if (error !== "") return <div className="p-8"><p className="text-sm text-red-600">{error}</p></div>
+
+  const PX_PER_MIN = SCALES[scaleIndex].pxPerMin
+  const DAY_W = (WIN_END - WIN_START) * PX_PER_MIN
 
   const today = todayDayNumber()
   let firstDay = today
@@ -111,6 +118,19 @@ export default function CadSchedulePage() {
       <p className="text-sm text-gray-500 mb-4">
         作業標準時間をブロックの幅として、希望納期から後ろへ積んでいます（現在は表示のみ）。灰色は稼働時間外です。
       </p>
+
+      <div className="flex items-center gap-2 mb-3 text-sm">
+        <span className="text-gray-500">表示の大きさ</span>
+        {SCALES.map((s, i) => (
+          <button
+            key={s.label}
+            onClick={() => setScaleIndex(i)}
+            className={`h-8 px-3 rounded border text-sm ${i === scaleIndex ? "bg-lime-600 border-lime-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
 
       <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
         <div style={{ width: LABEL_W + totalW }}>
