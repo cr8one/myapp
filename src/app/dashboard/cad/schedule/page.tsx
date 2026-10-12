@@ -4,15 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  BREAK_END_MIN,
-  BREAK_START_MIN,
-  WORK_END_MIN,
-  WORK_START_MIN,
   dayNumberToDateKey,
   fromAbsoluteMinutes,
-  isWorkingDay,
+  resolveDayHours,
+  type DayOverrideLite,
   type ScheduleBlock,
   type UnscheduledItem,
+  type WorkRuleLite,
 } from "@/lib/cad/schedule"
 
 const WIN_START = 8 * 60
@@ -58,6 +56,8 @@ export default function CadSchedulePage() {
   const router = useRouter()
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([])
   const [unscheduled, setUnscheduled] = useState<UnscheduledItem[]>([])
+  const [rules, setRules] = useState<WorkRuleLite[]>([])
+  const [overrides, setOverrides] = useState<DayOverrideLite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [scaleIndex, setScaleIndex] = useState(1)
@@ -68,11 +68,17 @@ export default function CadSchedulePage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/cad/schedule")
-      if (res.ok === false) throw new Error("読み込みに失敗しました")
-      const d = (await res.json()) as { blocks: ScheduleBlock[]; unscheduled: UnscheduledItem[] }
+      const [sRes, rRes, oRes] = await Promise.all([
+        fetch("/api/cad/schedule"),
+        fetch("/api/cad/masters/work-rules"),
+        fetch("/api/cad/schedule/day-overrides"),
+      ])
+      if (sRes.ok === false) throw new Error("読み込みに失敗しました")
+      const d = (await sRes.json()) as { blocks: ScheduleBlock[]; unscheduled: UnscheduledItem[] }
       setBlocks(d.blocks)
       setUnscheduled(d.unscheduled)
+      setRules(rRes.ok ? ((await rRes.json()) as WorkRuleLite[]) : [])
+      setOverrides(oRes.ok ? ((await oRes.json()) as DayOverrideLite[]) : [])
       setError("")
     } catch (e) {
       setError(e instanceof Error ? e.message : "読み込みに失敗しました")
@@ -199,18 +205,21 @@ export default function CadSchedulePage() {
     document.body.style.userSelect = "none"
   }
 
-  const renderBackground = () => (
+  const renderBackground = (machine: Machine) => (
     <>
       {days.map((d, i) => {
         const left = i * DAY_W
-        if (isWorkingDay(d) === false) {
+        const h = resolveDayHours(machine, d, rules, overrides)
+        if (h.off) {
           return <div key={d} className="absolute top-0 bottom-0 bg-gray-200" style={{ left, width: DAY_W }} />
         }
         return (
           <div key={d} className="absolute top-0 bottom-0" style={{ left, width: DAY_W }}>
-            <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: 0, width: mx(WORK_START_MIN) }} />
-            <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: mx(BREAK_START_MIN), width: (BREAK_END_MIN - BREAK_START_MIN) * PX_PER_MIN }} />
-            <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: mx(WORK_END_MIN), width: DAY_W - mx(WORK_END_MIN) }} />
+            <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: 0, width: Math.max(mx(h.start), 0) }} />
+            {h.breakStart !== null && h.breakEnd !== null && (
+              <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: mx(h.breakStart), width: (h.breakEnd - h.breakStart) * PX_PER_MIN }} />
+            )}
+            <div className="absolute top-0 bottom-0 bg-gray-100" style={{ left: mx(h.end), width: Math.max(DAY_W - mx(h.end), 0) }} />
           </div>
         )
       })}
@@ -248,7 +257,7 @@ export default function CadSchedulePage() {
 
   const renderRow = (machine: Machine, rowRef: React.Ref<HTMLDivElement>) => (
     <div className="relative" ref={rowRef} style={{ width: totalW, height: ROW_H }}>
-      {renderBackground()}
+      {renderBackground(machine)}
       {blocks.filter(b => b.machine === machine).map(renderBlock)}
       {drag !== null && drag.moved && drag.target !== null && drag.target.machine === machine && (
         <div
@@ -267,7 +276,7 @@ export default function CadSchedulePage() {
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-2">CAD作業予定</h1>
       <p className="text-sm text-gray-500 mb-4">
-        希望納期から後ろへ積んだ仮置きです。ブロックをドラッグして、メイン機・サブ機の好きな時刻へ動かせます。手で置いたブロック（太い枠）は固定され、自動配置では動きません。灰色は稼働時間外の目安です。
+        希望納期から後ろへ積んだ仮置きです。ブロックをドラッグして、メイン機・サブ機の好きな時刻へ動かせます。手で置いたブロック（太い枠）は固定され、自動配置では動きません。灰色は稼働時間外の目安で、CAD/台紙マスタの「稼働時間」で設定できます。
       </p>
 
       <div className="flex items-center gap-2 mb-3 text-sm">

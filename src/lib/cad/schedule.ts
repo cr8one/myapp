@@ -101,6 +101,71 @@ export function snapBackToWork(abs: number): number {
   return abs
 }
 
+export type WorkRuleLite = {
+  machine: string
+  valid_from: string
+  valid_to: string | null
+  start_min: number
+  end_min: number
+  break_start: number | null
+  break_end: number | null
+  working_days: string
+}
+
+export type DayOverrideLite = {
+  machine: string
+  date: string
+  is_off: boolean
+  start_min: number | null
+  end_min: number | null
+  break_start: number | null
+  break_end: number | null
+}
+
+export type DayHours = {
+  off: boolean
+  start: number
+  end: number
+  breakStart: number | null
+  breakEnd: number | null
+}
+
+export function resolveDayHours(
+  machine: string,
+  dayNumber: number,
+  rules: WorkRuleLite[],
+  overrides: DayOverrideLite[],
+): DayHours {
+  const dateKey = dayNumberToDateKey(dayNumber)
+  const dow = new Date(dayNumber * DAY_MS).getUTCDay()
+
+  const ov = overrides.find(o => o.machine === machine && o.date === dateKey)
+  if (ov) {
+    if (ov.is_off || ov.start_min === null || ov.end_min === null) {
+      return { off: true, start: WORK_START_MIN, end: WORK_END_MIN, breakStart: null, breakEnd: null }
+    }
+    return { off: false, start: ov.start_min, end: ov.end_min, breakStart: ov.break_start, breakEnd: ov.break_end }
+  }
+
+  const matched = rules
+    .filter(r => r.machine === machine && r.valid_from <= dateKey && (r.valid_to === null || dateKey <= r.valid_to))
+    .sort((a, b) => (a.valid_from < b.valid_from ? 1 : a.valid_from > b.valid_from ? -1 : 0))[0]
+  if (matched) {
+    if (matched.working_days[dow] !== "1") {
+      return { off: true, start: matched.start_min, end: matched.end_min, breakStart: matched.break_start, breakEnd: matched.break_end }
+    }
+    return { off: false, start: matched.start_min, end: matched.end_min, breakStart: matched.break_start, breakEnd: matched.break_end }
+  }
+
+  return {
+    off: isWorkingDay(dayNumber) === false,
+    start: WORK_START_MIN,
+    end: WORK_END_MIN,
+    breakStart: BREAK_START_MIN,
+    breakEnd: BREAK_END_MIN,
+  }
+}
+
 export type ScheduleSource = {
   id: string
   uid: string

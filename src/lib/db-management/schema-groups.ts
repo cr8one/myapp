@@ -49,6 +49,8 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "m_cad_standard_times", label: "CAD標準時間マスタ" },
       { tableName: "t_cad_work_times", label: "CAD作業時間" },
       { tableName: "t_cad_schedule_placements", label: "CAD作業予定の配置" },
+      { tableName: "m_cad_work_rules", label: "CAD稼働ルールマスタ" },
+      { tableName: "t_cad_work_day_overrides", label: "CAD稼働日の個別変更" },
     ],
   },
   {

@@ -1779,3 +1779,34 @@ model CadSchedulePlacement {
   request    CadRequest @relation(fields: [request_id], references: [id])
   @@map("t_cad_schedule_placements")
 }
+
+model CadWorkRule {
+  id            String   @id @default(cuid())
+  machine       String
+  valid_from    String
+  valid_to      String?
+  start_min     Int
+  end_min       Int
+  break_start   Int?
+  break_end     Int?
+  working_days  String   @default("0111110")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  @@index([machine, valid_from])
+  @@map("m_cad_work_rules")
+}
+
+model CadWorkDayOverride {
+  id          String   @id @default(cuid())
+  machine     String
+  date        String
+  is_off      Boolean  @default(false)
+  start_min   Int?
+  end_min     Int?
+  break_start Int?
+  break_end   Int?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  @@unique([machine, date])
+  @@map("t_cad_work_day_overrides")
+}
