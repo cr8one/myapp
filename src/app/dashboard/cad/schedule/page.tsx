@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import DayOverrideDialog from "./DayOverrideDialog"
 import {
   dayNumberToDateKey,
   fromAbsoluteMinutes,
@@ -63,6 +64,7 @@ export default function CadSchedulePage() {
   const [scaleIndex, setScaleIndex] = useState(1)
   const [drag, setDrag] = useState<DragView | null>(null)
   const [saving, setSaving] = useState(false)
+  const [dialogDay, setDialogDay] = useState<number | null>(null)
   const mainRowRef = useRef<HTMLDivElement>(null)
   const subRowRef = useRef<HTMLDivElement>(null)
 
@@ -303,9 +305,13 @@ export default function CadSchedulePage() {
                 const [, m, dd] = dayNumberToDateKey(d).split("-")
                 return (
                   <div key={d} className="absolute top-0 bottom-0 border-l border-gray-300" style={{ left: i * DAY_W, width: DAY_W }}>
-                    <div className={`px-2 text-xs font-medium ${d === today ? "text-lime-700" : "text-gray-600"}`}>
+                    <button
+                      onClick={() => setDialogDay(d)}
+                      title="この日の稼働時間を変更"
+                      className={`px-2 text-xs font-medium hover:underline ${d === today ? "text-lime-700" : "text-gray-600"}`}
+                    >
                       {Number(m)}/{Number(dd)}（{WEEKDAYS[dow]}）{d === today ? " 今日" : ""}
-                    </div>
+                    </button>
                     {HOUR_LABELS.map(h => (
                       <span key={h} className="absolute text-[10px] text-gray-400" style={{ left: mx(h * 60), top: 24 }}>{h}:00</span>
                     ))}
@@ -391,6 +397,16 @@ export default function CadSchedulePage() {
           </div>
         )}
       </div>
+
+      {dialogDay !== null && (
+        <DayOverrideDialog
+          dayNumber={dialogDay}
+          rules={rules}
+          overrides={overrides}
+          onClose={() => setDialogDay(null)}
+          onSaved={load}
+        />
+      )}
 
       {drag !== null && drag.moved && (
         <div
