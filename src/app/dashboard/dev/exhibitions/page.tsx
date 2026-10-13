@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import JSZip from "jszip"
 type DevExhibition = {
   id: string
@@ -164,45 +163,71 @@ export default function DevExhibitionsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="space-y-3">
-        {fetching ? (
-          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">
-            {searchQuery ? "検索結果がありません" : "展示会が登録されていません"}
-          </p>
-        ) : filtered.map((exhibition) => (
-          <Card
-            key={exhibition.id}
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => router.push(`/dashboard/dev/exhibitions/${exhibition.id}`)}
-          >
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="font-bold text-lg">{exhibition.name}</p>
-                  <div className="flex gap-4 mt-1 text-sm text-gray-500">
-                    {exhibition.location && <span>場所: {exhibition.location}</span>}
-                    {(exhibition.startDate || exhibition.endDate) && (
-                      <span>期間: {formatDate(exhibition.startDate)} 〜 {formatDate(exhibition.endDate)}</span>
-                    )}
-                  </div>
-                  {exhibition.visitors.length > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">来場者: {exhibition.visitors.map((v) => v.user.name).join("、")}</p>
-                  )}
-                  {exhibition.contacts.length > 0 && (
-                    <p className="text-sm text-gray-500">接触会社: {exhibition.contacts.map((c) => c.company.name).join("、")}</p>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/dev/exhibitions/${exhibition.id}`)}>詳細</Button>
-                  <Button variant="destructive" size="sm" onClick={(e) => handleDelete(exhibition.id, e)}>削除</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {fetching ? (
+        <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">
+          {searchQuery ? "検索結果がありません" : "展示会が登録されていません"}
+        </p>
+      ) : (
+        <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
+          <table className="w-full table-fixed text-sm min-w-[900px]">
+            <colgroup>
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "14%" }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                <th className="px-3 py-2 text-left font-medium">展示会名</th>
+                <th className="px-3 py-2 text-left font-medium">場所</th>
+                <th className="px-3 py-2 text-left font-medium">期間</th>
+                <th className="px-3 py-2 text-left font-medium">来場者</th>
+                <th className="px-3 py-2 text-left font-medium">接触会社</th>
+                <th className="px-3 py-2 text-right font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((exhibition) => (
+                <tr
+                  key={exhibition.id}
+                  className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/dashboard/dev/exhibitions/${exhibition.id}`)}
+                >
+                  <td className="px-3 py-2 font-bold text-gray-800">{exhibition.name}</td>
+                  <td className="px-3 py-2 text-gray-600">
+                    {exhibition.location || <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {(exhibition.startDate || exhibition.endDate) ? (
+                      <span>{formatDate(exhibition.startDate)} 〜 {formatDate(exhibition.endDate)}</span>
+                    ) : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {exhibition.visitors.length > 0
+                      ? exhibition.visitors.map((v) => v.user.name).join("、")
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {exhibition.contacts.length > 0
+                      ? exhibition.contacts.map((c) => c.company.name).join("、")
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/dev/exhibitions/${exhibition.id}`)}>詳細</Button>
+                      <Button variant="destructive" size="sm" onClick={(e) => handleDelete(exhibition.id, e)}>削除</Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

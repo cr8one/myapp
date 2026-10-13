@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -56,6 +57,7 @@ function parseCsv(text: string): Record<string, string>[] {
   })
 }
 export default function DevProjectsPage() {
+  const router = useRouter()
   const [projects, setProjects] = useState<DevProject[]>([])
   const [allCompanies, setAllCompanies] = useState<DevCompany[]>([])
   const [fetching, setFetching] = useState(true)
@@ -281,37 +283,76 @@ export default function DevProjectsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="space-y-4">
-        {fetching ? (
-          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">
-            {searchQuery ? "検索結果がありません" : "案件が登録されていません"}
-          </p>
-        ) : filtered.map((project) => (
-          <Card key={project.id}>
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <a href={`/dashboard/dev/projects/${project.id}`} className="font-bold hover:underline text-blue-700">{project.title}</a>
+      {fetching ? (
+        <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">
+          {searchQuery ? "検索結果がありません" : "案件が登録されていません"}
+        </p>
+      ) : (
+        <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
+          <table className="w-full table-fixed text-sm min-w-[900px]">
+            <colgroup>
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                <th className="px-3 py-2 text-left font-medium">案件名</th>
+                <th className="px-3 py-2 text-left font-medium">ステータス</th>
+                <th className="px-3 py-2 text-left font-medium">主担当</th>
+                <th className="px-3 py-2 text-left font-medium">関連会社</th>
+                <th className="px-3 py-2 text-left font-medium">受注予定</th>
+                <th className="px-3 py-2 text-left font-medium">内容</th>
+                <th className="px-3 py-2 text-right font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((project) => (
+                <tr
+                  key={project.id}
+                  className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/dashboard/dev/projects/${project.id}`)}
+                >
+                  <td className="px-3 py-2 font-bold text-gray-800">{project.title}</td>
+                  <td className="px-3 py-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(project.status)}`}>{project.status}</span>
-                  </div>
-                  {project.primaryCompany && <p className="text-sm text-gray-500">主担当: {project.primaryCompany.name}</p>}
-                  {project.companies.length > 0 && <p className="text-sm text-gray-500">関連会社: {project.companies.map((c) => c.company.name).join("、")}</p>}
-                  {project.expectedOrderDate && <p className="text-sm text-gray-500">受注予定: {new Date(project.expectedOrderDate).toLocaleDateString("ja-JP")}</p>}
-                  {project.description && <p className="text-sm text-gray-500">内容: {project.description}</p>}
-                  {project.notes && <p className="text-sm text-gray-500">備考: {project.notes}</p>}
-                </div>
-                <div className="flex gap-2 ml-4">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(project)}>編集</Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(project.id)}>削除</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  </td>
+                  <td className="px-3 py-2 text-gray-600">
+                    {project.primaryCompany ? project.primaryCompany.name : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {project.companies.length > 0
+                      ? project.companies.map((c) => c.company.name).join("、")
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {project.expectedOrderDate
+                      ? new Date(project.expectedOrderDate).toLocaleDateString("ja-JP")
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {project.description
+                      ? <div className="truncate" title={project.description}>{project.description}</div>
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(project)}>編集</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(project.id)}>削除</Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
