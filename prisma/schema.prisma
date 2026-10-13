@@ -1810,3 +1810,10 @@ model CadWorkDayOverride {
   @@unique([machine, date])
   @@map("t_cad_work_day_overrides")
 }
+
+model MobileServiceSetting {
+  serviceKey String   @id @map("service_key")
+  enabled    Boolean  @default(false)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  @@map("m_mobile_service_settings")
+}

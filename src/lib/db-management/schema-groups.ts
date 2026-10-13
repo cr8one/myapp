@@ -196,6 +196,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "login_logs", label: "ログイン履歴" },
       { tableName: "audit_logs", label: "修正履歴" },
       { tableName: "t_db_management_notes", label: "DB管理備考（内部）" },
+      { tableName: "m_mobile_service_settings", label: "携帯表示サービス設定" },
     ],
   },
 ]

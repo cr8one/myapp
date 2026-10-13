@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { getMobileEnabledServices } from "@/lib/mobile-services"
 import DashboardClient from "@/components/dashboard-client"
 export default async function DashboardPage() {
   const session = await auth()
@@ -20,12 +21,14 @@ export default async function DashboardPage() {
   const permission = isAdmin ? null : await prisma.userPermission.findUnique({
     where: { userId: session.user.id },
   })
+  const mobileServices = await getMobileEnabledServices()
   return (
     <DashboardClient
       userName={session.user?.name ?? session.user?.email ?? ""}
       isAdmin={isAdmin}
       announcements={announcements}
       permission={permission}
+      mobileServices={mobileServices}
     />
   )
 }

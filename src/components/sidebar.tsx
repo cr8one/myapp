@@ -46,14 +46,14 @@ function TrayIcon({ className }: { className?: string }) {
   )
 }
 
-type Permission = {
+export type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
   manufacturingView: boolean; trayView: boolean; addressBookView: boolean
 } | null
 
-const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
+export const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView", addressbook: "addressBookView",
   travel: "travelView", sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
@@ -61,7 +61,7 @@ const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   manufacturing: "manufacturingView", tray: "trayView",
 }
 
-const baseMenuItems = [
+export const baseMenuItems = [
   { label: "ダッシュボード", href: "/dashboard", icon: "dashboard" },
   { label: "仕様書", icon: "spec", children: [
     { label: "仕様一覧", href: "/dashboard/products" },
@@ -169,7 +169,7 @@ const adminMenuItems = [
   ]},
 ]
 
-function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
+export function MenuIcon({ icon, className }: { icon?: string; className?: string }) {
   if (icon === "dashboard") return <Gauge className={className} />
   if (icon === "spec")      return <ScrollText className={className} />
   if (icon === "estimate")  return <JapaneseYen className={className} />

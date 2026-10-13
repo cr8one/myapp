@@ -24,7 +24,7 @@ type Permission = {
 } | null
 type Props = {
   userName: string; isAdmin: boolean
-  announcements: Announcement[]; permission: Permission
+  announcements: Announcement[]; permission: Permission; mobileServices: string[]
 }
 
 const CATEGORIES = ["メンテナンス", "リリース", "お知らせ"]
@@ -128,7 +128,7 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
 type FormData = { title: string; content: string; category: string; publishedAt: string }
 const emptyForm: FormData = { title: "", content: "", category: "", publishedAt: "" }
 
-export default function DashboardClient({ userName, isAdmin, announcements: initial, permission }: Props) {
+export default function DashboardClient({ userName, isAdmin, announcements: initial, permission, mobileServices }: Props) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initial)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Announcement | null>(null)
@@ -234,6 +234,7 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
           {SERVICE_CARDS.map(m => {
             if (m.icon === "system" && !isAdmin) return null
             const viewable = canView(m.icon)
+            const mobileOk = mobileServices.includes(m.icon)
             if (!viewable) {
               return (
                 <div key={m.href} className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-40 cursor-not-allowed select-none">
@@ -242,6 +243,27 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
                   </div>
                   <p className="text-sm font-semibold text-gray-400">{m.label}</p>
                   <p className="text-xs text-gray-300 mt-0.5">{m.desc}</p>
+                </div>
+              )
+            }
+            if (mobileOk === false) {
+              return (
+                <div key={m.href} className="contents">
+                  <Link href={m.href} className="hidden md:block bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-gray-300 transition-all group">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${m.color}`}>
+                      <ServiceIcon icon={m.icon} className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{m.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{m.desc}</p>
+                  </Link>
+                  <div className="md:hidden bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-40 cursor-not-allowed select-none">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 bg-gray-100">
+                      <ServiceIcon icon={m.icon} className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-400">{m.label}</p>
+                    <p className="text-xs text-gray-300 mt-0.5">{m.desc}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">PC版のみ</p>
+                  </div>
                 </div>
               )
             }
