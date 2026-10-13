@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import JSZip from "jszip"
 type Contact = { id: string; name: string; isPrimary: boolean }
@@ -181,56 +180,85 @@ export default function DevCompaniesPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="space-y-3">
-        {fetching ? (
-          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">
-            {searchQuery ? "検索結果がありません" : "会社が登録されていません"}
-          </p>
-        ) : filtered.map((company) => {
-          const primaryContact = company.contacts.find((c) => c.isPrimary)
-          return (
-            <Card
-              key={company.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => router.push(`/dashboard/dev/companies/${company.id}`)}
-            >
-              <CardContent className="pt-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold text-lg">{company.name}</p>
+      {fetching ? (
+        <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">
+          {searchQuery ? "検索結果がありません" : "会社が登録されていません"}
+        </p>
+      ) : (
+        <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
+          <table className="w-full table-fixed text-sm min-w-[900px]">
+            <colgroup>
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "14%" }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                <th className="px-3 py-2 text-left font-medium">会社名</th>
+                <th className="px-3 py-2 text-left font-medium">ステータス</th>
+                <th className="px-3 py-2 text-left font-medium">業種</th>
+                <th className="px-3 py-2 text-left font-medium">主担当</th>
+                <th className="px-3 py-2 text-left font-medium">TEL</th>
+                <th className="px-3 py-2 text-left font-medium">取扱種別</th>
+                <th className="px-3 py-2 text-right font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((company) => {
+                const primaryContact = company.contacts.find((c) => c.isPrimary)
+                return (
+                  <tr
+                    key={company.id}
+                    className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/dev/companies/${company.id}`)}
+                  >
+                    <td className="px-3 py-2">
+                      <div className="font-bold text-gray-800">{company.name}</div>
+                      {company.nameKana && <div className="text-xs text-gray-400">{company.nameKana}</div>}
+                    </td>
+                    <td className="px-3 py-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[company.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {company.status}
                       </span>
-                    </div>
-                    {company.nameKana && <p className="text-sm text-gray-500">{company.nameKana}</p>}
-                    <div className="flex gap-4 mt-1 text-sm text-gray-500">
-                      {company.industry && <span>業種: {company.industry}</span>}
-                      {primaryContact && <span>主担当: {primaryContact.name}</span>}
-                      {company.phone && <span>TEL: {company.phone}</span>}
-                    </div>
-                    {company.types.length > 0 && (
-                      <div className="flex gap-1 mt-2 flex-wrap">
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {company.industry || <span className="text-gray-300">-</span>}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {primaryContact ? primaryContact.name : <span className="text-gray-300">-</span>}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {company.phone || <span className="text-gray-300">-</span>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 flex-wrap">
                         {company.types.map((t) => (
                           <Badge key={t.typeMaster.id} variant="secondary" className="text-xs">
                             {t.typeMaster.name}
                           </Badge>
                         ))}
+                        {company.types.length === 0 && <span className="text-xs text-gray-300">-</span>}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/dev/companies/${company.id}`)}>詳細</Button>
-                    <Button variant="destructive" size="sm" onClick={(e) => handleDelete(company.id, e)}>削除</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/dev/companies/${company.id}`)}>詳細</Button>
+                        <Button variant="destructive" size="sm" onClick={(e) => handleDelete(company.id, e)}>削除</Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
