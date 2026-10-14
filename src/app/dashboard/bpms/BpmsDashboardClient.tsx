@@ -44,7 +44,7 @@ export default function BpmsDashboardClient({ stats }: { stats: Stats }) {
   const logoSize = phase >= 2 ? 52 : 72
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <style>{`
         @keyframes handshake {
           0%   { transform: scale(1) rotate(0deg); }

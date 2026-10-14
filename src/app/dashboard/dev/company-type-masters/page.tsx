@@ -115,14 +115,14 @@ export default function DevCompanyTypeMastersPage() {
     e.target.value = ""
   }
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
+      <div className="flex flex-wrap gap-2 justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">種別管理</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>CSVエクスポート</Button>
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>CSVインポート</Button>
+          <Button variant="outline" className="hidden md:inline-flex" onClick={handleExport}>CSVエクスポート</Button>
+          <Button variant="outline" className="hidden md:inline-flex" onClick={() => fileInputRef.current?.click()}>CSVインポート</Button>
           <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <Button variant="destructive" onClick={handleDeleteAll}>全件削除</Button>
+          <Button variant="destructive" className="hidden md:inline-flex" onClick={handleDeleteAll}>全件削除</Button>
           <Button onClick={() => { resetForm(); setShowForm(!showForm) }}>
             {showForm ? "キャンセル" : "新規追加"}
           </Button>

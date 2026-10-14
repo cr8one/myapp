@@ -80,7 +80,7 @@ export default function NewDevExhibitionPage() {
       .map((c) => ({ id: c.id, label: c.name }))
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
         <h1 className="text-2xl font-bold">展示会登録</h1>
@@ -89,7 +89,7 @@ export default function NewDevExhibitionPage() {
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>展示会名 *</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -105,7 +105,7 @@ export default function NewDevExhibitionPage() {
                 </datalist>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>開始日</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               <div className="space-y-2"><Label>終了日</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
             </div>

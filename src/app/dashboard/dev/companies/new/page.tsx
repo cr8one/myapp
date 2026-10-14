@@ -65,7 +65,7 @@ export default function NewDevCompanyPage() {
   const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name }))
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => router.back()}>← 戻る</Button>
         <h1 className="text-2xl font-bold">会社登録</h1>
@@ -74,7 +74,7 @@ export default function NewDevCompanyPage() {
         <Card>
           <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>会社名 *</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -84,7 +84,7 @@ export default function NewDevCompanyPage() {
                 <Input value={nameKana} onChange={(e) => setNameKana(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>業種</Label>
                 <Input value={industry} onChange={(e) => setIndustry(e.target.value)} />
@@ -97,17 +97,17 @@ export default function NewDevCompanyPage() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>郵便番号</Label>
                 <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="000-0000" />
               </div>
-              <div className="col-span-2 space-y-2">
+              <div className="md:col-span-2 space-y-2">
                 <Label>住所</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>電話番号</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -160,15 +160,15 @@ export default function NewDevCompanyPage() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1"><Label className="text-xs">氏名 *</Label><Input value={contact.name} onChange={(e) => updateContact(index, "name", e.target.value)} /></div>
                   <div className="space-y-1"><Label className="text-xs">氏名（カナ）</Label><Input value={contact.nameKana} onChange={(e) => updateContact(index, "nameKana", e.target.value)} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1"><Label className="text-xs">部署</Label><Input value={contact.department} onChange={(e) => updateContact(index, "department", e.target.value)} /></div>
                   <div className="space-y-1"><Label className="text-xs">役職</Label><Input value={contact.position} onChange={(e) => updateContact(index, "position", e.target.value)} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1"><Label className="text-xs">メール</Label><Input value={contact.email} onChange={(e) => updateContact(index, "email", e.target.value)} /></div>
                   <div className="space-y-1"><Label className="text-xs">電話番号</Label><Input value={contact.phone} onChange={(e) => updateContact(index, "phone", e.target.value)} /></div>
                 </div>
