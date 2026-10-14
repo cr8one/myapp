@@ -125,15 +125,15 @@ export default function DevProjectDetailPage() {
   if (!project) return <div className="p-8">読み込み中...</div>
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-start mb-6">
-        <div>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
+        <div className="min-w-0">
           <button onClick={() => router.push("/dashboard/dev/projects")}
             className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">
             ← 案件一覧に戻る
           </button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{project.title}</h1>
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <h1 className="text-2xl font-bold break-words min-w-0">{project.title}</h1>
             <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${statusColor(project.status)}`}>
               {project.status}
             </span>
@@ -151,7 +151,7 @@ export default function DevProjectDetailPage() {
         <Card className="mb-6">
           <CardHeader><CardTitle>案件編集</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>案件名 *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -165,7 +165,7 @@ export default function DevProjectDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>主担当会社</Label>
                 <SingleSelectModal
@@ -204,7 +204,7 @@ export default function DevProjectDetailPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>見積金額（円）</Label>
                 <Input type="number" value={estimatedAmount}
@@ -240,7 +240,7 @@ export default function DevProjectDetailPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-500">主担当会社</p>
                 <p className="font-medium">{project.primaryCompany?.name ?? "未設定"}</p>
@@ -266,13 +266,13 @@ export default function DevProjectDetailPage() {
                 <p className="font-medium">{new Date(project.createdAt).toLocaleDateString("ja-JP")}</p>
               </div>
               {project.description && (
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <p className="text-gray-500">内容</p>
                   <p className="font-medium whitespace-pre-wrap">{project.description}</p>
                 </div>
               )}
               {project.notes && (
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <p className="text-gray-500">備考</p>
                   <p className="font-medium whitespace-pre-wrap">{project.notes}</p>
                 </div>
@@ -282,7 +282,7 @@ export default function DevProjectDetailPage() {
 
           <Card>
             <CardHeader><CardTitle>金額情報</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-500">見積金額</p>
                 <p className="font-medium text-lg">

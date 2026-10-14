@@ -131,11 +131,11 @@ export default function DevExhibitionDetailPage() {
   if (!exhibition) return <div className="p-8">読み込み中...</div>
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 min-w-0">
           <Button variant="outline" onClick={() => router.push("/dashboard/dev/exhibitions")}>← 戻る</Button>
-          <h1 className="text-2xl font-bold">{exhibition.name}</h1>
+          <h1 className="text-2xl font-bold break-words min-w-0">{exhibition.name}</h1>
         </div>
         <div className="flex gap-2">
           {!editing && <Button onClick={startEdit}>編集</Button>}
@@ -148,7 +148,7 @@ export default function DevExhibitionDetailPage() {
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>展示会名 *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
                 <div className="space-y-2">
                   <Label>開催場所</Label>
@@ -161,7 +161,7 @@ export default function DevExhibitionDetailPage() {
                   </datalist>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>開始日</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
                 <div className="space-y-2"><Label>終了日</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
               </div>
@@ -259,14 +259,14 @@ export default function DevExhibitionDetailPage() {
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <div><dt className="text-gray-500">展示会名</dt><dd className="font-medium">{exhibition.name}</dd></div>
                 <div><dt className="text-gray-500">開催場所</dt><dd>{exhibition.location || "—"}</dd></div>
                 <div><dt className="text-gray-500">開始日</dt><dd>{formatDate(exhibition.startDate)}</dd></div>
                 <div><dt className="text-gray-500">終了日</dt><dd>{formatDate(exhibition.endDate)}</dd></div>
-                {exhibition.description && <div className="col-span-2"><dt className="text-gray-500">説明</dt><dd className="whitespace-pre-wrap">{exhibition.description}</dd></div>}
-                {exhibition.summary && <div className="col-span-2"><dt className="text-gray-500">サマリー</dt><dd className="whitespace-pre-wrap">{exhibition.summary}</dd></div>}
-                {exhibition.notes && <div className="col-span-2"><dt className="text-gray-500">備考</dt><dd>{exhibition.notes}</dd></div>}
+                {exhibition.description && <div className="md:col-span-2"><dt className="text-gray-500">説明</dt><dd className="whitespace-pre-wrap">{exhibition.description}</dd></div>}
+                {exhibition.summary && <div className="md:col-span-2"><dt className="text-gray-500">サマリー</dt><dd className="whitespace-pre-wrap">{exhibition.summary}</dd></div>}
+                {exhibition.notes && <div className="md:col-span-2"><dt className="text-gray-500">備考</dt><dd>{exhibition.notes}</dd></div>}
               </dl>
             </CardContent>
           </Card>

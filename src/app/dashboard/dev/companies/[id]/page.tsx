@@ -114,9 +114,9 @@ export default function DevCompanyDetailPage() {
   if (!company) return <div className="p-8">読み込み中...</div>
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4">
           <Button variant="outline" onClick={() => router.push("/dashboard/dev/companies")}>← 戻る</Button>
           <h1 className="text-2xl font-bold">{company.name}</h1>
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[company.status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -134,7 +134,7 @@ export default function DevCompanyDetailPage() {
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>会社名 *</Label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -144,7 +144,7 @@ export default function DevCompanyDetailPage() {
                   <Input value={nameKana} onChange={(e) => setNameKana(e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>業種</Label>
                   <Input value={industry} onChange={(e) => setIndustry(e.target.value)} />
@@ -157,17 +157,17 @@ export default function DevCompanyDetailPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>郵便番号</Label>
                   <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="000-0000" />
                 </div>
-                <div className="col-span-2 space-y-2">
+                <div className="md:col-span-2 space-y-2">
                   <Label>住所</Label>
                   <Input value={address} onChange={(e) => setAddress(e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>電話番号</Label>
                   <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -223,15 +223,15 @@ export default function DevCompanyDetailPage() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1"><Label className="text-xs">氏名 *</Label><Input value={contact.name} onChange={(e) => updateContact(index, "name", e.target.value)} /></div>
                     <div className="space-y-1"><Label className="text-xs">氏名（カナ）</Label><Input value={contact.nameKana} onChange={(e) => updateContact(index, "nameKana", e.target.value)} /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1"><Label className="text-xs">部署</Label><Input value={contact.department} onChange={(e) => updateContact(index, "department", e.target.value)} /></div>
                     <div className="space-y-1"><Label className="text-xs">役職</Label><Input value={contact.position} onChange={(e) => updateContact(index, "position", e.target.value)} /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1"><Label className="text-xs">メール</Label><Input value={contact.email} onChange={(e) => updateContact(index, "email", e.target.value)} /></div>
                     <div className="space-y-1"><Label className="text-xs">電話番号</Label><Input value={contact.phone} onChange={(e) => updateContact(index, "phone", e.target.value)} /></div>
                   </div>
@@ -254,7 +254,7 @@ export default function DevCompanyDetailPage() {
           <Card>
             <CardHeader><CardTitle>基本情報</CardTitle></CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <div><dt className="text-gray-500">会社名</dt><dd className="font-medium">{company.name}</dd></div>
                 <div><dt className="text-gray-500">カナ</dt><dd>{company.nameKana || "—"}</dd></div>
                 <div><dt className="text-gray-500">業種</dt><dd>{company.industry || "—"}</dd></div>
@@ -263,12 +263,12 @@ export default function DevCompanyDetailPage() {
                 </div>
                 <div><dt className="text-gray-500">郵便番号</dt><dd>{company.postalCode || "—"}</dd></div>
                 <div><dt className="text-gray-500">電話番号</dt><dd>{company.phone || "—"}</dd></div>
-                <div className="col-span-2"><dt className="text-gray-500">住所</dt><dd>{company.address || "—"}</dd></div>
-                <div className="col-span-2">
+                <div className="md:col-span-2"><dt className="text-gray-500">住所</dt><dd>{company.address || "—"}</dd></div>
+                <div className="md:col-span-2">
                   <dt className="text-gray-500">WebサイトURL</dt>
                   <dd>{company.url ? <a href={company.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{company.url}</a> : "—"}</dd>
                 </div>
-                <div className="col-span-2"><dt className="text-gray-500">備考</dt><dd>{company.notes || "—"}</dd></div>
+                <div className="md:col-span-2"><dt className="text-gray-500">備考</dt><dd>{company.notes || "—"}</dd></div>
               </dl>
             </CardContent>
           </Card>
@@ -294,13 +294,13 @@ export default function DevCompanyDetailPage() {
                         <p className="font-medium">{c.name}</p>
                         {c.isPrimary && <Badge className="text-xs">主担当</Badge>}
                       </div>
-                      <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-sm">
                         {c.nameKana && <div><dt className="text-gray-500">カナ</dt><dd>{c.nameKana}</dd></div>}
                         {c.department && <div><dt className="text-gray-500">部署</dt><dd>{c.department}</dd></div>}
                         {c.position && <div><dt className="text-gray-500">役職</dt><dd>{c.position}</dd></div>}
                         {c.email && <div><dt className="text-gray-500">メール</dt><dd>{c.email}</dd></div>}
                         {c.phone && <div><dt className="text-gray-500">電話</dt><dd>{c.phone}</dd></div>}
-                        {c.notes && <div className="col-span-2"><dt className="text-gray-500">備考</dt><dd>{c.notes}</dd></div>}
+                        {c.notes && <div className="md:col-span-2"><dt className="text-gray-500">備考</dt><dd>{c.notes}</dd></div>}
                       </dl>
                     </div>
                   ))}
