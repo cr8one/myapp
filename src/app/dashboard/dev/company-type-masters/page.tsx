@@ -156,29 +156,47 @@ export default function DevCompanyTypeMastersPage() {
           </CardContent>
         </Card>
       )}
-      <div className="space-y-3">
-        {fetching ? (
-          <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
-        ) : masters.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">種別が登録されていません</p>
-        ) : masters.map((master) => (
-          <Card key={master.id}>
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{master.name}</p>
-                  {master.description && <p className="text-sm text-gray-500">{master.description}</p>}
-                  <p className="text-xs text-gray-400">表示順: {master.sortOrder}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(master)}>編集</Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(master.id)}>削除</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {fetching ? (
+        <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
+      ) : masters.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">種別が登録されていません</p>
+      ) : (
+        <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
+          <table className="w-full table-fixed text-sm min-w-[480px]">
+            <colgroup>
+              <col style={{ width: "30%" }} />
+              <col style={{ width: "36%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "24%" }} />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 border-b text-xs text-gray-500">
+                <th className="px-3 py-2 text-left font-medium">種別名</th>
+                <th className="px-3 py-2 text-left font-medium">説明</th>
+                <th className="px-3 py-2 text-left font-medium">表示順</th>
+                <th className="px-3 py-2 text-right font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {masters.map((master) => (
+                <tr key={master.id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="px-3 py-2 font-medium text-gray-800">{master.name}</td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">
+                    {master.description || <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">{master.sortOrder}</td>
+                  <td className="px-3 py-2 text-right">
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(master)}>編集</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(master.id)}>削除</Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
