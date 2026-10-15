@@ -120,15 +120,17 @@ export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, trayI
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative mx-4 flex max-h-[85vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b px-5 py-4">
-          <div>
-            <div className="text-xs text-gray-500">提出月：{fmt(submissionMonth)}</div>
-            <h2 className="text-lg font-bold text-gray-800">{trayName}</h2>
+          <div className="flex min-w-0 items-center gap-3">
+            <TrayImageIcon trayId={trayId} />
+            <div className="min-w-0">
+              <div className="text-xs text-gray-500">提出月：{fmt(submissionMonth)}</div>
+              <h2 className="text-lg font-bold text-gray-800">{trayName}</h2>
+            </div>
           </div>
           <button onClick={onClose} className="text-xl leading-none text-gray-400 hover:text-gray-600">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <TrayImagePanel trayId={trayId} />
           {error && <p className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           {showForm ? (
@@ -212,70 +214,34 @@ export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, trayI
 
 type TrayImageInfo = { id: string; file_name: string }
 
-function TrayImagePanel({ trayId }: { trayId: string }) {
-  const [images, setImages] = useState<TrayImageInfo[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [urls, setUrls] = useState<Record<string, string>>({})
+// 見出しの左に置く小さなトレイ画像（1枚目のみ。画像がなければ何も出さない）
+function TrayImageIcon({ trayId }: { trayId: string }) {
+  const [image, setImage] = useState<TrayImageInfo | null>(null)
+  const [url, setUrl] = useState("")
 
-  // 画像の一覧を取得（失敗・0枚のときは何も表示しない）
   useEffect(() => {
     let cancelled = false
     fetch(`/api/masters/items/trays/${trayId}/images`)
       .then((r) => (r.ok ? r.json() : []))
       .then((list: TrayImageInfo[]) => {
-        if (cancelled) return
-        setImages(list)
-        if (list.length > 0) setSelectedId(list[0].id)
+        if (cancelled || list.length === 0) return
+        const first = list[0]
+        setImage(first)
+        return fetch(`/api/masters/items/trays/${trayId}/images/${first.id}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => { if (!cancelled && d?.url) setUrl(d.url) })
       })
       .catch(() => {})
     return () => { cancelled = true }
   }, [trayId])
 
-  // 画像のURL（署名付き）を取得。取得済みは再取得しない
-  useEffect(() => {
-    if (images.length === 0) return
-    let cancelled = false
-    images.forEach((img) => {
-      if (urls[img.id]) return
-      fetch(`/api/masters/items/trays/${trayId}/images/${img.id}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (cancelled || !d?.url) return
-          setUrls((prev) => ({ ...prev, [img.id]: d.url }))
-        })
-        .catch(() => {})
-    })
-    return () => { cancelled = true }
-  }, [images, trayId])
-
-  if (images.length === 0) return null
-
-  const selected = images.find((i) => i.id === selectedId) ?? images[0]
-  const selectedUrl = urls[selected.id]
+  if (!image || !url) return null
 
   return (
-    <div className="mb-4">
-      <div className="flex h-32 w-full items-center justify-center overflow-hidden rounded-lg border bg-gray-50">
-        {selectedUrl ? (
-          <img src={selectedUrl} alt={selected.file_name} className="h-full w-full object-contain" />
-        ) : (
-          <span className="text-xs text-gray-400 animate-pulse">画像を読み込み中...</span>
-        )}
-      </div>
-      {images.length > 1 && (
-        <div className="mt-2 flex gap-2 overflow-x-auto">
-          {images.map((img) => (
-            <button
-              type="button"
-              key={img.id}
-              onClick={() => setSelectedId(img.id)}
-              className={`h-12 w-12 flex-shrink-0 overflow-hidden rounded border bg-gray-50 ${img.id === selected.id ? "ring-2 ring-blue-500" : "opacity-70 hover:opacity-100"}`}
-            >
-              {urls[img.id] && <img src={urls[img.id]} alt={img.file_name} className="h-full w-full object-cover" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <img
+      src={url}
+      alt={image.file_name}
+      className="h-12 w-12 flex-shrink-0 rounded border bg-gray-50 object-cover"
+    />
   )
 }
