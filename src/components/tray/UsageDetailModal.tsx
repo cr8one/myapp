@@ -18,6 +18,7 @@ type Props = {
   submissionMonth: string
   trayName: string
   rendoTrayCd: string
+  trayId: string
   onClose: () => void
 }
 
@@ -32,7 +33,7 @@ function fmt(ym: string) {
   return `${ym.slice(0, 4)}年${Number(ym.slice(4, 6))}月`
 }
 
-export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, onClose }: Props) {
+export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, trayId, onClose }: Props) {
   const [data, setData] = useState<DetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -127,6 +128,7 @@ export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, onClo
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          <TrayImagePanel trayId={trayId} />
           {error && <p className="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
           {showForm ? (
@@ -204,6 +206,76 @@ export function UsageDetailModal({ submissionMonth, trayName, rendoTrayCd, onClo
           <Button variant="outline" onClick={onClose}>閉じる</Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+type TrayImageInfo = { id: string; file_name: string }
+
+function TrayImagePanel({ trayId }: { trayId: string }) {
+  const [images, setImages] = useState<TrayImageInfo[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [urls, setUrls] = useState<Record<string, string>>({})
+
+  // 画像の一覧を取得（失敗・0枚のときは何も表示しない）
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/masters/items/trays/${trayId}/images`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: TrayImageInfo[]) => {
+        if (cancelled) return
+        setImages(list)
+        if (list.length > 0) setSelectedId(list[0].id)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [trayId])
+
+  // 画像のURL（署名付き）を取得。取得済みは再取得しない
+  useEffect(() => {
+    if (images.length === 0) return
+    let cancelled = false
+    images.forEach((img) => {
+      if (urls[img.id]) return
+      fetch(`/api/masters/items/trays/${trayId}/images/${img.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (cancelled || !d?.url) return
+          setUrls((prev) => ({ ...prev, [img.id]: d.url }))
+        })
+        .catch(() => {})
+    })
+    return () => { cancelled = true }
+  }, [images, trayId])
+
+  if (images.length === 0) return null
+
+  const selected = images.find((i) => i.id === selectedId) ?? images[0]
+  const selectedUrl = urls[selected.id]
+
+  return (
+    <div className="mb-4">
+      <div className="flex h-32 w-full items-center justify-center overflow-hidden rounded-lg border bg-gray-50">
+        {selectedUrl ? (
+          <img src={selectedUrl} alt={selected.file_name} className="h-full w-full object-contain" />
+        ) : (
+          <span className="text-xs text-gray-400 animate-pulse">画像を読み込み中...</span>
+        )}
+      </div>
+      {images.length > 1 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto">
+          {images.map((img) => (
+            <button
+              type="button"
+              key={img.id}
+              onClick={() => setSelectedId(img.id)}
+              className={`h-12 w-12 flex-shrink-0 overflow-hidden rounded border bg-gray-50 ${img.id === selected.id ? "ring-2 ring-blue-500" : "opacity-70 hover:opacity-100"}`}
+            >
+              {urls[img.id] && <img src={urls[img.id]} alt={img.file_name} className="h-full w-full object-cover" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

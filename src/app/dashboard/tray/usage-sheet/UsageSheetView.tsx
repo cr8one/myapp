@@ -213,6 +213,7 @@ export default function UsageSheetView({ filterBy = "type" }: { filterBy?: "type
           submissionMonth={submissionMonth}
           trayName={selectedRow.name}
           rendoTrayCd={selectedRow.rendo_tray_cd}
+          trayId={selectedRow.id}
           onClose={() => { setSelectedRow(null); load() }}
         />
       )}

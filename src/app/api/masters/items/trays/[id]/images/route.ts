@@ -23,3 +23,20 @@ export async function POST(
 
   return NextResponse.json(image)
 }
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { id: trayId } = await params
+  const images = await prisma.mTrayImage.findMany({
+    where: { tray_id: trayId },
+    orderBy: [{ sort_order: "asc" }, { uploaded_at: "asc" }],
+    select: { id: true, file_name: true, sort_order: true },
+  })
+
+  return NextResponse.json(images)
+}
