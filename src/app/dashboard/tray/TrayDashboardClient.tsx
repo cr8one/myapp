@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Boxes, ClipboardCheck, ClipboardList, FileSpreadsheet, Package, SlidersHorizontal, Table, Route } from "lucide-react"
+import { Boxes, ClipboardCheck, ClipboardList, FileSpreadsheet, Package, SlidersHorizontal, Table, Route, TrendingUp } from "lucide-react"
 
 const cards = [
   { label: "トレイ使用予定 承認", href: "/dashboard/tray/usage-approval", icon: ClipboardCheck, bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", hover: "hover:border-emerald-300" },
@@ -9,6 +9,7 @@ const cards = [
   { label: "棚卸し情報（購買）", href: "/dashboard/tray/inventory", icon: Package, bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", hover: "hover:border-amber-300" },
   { label: "使用予定管理（購買）", href: "/dashboard/tray/usage-admin", icon: SlidersHorizontal, bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", hover: "hover:border-amber-300" },
   { label: "トレイ使用予定表（購買）", href: "/dashboard/tray/usage-sheet-purchase", icon: Table, bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", hover: "hover:border-amber-300" },
+  { label: "トレイ管理予定表（購買）", href: "/dashboard/tray/schedule-purchase", icon: TrendingUp, bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", hover: "hover:border-amber-300" },
   { label: "承認経路マスタ（システム）", href: "/dashboard/tray/approval-routes", icon: Route, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
   { label: "トレイマスタ", href: "/dashboard/tray/tray-master", icon: Boxes, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },
   { label: "イレギュラートレイ発注書 インポート・エクスポート（システム）", href: "/dashboard/tray/irregular-orders-migration", icon: FileSpreadsheet, bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-100", hover: "hover:border-slate-300" },

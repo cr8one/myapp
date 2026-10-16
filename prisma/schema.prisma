@@ -1817,3 +1817,23 @@ model MobileServiceSetting {
   updatedAt  DateTime @updatedAt @map("updated_at")
   @@map("m_mobile_service_settings")
 }
+
+model TrayArrivalPlan {
+  id            String   @id @default(cuid())
+  tray_id       String
+  arrival_month String
+  qty           Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  @@unique([tray_id, arrival_month])
+  @@map("t_tray_arrival_plans")
+}
+
+model TrayInhouseStock {
+  id         String   @id @default(cuid())
+  tray_id    String   @unique
+  qty        Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("t_tray_inhouse_stocks")
+}
