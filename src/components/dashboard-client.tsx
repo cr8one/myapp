@@ -1,14 +1,8 @@
 "use client"
-import { useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
-  Plus, Pencil, Trash2, Megaphone, Wrench, Tag,
+  Megaphone, Wrench, Tag,
   Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, ClipboardList
 } from "lucide-react"
 
@@ -27,7 +21,6 @@ type Props = {
   announcements: Announcement[]; permission: Permission; mobileServices: string[]
 }
 
-const CATEGORIES = ["メンテナンス", "リリース", "お知らせ"]
 const CATEGORY_STYLES: Record<string, { color: string; icon: React.ReactNode }> = {
   "メンテナンス": { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <Wrench className="w-3 h-3" /> },
   "リリース":     { color: "bg-blue-100 text-blue-700 border-blue-200",   icon: <Tag className="w-3 h-3" /> },
@@ -125,16 +118,8 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   return null
 }
 
-type FormData = { title: string; content: string; category: string; publishedAt: string }
-const emptyForm: FormData = { title: "", content: "", category: "", publishedAt: "" }
-
 export default function DashboardClient({ userName, isAdmin, announcements: initial, permission, mobileServices }: Props) {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initial)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Announcement | null>(null)
-  const [form, setForm] = useState<FormData>(emptyForm)
-  const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null)
+  const announcements = initial
 
   const canView = (icon: string): boolean => {
     if (isAdmin) return true
@@ -143,36 +128,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
     if (!key) return true
     if (!permission) return true
     return permission[key]
-  }
-
-  const fetchAnnouncements = async () => {
-    const res = await fetch("/api/announcements")
-    setAnnouncements((await res.json()).slice(0, 5))
-  }
-  const openCreate = () => {
-    setEditTarget(null)
-    setForm({ ...emptyForm, publishedAt: new Date().toISOString().split("T")[0] })
-    setDialogOpen(true)
-  }
-  const openEdit = (a: Announcement) => {
-    setEditTarget(a)
-    setForm({ title: a.title, content: a.content, category: a.category, publishedAt: a.publishedAt.split("T")[0] })
-    setDialogOpen(true)
-  }
-  const handleSave = async () => {
-    if (!form.title || !form.content || !form.category || !form.publishedAt) return
-    setSaving(true)
-    if (editTarget) {
-      await fetch(`/api/announcements/${editTarget.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
-    } else {
-      await fetch("/api/announcements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
-    }
-    setSaving(false); setDialogOpen(false); fetchAnnouncements()
-  }
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    await fetch(`/api/announcements/${deleteTarget.id}`, { method: "DELETE" })
-    setDeleteTarget(null); fetchAnnouncements()
   }
 
   return (
@@ -187,16 +142,9 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
       </div>
 
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2">
-            <Megaphone className="w-4 h-4 text-gray-500" />お知らせ
-          </h2>
-          {isAdmin && (
-            <Button size="sm" variant="outline" onClick={openCreate} className="flex items-center gap-1 text-xs">
-              <Plus className="w-3 h-3" />追加
-            </Button>
-          )}
-        </div>
+        <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2 mb-3">
+          <Megaphone className="w-4 h-4 text-gray-500" />お知らせ
+        </h2>
         {announcements.length === 0 ? (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-400 text-center">お知らせはありません</div>
         ) : (
@@ -215,12 +163,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
                     <p className="text-sm font-medium text-gray-800">{a.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{a.content}</p>
                   </div>
-                  {isAdmin && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(a)} className="p-1 text-gray-400 hover:text-blue-600 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setDeleteTarget(a)} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -279,51 +221,6 @@ export default function DashboardClient({ userName, isAdmin, announcements: init
           })}
         </div>
       </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editTarget ? "お知らせを編集" : "お知らせを作成"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <Label>公開日</Label>
-              <Input type="date" value={form.publishedAt} onChange={e => setForm(f => ({ ...f, publishedAt: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label>カテゴリ</Label>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border rounded px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">選択してください</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>タイトル</Label>
-              <Input autoComplete="off" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="例：定期メンテナンスのお知らせ" />
-            </div>
-            <div className="space-y-1">
-              <Label>内容</Label>
-              <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="詳細内容を入力" rows={4} />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>
-              <Button onClick={handleSave} disabled={saving || !form.title || !form.content || !form.category || !form.publishedAt}>
-                {saving ? "保存中..." : "保存"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>削除の確認</DialogTitle></DialogHeader>
-          <p className="text-sm text-gray-600 mt-2">「{deleteTarget?.title}」を削除しますか？この操作は取り消せません。</p>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>キャンセル</Button>
-            <Button variant="destructive" onClick={handleDelete}>削除</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

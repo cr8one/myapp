@@ -11,18 +11,19 @@ export default async function SystemDashboardPage() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const [devLogCount, loginLogCount, loginFailCount, auditLogCount] = await Promise.all([
+  const [devLogCount, loginLogCount, loginFailCount, auditLogCount, announcementCount] = await Promise.all([
     prisma.devLog.count(),
     prisma.loginLog.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.loginLog.count({ where: { status: "failed", createdAt: { gte: thirtyDaysAgo } } }),
     prisma.auditLog.count(),
+    prisma.announcement.count(),
   ])
 
   const dbTableCount = ALLOWED_TABLE_NAMES.size
 
   return (
     <SystemDashboardClient
-      stats={{ devLogCount, loginLogCount, loginFailCount, auditLogCount, dbTableCount }}
+      stats={{ devLogCount, loginLogCount, loginFailCount, auditLogCount, dbTableCount, announcementCount }}
     />
   )
 }

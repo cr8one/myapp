@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ShieldCheck, BookOpen, LogIn, AlertTriangle, ClipboardList, DatabaseZap } from "lucide-react"
+import { ShieldCheck, BookOpen, LogIn, AlertTriangle, ClipboardList, DatabaseZap, Megaphone } from "lucide-react"
 
 type Stats = {
   devLogCount: number
@@ -9,6 +9,7 @@ type Stats = {
   loginFailCount: number
   auditLogCount: number
   dbTableCount: number
+  announcementCount: number
 }
 
 const cards = [
@@ -66,6 +67,17 @@ const cards = [
     border: "border-teal-100",
     hover: "hover:border-teal-300",
     unit: "テーブル",
+  },
+  {
+    label: "インフォメーション管理",
+    key: "announcementCount" as keyof Stats,
+    href: "/dashboard/system/announcements",
+    icon: Megaphone,
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    border: "border-amber-100",
+    hover: "hover:border-amber-300",
+    unit: "件",
   },
 ]
 

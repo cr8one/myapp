@@ -398,6 +398,7 @@ model Announcement {
   content     String
   category    String
   publishedAt DateTime
+  expiresAt   DateTime?
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())

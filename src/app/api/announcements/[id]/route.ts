@@ -8,10 +8,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
   const { id } = await params
-  const { title, content, category, publishedAt } = await req.json()
+  const { title, content, category, publishedAt, expiresAt } = await req.json()
+  if (expiresAt && new Date(expiresAt) < new Date(publishedAt)) {
+    return NextResponse.json({ error: "表示終了日は表示開始日以降にしてください" }, { status: 400 })
+  }
   const announcement = await prisma.announcement.update({
     where: { id },
-    data: { title, content, category, publishedAt: new Date(publishedAt) },
+    data: {
+      title,
+      content,
+      category,
+      publishedAt: new Date(publishedAt),
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    },
     include: { createdBy: { select: { id: true, name: true, email: true } } },
   })
   return NextResponse.json(announcement)

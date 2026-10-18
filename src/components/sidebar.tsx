@@ -166,6 +166,7 @@ const adminMenuItems = [
     { label: "ログイン履歴", href: "/dashboard/system/login-logs" },
     { label: "修正履歴", href: "/dashboard/system/audit-logs" },
     { label: "DB管理", href: "/dashboard/system/db-management" },
+    { label: "インフォメーション管理", href: "/dashboard/system/announcements" },
   ]},
 ]
 
