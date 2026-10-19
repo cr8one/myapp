@@ -229,6 +229,37 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   useEffect(() => { setManualOverrides({}) }, [pathname])
   const [collapsed, setCollapsed] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [sidebarWidth, setSidebarWidth] = useState(224)
+  const [resizing, setResizing] = useState(false)
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("sidebarWidth"))
+      if (saved >= 180 && saved <= 400) setSidebarWidth(saved)
+    } catch {}
+  }, [])
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+    let latest = startWidth
+    setResizing(true)
+    document.body.style.userSelect = "none"
+    document.body.style.cursor = "col-resize"
+    const onMove = (ev: MouseEvent) => {
+      latest = Math.min(400, Math.max(180, startWidth + ev.clientX - startX))
+      setSidebarWidth(latest)
+    }
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+      document.body.style.userSelect = ""
+      document.body.style.cursor = ""
+      setResizing(false)
+      try { localStorage.setItem("sidebarWidth", String(latest)) } catch {}
+    }
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
+  }
   const isOpen = (label: string) => label in manualOverrides ? manualOverrides[label] : isMenuOpen(label)
   const toggleMenu = (label: string) => setManualOverrides(prev => ({ ...prev, [label]: !isOpen(label) }))
 
@@ -274,7 +305,11 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
   }
 
   return (
-    <aside className={`${collapsed ? "w-16" : "w-56 overflow-y-auto"} sticky top-14 self-start h-[calc(100vh-3.5rem)] bg-white border-r transition-all duration-200 flex-shrink-0`}>
+    <div
+      className={`sticky top-14 self-start h-[calc(100vh-3.5rem)] flex-shrink-0 ${resizing ? "" : "transition-all duration-200"}`}
+      style={{ width: collapsed ? 64 : sidebarWidth }}
+    >
+    <aside className={`${collapsed ? "" : "overflow-y-auto"} w-full h-full bg-white border-r`}>
       <div className="border-b">
         {collapsed ? (
           <button onClick={() => setCollapsed(c => !c)} title="サイドバーを開く"
@@ -374,5 +409,13 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
         })}
       </nav>
     </aside>
+      {!collapsed && (
+        <div
+          onMouseDown={startResize}
+          title="ドラッグで幅を変更"
+          className="absolute top-0 right-0 z-10 h-full w-1 cursor-col-resize hover:bg-blue-300 active:bg-blue-400"
+        />
+      )}
+    </div>
   )
 }
