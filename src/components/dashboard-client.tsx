@@ -81,7 +81,7 @@ const SERVICE_CARDS = [
   { label: "仕様書",      href: "/dashboard/products",  icon: "spec",     desc: "仕様一覧・パーツ一覧",          color: "text-indigo-600 bg-indigo-50" },
   { label: "見積書",      href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                      color: "text-emerald-600 bg-emerald-50" },
   { label: "電子申請",    href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙",   color: "text-sky-600 bg-sky-50" },
-  { label: "証憑管理",    href: "/dashboard/voucher",   icon: "voucher",  desc: "請求書・納品書・受領書の保存・検索", color: "text-blue-600 bg-blue-50" },
+  { label: "証憑管理",    href: "/dashboard/voucher",   icon: "voucher",  desc: "請求書・領収書などの保存・検索", color: "text-blue-600 bg-blue-50" },
   { label: "交通費精算",  href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",              color: "text-teal-600 bg-teal-50" },
   { label: "作業標準書",  href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",            color: "text-cyan-600 bg-cyan-50" },
   { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",              color: "text-purple-600 bg-purple-50" },
