@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen, ClipboardList } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen, ClipboardList, ReceiptText } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -77,6 +77,9 @@ export const baseMenuItems = [
     // { label: "仕入先登録", href: "/dashboard/eapp/suppliers" },
     // { label: "用紙登録", href: "/dashboard/eapp/papers" },
     { label: "電子申請マスタ", href: "/dashboard/eapp/masters" },
+  ]},
+  { label: "証憑管理", href: "/dashboard/voucher", icon: "voucher", children: [
+    { label: "証憑一覧", href: "/dashboard/voucher" },
   ]},
   { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [
     { label: "精算一覧", href: "/dashboard/travel" },
@@ -176,6 +179,7 @@ export function MenuIcon({ icon, className }: { icon?: string; className?: strin
   if (icon === "estimate")  return <JapaneseYen className={className} />
   if (icon === "eapp")      return <EApplicationIcon className={className} />
   if (icon === "travel")    return <Train className={className} />
+  if (icon === "voucher")   return <ReceiptText className={className} />
   if (icon === "sop")       return <BookOpen className={className} />
   if (icon === "report")    return <FileText className={className} />
   if (icon === "bpms")      return <Handshake className={className} />
@@ -207,6 +211,7 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "仕様書")     return pathname.startsWith("/dashboard/products") || pathname.startsWith("/dashboard/parts")
     if (label === "見積書")     return pathname.startsWith("/dashboard/estimates")
     if (label === "電子申請")   return pathname.startsWith("/dashboard/eapp")
+    if (label === "証憑管理")   return pathname.startsWith("/dashboard/voucher")
     if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
