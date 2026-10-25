@@ -89,6 +89,8 @@ model UserPermission {
   manufacturingEdit Boolean  @default(false) @map("manufacturing_edit")
   trayView          Boolean  @default(true)  @map("tray_view")
   trayEdit          Boolean  @default(false) @map("tray_edit")
+  voucherView       Boolean  @default(false) @map("voucher_view")
+  voucherEdit       Boolean  @default(false) @map("voucher_edit")
   dppStorageLedgerImport Boolean @default(false) @map("dpp_storage_ledger_import")
   ssssIsIssuer            Boolean @default(false) @map("ssss_is_issuer")
   ssssIsSupplier          Boolean @default(false) @map("ssss_is_supplier")

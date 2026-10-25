@@ -22,6 +22,7 @@ type Permission = {
   cadView: boolean;      cadEdit: boolean
   manufacturingView: boolean; manufacturingEdit: boolean
   trayView: boolean;          trayEdit: boolean
+  voucherView: boolean;       voucherEdit: boolean
   ssssIsIssuer: boolean; ssssIsSupplier: boolean
   ssssIsReceiver: boolean; ssssIsOutsourceReceiver: boolean
   addressBookView: boolean; addressBookEdit: boolean
@@ -72,6 +73,7 @@ const defaultPermission: Permission = {
   cadView: true,      cadEdit: false,
   manufacturingView: true, manufacturingEdit: false,
   trayView: true,          trayEdit: false,
+  voucherView: false,      voucherEdit: false,
   ssssIsIssuer: false, ssssIsSupplier: false,
   ssssIsReceiver: false, ssssIsOutsourceReceiver: false,
   addressBookView: true, addressBookEdit: false,
@@ -91,6 +93,7 @@ const permissionGroups: { group: string; color: string; items: { key: keyof Perm
   { group: "CAD/台紙",   color: "bg-lime-50 text-lime-700",    items: [{ key: "cadView", label: "閲覧" }, { key: "cadEdit", label: "編集" }] },
   { group: "製造依頼書", color: "bg-fuchsia-50 text-fuchsia-700", items: [{ key: "manufacturingView", label: "閲覧" }, { key: "manufacturingEdit", label: "編集" }] },
   { group: "トレイ使用予定", color: "bg-emerald-50 text-emerald-700", items: [{ key: "trayView", label: "閲覧" }, { key: "trayEdit", label: "編集" }] },
+  { group: "証憑管理", color: "bg-rose-50 text-rose-700", items: [{ key: "voucherView", label: "閲覧" }, { key: "voucherEdit", label: "編集" }] },
   { group: "住所録",     color: "bg-amber-50 text-amber-700",  items: [{ key: "addressBookView", label: "閲覧" }, { key: "addressBookEdit", label: "編集" }, { key: "addressBookChangeRequestTarget", label: "変更依頼配信先" }] },
   { group: "担当区分",   color: "bg-slate-50 text-slate-700",  items: [{ key: "isPurchasingStaff", label: "購買担当" }] },
   { group: "DPP予定表",  color: "bg-pink-50 text-pink-700",    items: [{ key: "dppView", label: "閲覧" }, { key: "dppEdit", label: "編集" }, { key: "dppStorageLedgerImport", label: "データ保管台帳 取込/出力" }] },

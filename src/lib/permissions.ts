@@ -15,6 +15,7 @@ export type PermissionKey =
   | "cadView"      | "cadEdit"
   | "manufacturingView" | "manufacturingEdit"
   | "trayView"          | "trayEdit"
+  | "voucherView"       | "voucherEdit"
   | "dppStorageLedgerImport"
 export async function getSessionUser() {
   const session = await auth()

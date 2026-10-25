@@ -50,7 +50,7 @@ export type Permission = {
   specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
-  manufacturingView: boolean; trayView: boolean; addressBookView: boolean
+  manufacturingView: boolean; trayView: boolean; addressBookView: boolean; voucherView: boolean
 } | null
 
 export const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
@@ -59,6 +59,7 @@ export const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
   ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
   manufacturing: "manufacturingView", tray: "trayView",
+  voucher: "voucherView",
 }
 
 export const baseMenuItems = [
