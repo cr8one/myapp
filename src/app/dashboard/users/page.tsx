@@ -145,7 +145,7 @@ export default function UsersPage() {
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
   }
-  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan">("tokui_credit")
+  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
   const [showApproverForm, setShowApproverForm] = useState(false)
   const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
@@ -575,6 +575,10 @@ const handleInkanDelete = async () => {
                       onClick={() => { setApproverServiceType("tray_usage_plan"); fetchApproverSettings(editUser.id, "tray_usage_plan") }}
                       className={`text-xs px-2 py-1 rounded ${approverServiceType === "tray_usage_plan" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
                     >トレイ使用予定</button>
+                    <button
+                      onClick={() => { setApproverServiceType("voucher"); fetchApproverSettings(editUser.id, "voucher") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "voucher" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >証憑管理</button>
                   </div>
                   <button
                     onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
@@ -586,10 +590,12 @@ const handleInkanDelete = async () => {
                 {showApproverForm && (
                   <div className="flex gap-2 flex-wrap p-2 bg-slate-50 rounded">
                     <Input autoComplete="off" type="number" className="w-16 h-8 text-sm" value={approverStepOrder} onChange={e => setApproverStepOrder(Number(e.target.value))} />
-                    <select className="border rounded px-2 h-8 text-sm bg-white" value={approverPositionId} onChange={e => setApproverPositionId(e.target.value)}>
-                      <option value="">-- 役職 --</option>
-                      {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    {approverServiceType !== "voucher" && (
+                      <select className="border rounded px-2 h-8 text-sm bg-white" value={approverPositionId} onChange={e => setApproverPositionId(e.target.value)}>
+                        <option value="">-- 役職 --</option>
+                        {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    )}
                     <select className="flex-1 min-w-32 border rounded px-2 h-8 text-sm bg-white" value={approverUserId} onChange={e => setApproverUserId(e.target.value)}>
                       <option value="">-- 承認者(氏名) --</option>
                       {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -617,7 +623,7 @@ const handleInkanDelete = async () => {
                     {approverSettings.map(s => (
                       <div key={s.id} className="flex items-center gap-2 text-sm border-b py-1">
                         <span className="text-xs text-slate-500 w-6">{s.step_order}</span>
-                        <span className="text-xs text-gray-400 w-20">{s.position?.name ?? "-"}</span>
+                        <span className="text-xs text-gray-400 w-20">{approverServiceType === "voucher" ? (s.step_order === 1 ? "精査" : s.step_order === 2 ? "検印" : "-") : (s.position?.name ?? "-")}</span>
                         <span className="flex-1">{s.approver?.name ?? "-"}</span>
                         <button
                           onClick={() => { setEditApprover(s); setApproverStepOrder(s.step_order); setApproverPositionId(s.position?.id ?? ""); setApproverUserId(s.approver?.id ?? ""); setShowApproverForm(true) }}
