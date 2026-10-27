@@ -23,6 +23,8 @@ model User {
   position    String?
   positionId  String?  @map("position_id")
   positionRef MPosition? @relation(fields: [positionId], references: [id])
+  mainBaseId  String?  @map("main_base_id")
+  mainBase    MBase?   @relation("UserMainBase", fields: [mainBaseId], references: [id])
   phone       String?
   employeeNo  String?  @map("employee_no")
   inkanImageKey String? @map("inkan_image_key")
@@ -1297,6 +1299,7 @@ model MBase {
   updated_at  DateTime      @updatedAt
   departments MDepartment[]
   groups      MGroup[]
+  mainBaseUsers User[] @relation("UserMainBase")
   @@map("m_bases")
 }
 

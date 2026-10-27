@@ -43,7 +43,7 @@ type UserGroup = {
 type User = {
   id: string; name: string; email: string
   lastName?: string; firstName?: string; furiganaLastName?: string; furiganaFirstName?: string
-  position?: string; positionId?: string; positionRef?: { id: string; name: string; sort_order: number } | null
+  position?: string; positionId?: string; mainBaseId?: string | null; positionRef?: { id: string; name: string; sort_order: number } | null
   phone?: string; employeeNo?: string; divisionCode?: string; gender?: string; employmentType?: string
   inkanImageKey?: string | null
   role: "ADMIN" | "USER"; createdAt: string
@@ -125,7 +125,9 @@ export default function UsersPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [positionId, setPositionId] = useState("")
+  const [mainBaseId, setMainBaseId] = useState("")
   const [positions, setPositions] = useState<{ id: string; name: string; sort_order: number }[]>([])
+  const [bases, setBases] = useState<{ id: string; name: string }[]>([])
   const [employeeNo, setEmployeeNo] = useState("")
   const [divisionCode, setDivisionCode] = useState("")
   const [gender, setGender] = useState("")
@@ -189,7 +191,11 @@ export default function UsersPage() {
     const res = await fetch("/api/masters/positions")
     setPositions(await res.json())
   }
-  useEffect(() => { fetchUsers(); fetchDepartments(); fetchPositions() }, [])
+  const fetchBases = async () => {
+    const res = await fetch("/api/masters/bases")
+    setBases(await res.json())
+  }
+  useEffect(() => { fetchUsers(); fetchDepartments(); fetchPositions(); fetchBases() }, [])
   const changeSort = (value: string) => { setSort(value); fetchUsers(value) }
 
   const filteredUsers = users.filter(u => {
@@ -202,7 +208,7 @@ export default function UsersPage() {
 
   const resetForm = () => {
     setLastName(""); setFirstName(""); setFuriganaLastName(""); setFuriganaFirstName(""); setEmail(""); setPassword("")
-    setPositionId(""); setPhone(""); setEmployeeNo(""); setDivisionCode(""); setGender(""); setEmploymentType("")
+    setPositionId(""); setMainBaseId(""); setPhone(""); setEmployeeNo(""); setDivisionCode(""); setGender(""); setEmploymentType("")
     setRole("USER"); setPermission(defaultPermission)
     setSelectedDepts([]); setSelectedGroups([])
     setApproverSettings([]); setShowApproverForm(false); setEditApprover(null)
@@ -227,6 +233,7 @@ export default function UsersPage() {
     setFuriganaLastName(user.furiganaLastName ?? ""); setFuriganaFirstName(user.furiganaFirstName ?? "")
     setEmail(user.email)
     setPositionId(user.positionId ?? "")
+    setMainBaseId(user.mainBaseId ?? "")
     setEmployeeNo(user.employeeNo ?? "")
     setDivisionCode(user.divisionCode ?? "")
     setGender(user.gender ?? "")
@@ -278,7 +285,7 @@ const handleInkanDelete = async () => {
     setLoading(true); setError("")
     const body = {
       lastName, firstName, furiganaLastName, furiganaFirstName,
-      email, password: password || undefined, positionId: positionId || null, phone, employeeNo, divisionCode, gender, employmentType, role,
+      email, password: password || undefined, positionId: positionId || null, mainBaseId: mainBaseId || null, phone, employeeNo, divisionCode, gender, employmentType, role,
       permission: role === "ADMIN" ? undefined : permission,
       departments: selectedDepts,
       groups: selectedGroups,
@@ -417,6 +424,12 @@ const handleInkanDelete = async () => {
                 <select className="w-full border rounded-md px-3 py-2 text-sm bg-white" value={positionId} onChange={e => setPositionId(e.target.value)}>
                   <option value="">未選択</option>
                   {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2"><Label>メイン拠点</Label>
+                <select className="w-full border rounded-md px-3 py-2 text-sm bg-white" value={mainBaseId} onChange={e => setMainBaseId(e.target.value)}>
+                  <option value="">未選択</option>
+                  {bases.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
