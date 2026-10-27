@@ -57,6 +57,7 @@ model User {
   approverSettingsAsApprover   UserApproverSetting[] @relation("UserApproverTarget")
   tokuiCreditRequestsAsRequester TokuiCreditRequest[] @relation("TokuiCreditRequester")
   eappSystemStaffEntries          MEappSystemStaff[]
+  voucherPartners                 MVoucherPartner[] @relation("VoucherPartnerStaff")
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -1842,4 +1843,141 @@ model TrayInhouseStock {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   @@map("t_tray_inhouse_stocks")
+}
+
+model Voucher {
+  id                String   @id @default(cuid())
+  file_no           Int      @unique
+  doc_type          String
+  direction         String   @default("受領")
+  media_type        String?
+  transaction_date  DateTime @db.Date
+  partner_name      String
+  amount            Int
+  remarks           String?  @db.Text
+  payment_method    String?
+  transfer_method   String?
+  base_name         String?
+  file_key          String
+  file_name         String
+  timestamp_flg     Boolean  @default(false)
+  registrant_id     String?
+  registrant_name   String?
+  deleted_flg       Boolean  @default(false)
+  deleted_at        DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  approval_steps    VoucherApprovalStep[]
+  files             VoucherFile[]
+  histories         VoucherHistory[]
+  correction_requests VoucherCorrectionRequest[]
+  @@index([transaction_date])
+  @@index([partner_name])
+  @@index([amount])
+  @@map("t_vouchers")
+}
+
+model VoucherApprovalStep {
+  id             String    @id @default(cuid())
+  voucher_id     String
+  voucher        Voucher   @relation(fields: [voucher_id], references: [id])
+  step_order     Int
+  step_name      String?
+  approver_name  String?
+  approver_email String?
+  status         String    @default("未承認")
+  approved_at    DateTime?
+  created_at     DateTime  @default(now())
+  @@index([voucher_id])
+  @@map("t_voucher_approval_steps")
+}
+
+model VoucherFile {
+  id          String   @id @default(cuid())
+  voucher_id  String
+  voucher     Voucher  @relation(fields: [voucher_id], references: [id])
+  file_key    String
+  file_name   String
+  file_type   String
+  uploaded_at DateTime @default(now())
+  @@index([voucher_id])
+  @@map("t_voucher_files")
+}
+
+model VoucherHistory {
+  id           String   @id @default(cuid())
+  voucher_id   String
+  voucher      Voucher  @relation(fields: [voucher_id], references: [id])
+  kind         String
+  field_name   String?
+  before_value String?  @db.Text
+  after_value  String?  @db.Text
+  actor_id     String?
+  actor_name   String?
+  created_at   DateTime @default(now())
+  @@index([voucher_id])
+  @@map("t_voucher_histories")
+}
+
+model VoucherCorrectionRequest {
+  id                   String    @id @default(cuid())
+  request_no           Int       @unique
+  requested_date       DateTime  @db.Date
+  requester_id         String?
+  requester_name       String?
+  voucher_id           String?
+  voucher              Voucher?  @relation(fields: [voucher_id], references: [id], onDelete: SetNull)
+  voucher_file_no      Int
+  voucher_doc_type     String?
+  voucher_partner_name String?
+  action               String
+  reason               String    @db.Text
+  status               String    @default("申請中")
+  approver_name        String?
+  approved_at          DateTime?
+  processed_date       DateTime? @db.Date
+  processor_name       String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+  @@map("t_voucher_correction_requests")
+}
+
+model MVoucherOption {
+  id                String   @id @default(cuid())
+  category          String
+  value             String
+  sort_order        Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  partners_media    MVoucherPartner[] @relation("VoucherPartnerMedia")
+  partners_payment  MVoucherPartner[] @relation("VoucherPartnerPayment")
+  partners_transfer MVoucherPartner[] @relation("VoucherPartnerTransfer")
+  @@index([category])
+  @@map("m_voucher_options")
+}
+
+model MVoucherPartner {
+  id                 String          @id @default(cuid())
+  name               String
+  furigana           String?
+  staff_user_id      String?
+  staff              User?           @relation("VoucherPartnerStaff", fields: [staff_user_id], references: [id], onDelete: SetNull)
+  media_option_id    String?
+  media_option       MVoucherOption? @relation("VoucherPartnerMedia", fields: [media_option_id], references: [id], onDelete: SetNull)
+  payment_option_id  String?
+  payment_option     MVoucherOption? @relation("VoucherPartnerPayment", fields: [payment_option_id], references: [id], onDelete: SetNull)
+  transfer_option_id String?
+  transfer_option    MVoucherOption? @relation("VoucherPartnerTransfer", fields: [transfer_option_id], references: [id], onDelete: SetNull)
+  remarks            String?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+  @@unique([name, staff_user_id])
+  @@map("m_voucher_partners")
+}
+
+model MVoucherSerial {
+  id         Int      @id @default(autoincrement())
+  next_value Int      @default(1)
+  updated_at DateTime @updatedAt
+  @@map("m_voucher_serials")
 }
