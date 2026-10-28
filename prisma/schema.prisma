@@ -58,6 +58,7 @@ model User {
   tokuiCreditRequestsAsRequester TokuiCreditRequest[] @relation("TokuiCreditRequester")
   eappSystemStaffEntries          MEappSystemStaff[]
   voucherPartners                 MVoucherPartner[] @relation("VoucherPartnerStaff")
+  voucherManagerEntries           MVoucherManager[]
 }
 model UserPermission {
   id            String   @id @default(cuid())
@@ -1931,10 +1932,12 @@ model VoucherCorrectionRequest {
   voucher_doc_type     String?
   voucher_partner_name String?
   action               String
+  detail               String?   @db.Text
   reason               String    @db.Text
   status               String    @default("申請中")
   approver_name        String?
   approved_at          DateTime?
+  decision_comment     String?   @db.Text
   processed_date       DateTime? @db.Date
   processor_name       String?
   created_at           DateTime  @default(now())
@@ -1980,4 +1983,14 @@ model MVoucherSerial {
   next_value Int      @default(1)
   updated_at DateTime @updatedAt
   @@map("m_voucher_serials")
+}
+
+model MVoucherManager {
+  id         String   @id @default(cuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       String
+  created_at DateTime @default(now())
+  @@unique([user_id, role])
+  @@map("m_voucher_managers")
 }

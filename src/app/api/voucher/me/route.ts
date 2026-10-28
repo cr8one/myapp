@@ -17,9 +17,14 @@ export async function GET() {
     }),
   ])
 
+  const roles = (await prisma.mVoucherManager.findMany({ where: { user_id: user.id } })).map(r => r.role)
+
   return NextResponse.json({
     id: user.id,
     name: user.name,
+    is_admin: user.role === "ADMIN",
+    is_manager: roles.includes("管理責任者"),
+    is_processor: roles.includes("処理責任者"),
     main_base_name: mainBase?.name ?? null,
     approvers: approvers
       .filter(a => a.step_order === 1 || a.step_order === 2)

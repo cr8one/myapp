@@ -176,6 +176,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "m_voucher_options", label: "証憑管理 選択肢マスタ" },
       { tableName: "m_voucher_partners", label: "証憑管理 取引先マスタ" },
       { tableName: "m_voucher_serials", label: "証憑管理 採番" },
+      { tableName: "m_voucher_managers", label: "証憑管理 責任者マスタ" },
     ],
   },
   {

@@ -19,7 +19,8 @@ type Partner = {
   transfer_option: { id: string; value: string } | null
 }
 type Serial = { next_value: number; max_used: number }
-type Tab = "doc_type" | "media_type" | "payment_method" | "transfer_method" | "partners" | "serial"
+type Manager = { id: string; role: string; user: { id: string; name: string | null } }
+type Tab = "doc_type" | "media_type" | "payment_method" | "transfer_method" | "partners" | "serial" | "managers"
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "doc_type", label: "書類区分" },
@@ -28,6 +29,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "transfer_method", label: "振込" },
   { key: "partners", label: "取引先" },
   { key: "serial", label: "採番" },
+  { key: "managers", label: "責任者" },
 ]
 const OPTION_DESCRIPTION: Record<string, string> = {
   doc_type: "証憑の書類区分の選択肢です（請求書・領収書など）。名前を変えたり削除したりしても、登録済みの証憑には影響しません。",
@@ -58,6 +60,8 @@ export default function VoucherMastersPage() {
   const [optForm, setOptForm] = useState<{ id: string | null; value: string } | null>(null)
   const [partnerForm, setPartnerForm] = useState<PartnerForm | null>(null)
   const [serialInput, setSerialInput] = useState("")
+  const [managers, setManagers] = useState<Manager[]>([])
+  const [managerForm, setManagerForm] = useState<{ user_id: string; role: string } | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -71,13 +75,15 @@ export default function VoucherMastersPage() {
     setPartners(p.ok && Array.isArray(p.data) ? p.data : [])
     setUsers(u.ok && Array.isArray(u.data) ? u.data : [])
     setSerial(s.ok ? s.data : null)
+    const m = await request("/api/voucher/masters/managers", "GET")
+    setManagers(m.ok && Array.isArray(m.data) ? m.data : [])
     if (s.ok) setSerialInput(String(s.data.next_value))
     if (!o.ok) setError(o.data?.error ?? "読み込みに失敗しました")
     setLoading(false)
   }
   useEffect(() => { load() }, [])
 
-  const switchTab = (t: Tab) => { setTab(t); setError(""); setOptForm(null); setPartnerForm(null) }
+  const switchTab = (t: Tab) => { setTab(t); setError(""); setOptForm(null); setPartnerForm(null); setManagerForm(null) }
 
   const saveOption = async () => {
     if (!optForm) return
@@ -128,7 +134,23 @@ export default function VoucherMastersPage() {
     await load()
   }
 
-  const isOptionTab = tab !== "partners" && tab !== "serial"
+  const saveManager = async () => {
+    if (!managerForm) return
+    setError("")
+    const r = await request("/api/voucher/masters/managers", "POST", managerForm)
+    if (!r.ok) { setError(r.data?.error ?? "保存に失敗しました"); return }
+    setManagerForm(null)
+    await load()
+  }
+  const removeManager = async (m: Manager) => {
+    if (!confirm(`「${m.user.name ?? ""}（${m.role}）」を削除しますか？`)) return
+    setError("")
+    const r = await request(`/api/voucher/masters/managers?id=${m.id}`, "DELETE")
+    if (!r.ok) { setError(r.data?.error ?? "削除に失敗しました"); return }
+    await load()
+  }
+
+  const isOptionTab = tab !== "partners" && tab !== "serial" && tab !== "managers"
   const optionList = options.filter(o => o.category === tab)
   const optionsOf = (category: string) => options.filter(o => o.category === category)
   const pad = (n: number) => String(n).padStart(6, "0")
@@ -283,6 +305,47 @@ export default function VoucherMastersPage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-400">採番の設定を読み込めませんでした。</p>
+              )}
+            </div>
+          )}
+          {tab === "managers" && (
+            <div>
+              <div className="flex items-center justify-between mb-4 gap-4">
+                <p className="text-xs text-gray-400">
+                  訂正・削除依頼を承認する「管理責任者」と、承認された依頼を実施する「処理責任者」です。承認・実施ができるのは、ここに登録された人だけです。登録・削除できるのはシステム管理者だけです。
+                </p>
+                <button onClick={() => setManagerForm({ user_id: "", role: "管理責任者" })} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
+                  <Plus className="w-4 h-4" /> 追加
+                </button>
+              </div>
+              {managerForm && (
+                <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex gap-2">
+                    <select className={inputCls} value={managerForm.role} onChange={e => setManagerForm({ ...managerForm, role: e.target.value })}>
+                      <option value="管理責任者">管理責任者</option>
+                      <option value="処理責任者">処理責任者</option>
+                    </select>
+                    <select className={inputCls} value={managerForm.user_id} onChange={e => setManagerForm({ ...managerForm, user_id: e.target.value })}>
+                      <option value="">-- ユーザーを選択 --</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                    <button onClick={saveManager} className={btnPrimary}>保存</button>
+                    <button onClick={() => setManagerForm(null)} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+                  </div>
+                </div>
+              )}
+              {managers.length === 0 ? (
+                <p className="text-sm text-gray-400">まだ登録されていません。</p>
+              ) : (
+                <div className="space-y-2">
+                  {managers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
+                      <span className="w-24 text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-center">{m.role}</span>
+                      <span className="flex-1 font-medium text-gray-900">{m.user.name}</span>
+                      <button onClick={() => removeManager(m)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

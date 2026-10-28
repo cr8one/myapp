@@ -44,6 +44,7 @@ type Detail = {
   files: FileRow[]
   histories: History[]
 }
+type CorrectionRow = { id: string; request_no: number; action: string; status: string }
 type Tab = "basic" | "confirm" | "history" | "files"
 
 const TABS: { key: Tab; label: string }[] = [
@@ -56,6 +57,8 @@ const TABS: { key: Tab; label: string }[] = [
 const pad = (n: number) => String(n).padStart(6, "0")
 const fmtDate = (s: string) => s.slice(0, 10).replace(/-/g, "/")
 const fmtTime = (s: string) => new Date(s).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+
+const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
 
 async function request(url: string, method = "GET", body?: unknown) {
   const res = await fetch(url, {
@@ -88,6 +91,11 @@ export default function VoucherDetailPage() {
   const [approveStepId, setApproveStepId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [corrections, setCorrections] = useState<CorrectionRow[]>([])
+  const [showCorrection, setShowCorrection] = useState(false)
+  const [corrAction, setCorrAction] = useState<"訂正" | "削除">("訂正")
+  const [corrDetail, setCorrDetail] = useState("")
+  const [corrReason, setCorrReason] = useState("")
 
   const load = useCallback(async () => {
     const r = await request(`/api/voucher/${id}`)
@@ -98,6 +106,8 @@ export default function VoucherDetailPage() {
     }
     setV(r.data)
     setLoading(false)
+    const c = await request(`/api/voucher/corrections?voucher_id=${id}`)
+    setCorrections(c.ok && Array.isArray(c.data?.records) ? c.data.records : [])
     return r.data as Detail
   }, [id])
 
@@ -175,6 +185,27 @@ export default function VoucherDetailPage() {
     }
   }
 
+  const submitCorrection = async () => {
+    setBusy(true)
+    setError("")
+    const r = await request("/api/voucher/corrections", "POST", {
+      voucher_id: id,
+      action: corrAction,
+      detail: corrDetail,
+      reason: corrReason,
+    })
+    setBusy(false)
+    if (!r.ok) {
+      setError(r.data?.error ?? "依頼に失敗しました")
+      return
+    }
+    setShowCorrection(false)
+    setCorrAction("訂正")
+    setCorrDetail("")
+    setCorrReason("")
+    await load()
+  }
+
   if (loading) return <div className="p-6 text-sm text-gray-400">読み込み中...</div>
   if (!v) {
     return (
@@ -197,10 +228,22 @@ export default function VoucherDetailPage() {
           証憑詳細 <span className="font-mono text-base text-gray-500">{pad(v.file_no)}</span>
           {v.deleted_flg && <span className="ml-3 text-xs px-2 py-0.5 rounded bg-red-50 text-red-600">削除済み</span>}
         </h1>
-        <button onClick={() => router.push("/dashboard/voucher")} className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50">
-          <List className="w-4 h-4" /> 一覧に戻る
-        </button>
+        <div className="flex gap-2">
+          {!v.deleted_flg && (
+            <button onClick={() => { setError(""); setShowCorrection(true) }} className="px-3 py-2 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50">
+              訂正・削除依頼
+            </button>
+          )}
+          <button onClick={() => router.push("/dashboard/voucher")} className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50">
+            <List className="w-4 h-4" /> 一覧に戻る
+          </button>
+        </div>
       </div>
+      {corrections.filter(c => c.status === "申請中" || c.status === "承認済み").map(c => (
+        <p key={c.id} className="mb-3 text-sm text-amber-700">
+          依頼No.{String(c.request_no).padStart(3, "0")}（{c.action}）が{c.status}です。
+        </p>
+      ))}
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
       <div className="grid grid-cols-2 gap-6">
@@ -353,6 +396,36 @@ export default function VoucherDetailPage() {
           )}
         </div>
       </div>
+
+      {showCorrection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl p-6 w-[480px] space-y-4 shadow-xl">
+            <h2 className="text-base font-bold text-gray-900">訂正・削除依頼</h2>
+            <p className="text-xs text-gray-400">
+              保存した証憑の訂正・削除は、原則として禁止です。やむを得ない場合のみ依頼してください。管理責任者が承認したあと、処理責任者が実施します。
+            </p>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-1"><input type="radio" checked={corrAction === "訂正"} onChange={() => setCorrAction("訂正")} />訂正</label>
+              <label className="flex items-center gap-1"><input type="radio" checked={corrAction === "削除"} onChange={() => setCorrAction("削除")} />削除</label>
+            </div>
+            {corrAction === "訂正" && (
+              <div className="space-y-1">
+                <label className="text-xs text-gray-500">訂正する内容（例：取引日を2026/10/20に変更）</label>
+                <textarea className={inputCls} rows={3} value={corrDetail} onChange={e => setCorrDetail(e.target.value)} />
+              </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">理由</label>
+              <textarea className={inputCls} rows={3} value={corrReason} onChange={e => setCorrReason(e.target.value)} />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowCorrection(false); setError("") }} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>
+              <button onClick={submitCorrection} disabled={busy} className="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 disabled:opacity-40">依頼する</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {approveTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
