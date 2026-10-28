@@ -165,6 +165,20 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
     ],
   },
   {
+    key: "voucher",
+    label: "証憑管理",
+    tables: [
+      { tableName: "t_vouchers", label: "証憑" },
+      { tableName: "t_voucher_approval_steps", label: "証憑 承認ステップ" },
+      { tableName: "t_voucher_files", label: "証憑 関連ファイル" },
+      { tableName: "t_voucher_histories", label: "証憑 履歴" },
+      { tableName: "t_voucher_correction_requests", label: "証憑 訂正・削除依頼" },
+      { tableName: "m_voucher_options", label: "証憑管理 選択肢マスタ" },
+      { tableName: "m_voucher_partners", label: "証憑管理 取引先マスタ" },
+      { tableName: "m_voucher_serials", label: "証憑管理 採番" },
+    ],
+  },
+  {
     key: "dev",
     label: "開発営業管理",
     tables: [
