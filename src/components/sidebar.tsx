@@ -82,6 +82,7 @@ export const baseMenuItems = [
   { label: "証憑管理", href: "/dashboard/voucher", icon: "voucher", children: [
     { label: "証憑一覧", href: "/dashboard/voucher" },
     { label: "訂正・削除記録簿", href: "/dashboard/voucher/corrections" },
+    { label: "事務処理規程", href: "/dashboard/voucher/regulations" },
     { label: "証憑管理マスタ", href: "/dashboard/voucher/masters" },
   ]},
   { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [

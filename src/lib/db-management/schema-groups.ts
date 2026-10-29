@@ -177,6 +177,8 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "m_voucher_partners", label: "証憑管理 取引先マスタ" },
       { tableName: "m_voucher_serials", label: "証憑管理 採番" },
       { tableName: "m_voucher_managers", label: "証憑管理 責任者マスタ" },
+      { tableName: "t_voucher_regulations", label: "証憑管理 事務処理規程" },
+      { tableName: "t_voucher_regulation_files", label: "証憑管理 事務処理規程 関連ファイル" },
     ],
   },
   {

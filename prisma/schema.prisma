@@ -1994,3 +1994,29 @@ model MVoucherManager {
   @@unique([user_id, role])
   @@map("m_voucher_managers")
 }
+
+model VoucherRegulation {
+  id              String   @id @default(cuid())
+  title           String
+  version         String
+  remarks         String?  @db.Text
+  file_key        String
+  file_name       String
+  registrant_id   String?
+  registrant_name String?
+  created_at      DateTime @default(now())
+  files           VoucherRegulationFile[]
+  @@map("t_voucher_regulations")
+}
+
+model VoucherRegulationFile {
+  id            String            @id @default(cuid())
+  regulation_id String
+  regulation    VoucherRegulation @relation(fields: [regulation_id], references: [id])
+  file_key      String
+  file_name     String
+  file_type     String
+  uploaded_at   DateTime          @default(now())
+  @@index([regulation_id])
+  @@map("t_voucher_regulation_files")
+}
