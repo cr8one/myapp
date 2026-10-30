@@ -1,7 +1,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Download, List, Upload } from "lucide-react"
+import { Download, List } from "lucide-react"
 
 type Step = {
   id: string
@@ -90,7 +90,6 @@ export default function VoucherDetailPage() {
   const [myEmail, setMyEmail] = useState("")
   const [approveStepId, setApproveStepId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [corrections, setCorrections] = useState<CorrectionRow[]>([])
   const [showCorrection, setShowCorrection] = useState(false)
   const [corrAction, setCorrAction] = useState<"訂正" | "削除">("訂正")
@@ -137,6 +136,15 @@ export default function VoucherDetailPage() {
     window.open(r.data.url, "_blank")
   }
 
+  const downloadFile = async (key: string, name: string) => {
+    const r = await request(`/api/voucher/signed-url?key=${encodeURIComponent(key)}&download_name=${encodeURIComponent(name)}`)
+    if (!r.ok) {
+      setError(r.data?.error ?? "ダウンロードに失敗しました")
+      return
+    }
+    window.location.assign(r.data.url)
+  }
+
   const doApprove = async (stepId: string, sendMail: boolean) => {
     setApproveStepId(null)
     setBusy(true)
@@ -157,32 +165,6 @@ export default function VoucherDetailPage() {
     const next = nextAfter(s.id)
     if (next?.approver_email) setApproveStepId(s.id)
     else doApprove(s.id, false)
-  }
-
-  const addFile = async (file: File | null) => {
-    if (!file) return
-    setUploading(true)
-    setError("")
-    try {
-      const pre = await request("/api/voucher/presign", "POST", { filename: file.name })
-      if (!pre.ok) {
-        setError(pre.data?.error ?? "アップロードの準備に失敗しました")
-        return
-      }
-      const put = await fetch(pre.data.url, { method: "PUT", body: file })
-      if (!put.ok) {
-        setError("ファイルのアップロードに失敗しました")
-        return
-      }
-      const r = await request(`/api/voucher/${id}/files`, "POST", { file_key: pre.data.key, file_name: file.name })
-      if (!r.ok) {
-        setError(r.data?.error ?? "関連ファイルの登録に失敗しました")
-        return
-      }
-      await load()
-    } finally {
-      setUploading(false)
-    }
   }
 
   const submitCorrection = async () => {
@@ -366,19 +348,7 @@ export default function VoucherDetailPage() {
 
           {tab === "files" && (
             <div>
-              <p className="text-xs text-gray-400 mb-3">この証憑に関連するファイルを、追加で登録できます（明細など）。登録したファイルは、変更・削除できません。</p>
-              {!v.deleted_flg && (
-                <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 cursor-pointer mb-4">
-                  <Upload className="w-4 h-4" /> {uploading ? "処理中..." : "ファイルを追加"}
-                  <input
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={e => { addFile(e.target.files?.[0] ?? null); e.target.value = "" }}
-                  />
-                </label>
-              )}
+              <p className="text-xs text-gray-400 mb-3">登録時にまとめて追加されたファイルです。登録後は、追加・削除はできません。ダウンロードのみ可能です。</p>
               {v.files.length === 0 ? (
                 <p className="text-sm text-gray-400">関連ファイルはありません。</p>
               ) : (
@@ -387,7 +357,7 @@ export default function VoucherDetailPage() {
                     <div key={f.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white text-sm">
                       <span className="flex-1 text-gray-900 break-all">{f.file_name}</span>
                       <span className="text-xs text-gray-400">{fmtTime(f.uploaded_at)}</span>
-                      <button onClick={() => openFile(f.file_key)} className="px-3 py-1 border border-gray-300 text-xs text-gray-700 rounded-lg hover:bg-gray-50">開く</button>
+                      <button onClick={() => downloadFile(f.file_key, f.file_name)} className="px-3 py-1 border border-gray-300 text-xs text-gray-700 rounded-lg hover:bg-gray-50">ダウンロード</button>
                     </div>
                   ))}
                 </div>

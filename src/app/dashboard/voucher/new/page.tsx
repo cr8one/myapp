@@ -22,6 +22,20 @@ type Base = { id: string; name: string }
 
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
 const STEP_LABEL: Record<number, string> = { 1: "精査", 2: "検印" }
+// サーバー側（src/lib/voucher-storage.ts）の BLOCKED_EXTENSIONS / MAX_RELATED_BYTES と同じ内容にすること
+const BLOCKED_EXTENSIONS = ["exe", "bat", "cmd", "com", "scr", "msi", "sh", "js", "vbs", "ps1", "jar", "app", "dmg", "apk"]
+const MAX_RELATED_BYTES = 50 * 1024 * 1024
+const MAX_RELATED_COUNT = 20
+
+async function request(url: string, method: string, body?: unknown) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = await res.json().catch(() => null)
+  return { ok: res.ok, data }
+}
 
 async function getJson(url: string) {
   const res = await fetch(url)
@@ -43,6 +57,8 @@ export default function VoucherNewPage() {
   const [previewUrl, setPreviewUrl] = useState("")
   const [uploading, setUploading] = useState(false)
   const [ocrMessage, setOcrMessage] = useState("")
+  const [relatedFiles, setRelatedFiles] = useState<{ key: string; name: string }[]>([])
+  const [relatedBusy, setRelatedBusy] = useState(false)
 
   const [docType, setDocType] = useState("")
   const [direction, setDirection] = useState("受領")
@@ -147,6 +163,44 @@ export default function VoucherNewPage() {
     }
   }
 
+  const addRelated = async (list: FileList | null) => {
+    if (!list || list.length === 0) return
+    setError("")
+    const files = Array.from(list)
+    if (relatedFiles.length + files.length > MAX_RELATED_COUNT) {
+      setError(`関連ファイルは${MAX_RELATED_COUNT}件までです`)
+      return
+    }
+    for (const f of files) {
+      const ext = f.name.includes(".") ? (f.name.split(".").pop() ?? "").toLowerCase() : ""
+      if (!ext || BLOCKED_EXTENSIONS.includes(ext)) {
+        setError(`「${f.name}」は登録できません`)
+        return
+      }
+      if (f.size > MAX_RELATED_BYTES) {
+        setError(`「${f.name}」が大きすぎます（50MBまで）`)
+        return
+      }
+    }
+    setRelatedBusy(true)
+    const added: { key: string; name: string }[] = []
+    for (const f of files) {
+      const pre = await request("/api/voucher/presign", "POST", { filename: f.name, related: true })
+      if (!pre.ok) {
+        setError(pre.data?.error ?? "アップロードの準備に失敗しました")
+        break
+      }
+      const put = await fetch(pre.data.url, { method: "PUT", body: f })
+      if (!put.ok) {
+        setError(`「${f.name}」のアップロードに失敗しました`)
+        break
+      }
+      added.push({ key: pre.data.key, name: f.name })
+    }
+    setRelatedFiles(prev => [...prev, ...added])
+    setRelatedBusy(false)
+  }
+
   const validate = (): string => {
     if (!fileKey) return "ファイルを選択してください"
     if (!docType) return "書類区分を選択してください"
@@ -176,6 +230,7 @@ export default function VoucherNewPage() {
         base_name: baseName,
         file_key: fileKey,
         file_name: fileName,
+        related_files: relatedFiles.map(f => ({ file_key: f.key, file_name: f.name })),
         send_mail: sendMail,
       }),
     })
@@ -303,12 +358,34 @@ export default function VoucherNewPage() {
             <textarea className={inputCls} rows={4} value={remarks} onChange={e => setRemarks(e.target.value)} />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs text-gray-500">関連ファイル（任意）</label>
+            <p className="text-xs text-gray-400">Word・Excel・PDFなど、種類は問いません。登録後は、追加・削除はできません。ダウンロードのみ可能です。</p>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <Upload className="w-4 h-4" /> ファイルを追加
+                <input type="file" multiple className="hidden" disabled={relatedBusy} onChange={e => { addRelated(e.target.files); e.target.value = "" }} />
+              </label>
+              {relatedBusy && <span className="text-xs text-gray-400">アップロード中...</span>}
+            </div>
+            {relatedFiles.length > 0 && (
+              <div className="space-y-1">
+                {relatedFiles.map(f => (
+                  <div key={f.key} className="flex items-center gap-3 text-sm">
+                    <span className="flex-1 text-gray-800 break-all">{f.name}</span>
+                    <button onClick={() => setRelatedFiles(prev => prev.filter(x => x.key !== f.key))} className="text-xs text-gray-400 hover:text-red-500">外す</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {me && me.approvers.length === 0 && (
             <p className="text-xs text-amber-600">承認者が設定されていないため、精査・検印の確認依頼は作られません。</p>
           )}
 
           <div className="flex gap-2 pt-2">
-            <button onClick={onRegister} disabled={submitting || uploading} className="px-6 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 disabled:opacity-40">
+            <button onClick={onRegister} disabled={submitting || uploading || relatedBusy} className="px-6 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 disabled:opacity-40">
               {submitting ? "登録中..." : "登録"}
             </button>
             <button onClick={() => router.push("/dashboard/voucher")} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">キャンセル</button>

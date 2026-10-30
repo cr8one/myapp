@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import { HeadObjectCommand } from "@aws-sdk/client-s3"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/generated/prisma"
 import { getSessionUser, requirePermission } from "@/lib/permissions"
-import { isVoucherKey, fileExtension, ALLOWED_EXTENSIONS } from "@/lib/voucher-storage"
+import { isVoucherKey, fileExtension, ALLOWED_EXTENSIONS, BLOCKED_EXTENSIONS, MAX_RELATED_BYTES, voucherS3, VOUCHER_BUCKET } from "@/lib/voucher-storage"
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -82,6 +83,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ファイルが正しくありません" }, { status: 400 })
   }
 
+  const relatedInput: { file_key: string; file_name: string }[] = Array.isArray(b.related_files) ? b.related_files : []
+  if (relatedInput.length > 20) return NextResponse.json({ error: "関連ファイルは20件までです" }, { status: 400 })
+  for (const f of relatedInput) {
+    const relName = String(f.file_name ?? "")
+    const relExt = fileExtension(relName)
+    if (!isVoucherKey(f.file_key) || !relExt || BLOCKED_EXTENSIONS.includes(relExt)) {
+      return NextResponse.json({ error: `関連ファイル「${relName}」は登録できません` }, { status: 400 })
+    }
+    let size = 0
+    try {
+      const head = await voucherS3.send(new HeadObjectCommand({ Bucket: VOUCHER_BUCKET, Key: f.file_key }))
+      size = head.ContentLength ?? 0
+    } catch {
+      return NextResponse.json({ error: `関連ファイル「${relName}」のアップロードを確認できません` }, { status: 400 })
+    }
+    if (size > MAX_RELATED_BYTES) {
+      return NextResponse.json({ error: `関連ファイル「${relName}」が大きすぎます（50MBまで）` }, { status: 400 })
+    }
+  }
+
   const settings = await prisma.userApproverSetting.findMany({
     where: { user_id: user.id, service_type: "voucher" },
     orderBy: { step_order: "asc" },
@@ -126,6 +147,11 @@ export async function POST(req: NextRequest) {
     })
     if (steps.length > 0) {
       await tx.voucherApprovalStep.createMany({ data: steps.map(s => ({ ...s, voucher_id: created.id })) })
+    }
+    if (relatedInput.length > 0) {
+      await tx.voucherFile.createMany({
+        data: relatedInput.map(f => ({ voucher_id: created.id, file_key: f.file_key, file_name: String(f.file_name), file_type: fileExtension(String(f.file_name)) })),
+      })
     }
     await tx.voucherHistory.create({
       data: { voucher_id: created.id, kind: "登録", actor_id: user.id, actor_name: user.name ?? null },

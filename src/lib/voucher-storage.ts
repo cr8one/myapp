@@ -17,3 +17,6 @@ export function fileExtension(name: string): string {
   const i = name.lastIndexOf(".")
   return i >= 0 ? name.slice(i + 1).toLowerCase() : ""
 }
+
+export const BLOCKED_EXTENSIONS = ["exe", "bat", "cmd", "com", "scr", "msi", "sh", "js", "vbs", "ps1", "jar", "app", "dmg", "apk"]
+export const MAX_RELATED_BYTES = 50 * 1024 * 1024

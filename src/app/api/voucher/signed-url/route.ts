@@ -7,8 +7,13 @@ import { voucherS3, VOUCHER_BUCKET, isVoucherKey } from "@/lib/voucher-storage"
 export async function GET(req: NextRequest) {
   const denied = await requirePermission("voucherView")
   if (denied) return denied
-  const key = new URL(req.url).searchParams.get("key")
+  const sp = new URL(req.url).searchParams
+  const key = sp.get("key")
+  const downloadName = sp.get("download_name")
   if (!isVoucherKey(key)) return NextResponse.json({ error: "key が正しくありません" }, { status: 400 })
-  const url = await getSignedUrl(voucherS3, new GetObjectCommand({ Bucket: VOUCHER_BUCKET, Key: key }), { expiresIn: 300 })
+  const disposition = downloadName
+    ? `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(downloadName)}`
+    : undefined
+  const url = await getSignedUrl(voucherS3, new GetObjectCommand({ Bucket: VOUCHER_BUCKET, Key: key, ResponseContentDisposition: disposition }), { expiresIn: 300 })
   return NextResponse.json({ url })
 }
