@@ -24,6 +24,10 @@ export default function DeviceModelsPage() {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState("")
+  const [deviceType, setDeviceType] = useState("")
+  const [vendorName, setVendorName] = useState("")
+  const [typeOptions, setTypeOptions] = useState<string[]>([])
+  const [vendorOptions, setVendorOptions] = useState<string[]>([])
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState("")
   const importRef = useRef<HTMLInputElement>(null)
@@ -39,17 +43,25 @@ export default function DeviceModelsPage() {
     )
     setSignedUrls(Object.fromEntries(results))
   }
-  const fetchRecords = async () => {
+  const fetchOptions = async () => {
+    const res = await fetch("/api/terminal/device-models?type=options")
+    const data = await res.json()
+    setTypeOptions(data.deviceTypes || [])
+    setVendorOptions(data.vendors || [])
+  }
+  const fetchRecords = async (kw: string = keyword, dt: string = deviceType, vn: string = vendorName) => {
     setLoading(true)
     const params = new URLSearchParams()
-    if (keyword) params.set("keyword", keyword)
+    if (kw) params.set("keyword", kw)
+    if (dt) params.set("deviceType", dt)
+    if (vn) params.set("vendorName", vn)
     const res = await fetch(`/api/terminal/device-models?${params.toString()}`)
     const data: DeviceModel[] = await res.json()
     setRecords(data)
     setLoading(false)
     fetchSignedUrls(data)
   }
-  useEffect(() => { fetchRecords() }, [])
+  useEffect(() => { fetchRecords(); fetchOptions() }, [])
   const handleExport = () => { window.location.href = "/api/terminal/device-models/export" }
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,6 +86,7 @@ export default function DeviceModelsPage() {
       }
       setImportMessage(`インポート完了：${count}件`)
       fetchRecords()
+      fetchOptions()
     } catch (err: any) {
       setImportMessage(`エラー：${err.message}`)
     } finally {
@@ -118,8 +131,27 @@ export default function DeviceModelsPage() {
               onKeyDown={e => { if (e.key === "Enter") fetchRecords() }}
               autoComplete="off" />
           </div>
-          <Button onClick={fetchRecords} className="flex items-center gap-1">
+          <div className="w-44">
+            <label className="block text-xs text-gray-500 mb-1">種別</label>
+            <select value={deviceType} onChange={e => setDeviceType(e.target.value)}
+              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <option value="">すべて</option>
+              {typeOptions.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="w-44">
+            <label className="block text-xs text-gray-500 mb-1">メーカー</label>
+            <select value={vendorName} onChange={e => setVendorName(e.target.value)}
+              className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
+              <option value="">すべて</option>
+              {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <Button onClick={() => fetchRecords()} className="flex items-center gap-1">
             <Search className="w-4 h-4" />検索
+          </Button>
+          <Button variant="outline" onClick={() => { setKeyword(""); setDeviceType(""); setVendorName(""); fetchRecords("", "", "") }}>
+            クリア
           </Button>
         </div>
       </div>

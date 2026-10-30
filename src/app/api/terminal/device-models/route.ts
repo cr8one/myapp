@@ -19,16 +19,35 @@ export async function GET(req: NextRequest) {
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 })
     return NextResponse.json({ url })
   }
+  if (type === "options") {
+    const types = await prisma.$queryRawUnsafe<{ v: string }[]>(
+      `SELECT device_type AS v FROM m_device_models WHERE device_type IS NOT NULL AND device_type <> '' GROUP BY device_type ORDER BY device_type COLLATE "und-x-icu" ASC`
+    )
+    const vendors = await prisma.$queryRawUnsafe<{ v: string }[]>(
+      `SELECT vendor_name AS v FROM m_device_models WHERE vendor_name IS NOT NULL AND vendor_name <> '' GROUP BY vendor_name ORDER BY vendor_name COLLATE "und-x-icu" ASC`
+    )
+    return NextResponse.json({ deviceTypes: types.map(r => r.v), vendors: vendors.map(r => r.v) })
+  }
   const keyword = searchParams.get("keyword")
+  const deviceType = searchParams.get("deviceType")
+  const vendorName = searchParams.get("vendorName")
   const records = await prisma.deviceModel.findMany({
-    where: keyword ? { OR: [
-      { modelName: { contains: keyword } },
-      { modelNumber: { contains: keyword } },
-      { osName: { contains: keyword } },
-      { vendorName: { contains: keyword } },
-    ]} : undefined,
-    orderBy: { modelId: "asc" },
+    where: {
+      ...(deviceType ? { deviceType } : {}),
+      ...(vendorName ? { vendorName } : {}),
+      ...(keyword ? { OR: [
+        { modelName: { contains: keyword } },
+        { modelNumber: { contains: keyword } },
+        { osName: { contains: keyword } },
+        { vendorName: { contains: keyword } },
+      ] } : {}),
+    },
   })
+  const order = await prisma.$queryRawUnsafe<{ model_id: number }[]>(
+    `SELECT model_id FROM m_device_models ORDER BY model_name COLLATE "und-x-icu" ASC, model_id ASC`
+  )
+  const rank = new Map(order.map((r, i) => [r.model_id, i]))
+  records.sort((a, b) => (rank.get(a.modelId) ?? 0) - (rank.get(b.modelId) ?? 0))
   return NextResponse.json(records)
 }
 
