@@ -72,8 +72,6 @@ export async function POST(request: Request) {
           estimateEdit: permission?.estimateEdit ?? false,
           eappView:     permission?.eappView     ?? true,
           eappEdit:     permission?.eappEdit     ?? false,
-          travelView:   permission?.travelView   ?? true,
-          travelEdit:   permission?.travelEdit   ?? false,
           sopView:      permission?.sopView      ?? true,
           sopEdit:      permission?.sopEdit      ?? false,
           reportView:   permission?.reportView   ?? true,

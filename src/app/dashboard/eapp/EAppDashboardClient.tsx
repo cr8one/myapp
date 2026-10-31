@@ -1,11 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Building2, Truck, ShoppingCart, FileText } from "lucide-react"
+import { Building2, Truck, ShoppingCart, FileText, Receipt } from "lucide-react"
 
 type Stats = {
   customerCount: number
   ringiCount: number
+  accountingCount: number
 }
 
 function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
@@ -29,6 +30,16 @@ function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
 }
 
 const cards = [
+  {
+    label: "経理精算",
+    key: "accountingCount" as keyof Stats,
+    href: "/dashboard/eapp/accounting",
+    icon: Receipt,
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+    border: "border-emerald-100",
+    hover: "hover:border-emerald-300",
+  },
   {
     label: "稟議書",
     key: "ringiCount" as keyof Stats,

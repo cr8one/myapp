@@ -80,6 +80,10 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_ringi_requests", label: "稟議申請" },
       { tableName: "t_ringi_approval_steps", label: "稟議承認ステップ" },
       { tableName: "t_ringi_request_files", label: "稟議添付ファイル" },
+      { tableName: "t_acct_slips", label: "経理精算伝票" },
+      { tableName: "t_acct_slip_approval_steps", label: "経理精算承認ステップ" },
+      { tableName: "t_acct_slip_files", label: "経理精算添付ファイル" },
+      { tableName: "t_acct_trip_expenses", label: "出張旅費精算書" },
     ],
   },
   {

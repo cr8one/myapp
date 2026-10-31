@@ -21,13 +21,18 @@ const TAB_SERVICE_TYPE: Record<string, string> = {
   "tokui-approval-routes": "tokui_credit",
   "ringi-approval-routes": "ringi",
 }
+const ACCOUNTING_TYPES = [
+  { value: "accounting_trip_expense", label: "出張旅費精算書" },
+]
+const serviceTypeOf = (tab: string, acctType: string) => tab === "accounting-routes" ? acctType : TAB_SERVICE_TYPE[tab]
+const ACCOUNTING_DESCRIPTION = "選んだ書類の種類に共通で適用される、経理側の承認ステップです（経理担当・経理マネージャー・専務・社長など）。起案者ごとの承認者（課長・部長など）の承認が終わったあと、ここでの順序で承認が進みます。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。"
 const TAB_DESCRIPTION: Record<string, string> = {
   "tokui-approval-routes": "全ての得意先申請に共通で適用される固定の承認ステップです（経理部・社長など）。ユーザーごとの可変ステップの後に、ここでの並び順で承認が進みます。",
   "ringi-approval-routes": "全ての稟議書に共通で適用される固定の承認ステップです（関連部・役員・社長など）。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。",
 }
 
 export default function EappMastersPage() {
-  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "system-staff">("tokui-approval-routes")
+  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "system-staff">("tokui-approval-routes")
 
   // 共通承認者設定（得意先申請・稟議書）
   const [routes, setRoutes] = useState<ApprovalRoute[]>([])
@@ -40,6 +45,7 @@ export default function EappMastersPage() {
   const [positionId, setPositionId] = useState("")
   const [categoryValue, setCategoryValue] = useState("")
   const [approverUserId, setApproverUserId] = useState("")
+  const [accountingType, setAccountingType] = useState("accounting_trip_expense")
 
   // システム担当者マスタ
   const [staff, setStaff] = useState<Staff[]>([])
@@ -47,8 +53,8 @@ export default function EappMastersPage() {
   const [showStaffForm, setShowStaffForm] = useState(false)
   const [staffUserId, setStaffUserId] = useState("")
 
-  const fetchRoutes = async (tab: string) => {
-    const serviceType = TAB_SERVICE_TYPE[tab]
+  const fetchRoutes = async (tab: string, acctType: string = accountingType) => {
+    const serviceType = serviceTypeOf(tab, acctType)
     if (!serviceType) return
     setRoutesLoading(true)
     const [routeRes, positionRes, userRes] = await Promise.all([
@@ -73,15 +79,15 @@ export default function EappMastersPage() {
   }
   useEffect(() => { fetchRoutes(activeTab); fetchStaff() }, [])
 
-  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "system-staff") => {
+  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "system-staff") => {
     setActiveTab(tab)
     setShowRouteForm(false)
     setEditRoute(null)
-    if (TAB_SERVICE_TYPE[tab]) fetchRoutes(tab)
+    if (serviceTypeOf(tab, accountingType)) fetchRoutes(tab)
   }
 
   const saveRoute = async () => {
-    const serviceType = TAB_SERVICE_TYPE[activeTab]
+    const serviceType = serviceTypeOf(activeTab, accountingType)
     const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, category: categoryValue || null, position_id: positionId || null, approver_user_id: approverUserId || null })
     if (editRoute) {
       await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
@@ -131,7 +137,7 @@ export default function EappMastersPage() {
     fetchStaff()
   }
 
-  const isRouteTab = activeTab === "tokui-approval-routes" || activeTab === "ringi-approval-routes"
+  const isRouteTab = activeTab === "tokui-approval-routes" || activeTab === "ringi-approval-routes" || activeTab === "accounting-routes"
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -155,6 +161,14 @@ export default function EappMastersPage() {
           稟議書共通承認者設定
         </button>
         <button
+          onClick={() => switchTab("accounting-routes")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "accounting-routes" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          経理精算共通承認者設定
+        </button>
+        <button
           onClick={() => switchTab("system-staff")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "system-staff" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
@@ -170,13 +184,22 @@ export default function EappMastersPage() {
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-slate-600" />
               <p className="text-xs text-gray-400">
-                {TAB_DESCRIPTION[activeTab]}
+                {activeTab === "accounting-routes" ? ACCOUNTING_DESCRIPTION : TAB_DESCRIPTION[activeTab]}
               </p>
             </div>
             <button onClick={startAddRoute} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
               <Plus className="w-4 h-4" /> ステップ追加
             </button>
           </div>
+          {activeTab === "accounting-routes" && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-sm text-gray-600">書類の種類</span>
+              <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={accountingType}
+                onChange={e => { setAccountingType(e.target.value); setShowRouteForm(false); setEditRoute(null); fetchRoutes("accounting-routes", e.target.value) }}>
+                {ACCOUNTING_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+          )}
           {showRouteForm && (
             <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <p className="text-sm font-medium text-slate-700 mb-3">{editRoute ? "承認ステップを編集" : "承認ステップを追加"}</p>

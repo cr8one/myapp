@@ -4,7 +4,6 @@ export type PermissionKey =
   | "specView"     | "specEdit"
   | "estimateView" | "estimateEdit"
   | "eappView"     | "eappEdit"
-  | "travelView"   | "travelEdit"
   | "sopView"      | "sopEdit"
   | "reportView"   | "reportEdit"
   | "bpmsView"     | "bpmsEdit"
@@ -60,4 +59,12 @@ export async function requirePurchasingAccess() {
     })
   }
   return null
+}
+
+// 経理担当（またはシステム管理者）かどうか。経理精算の全伝票を見られる担当区分のフラグ
+export async function hasAccountingAccess(): Promise<boolean> {
+  const user = await getSessionUser()
+  if (!user) return false
+  if (user.role === "ADMIN") return true
+  return user.permission?.isAccountingStaff === true
 }

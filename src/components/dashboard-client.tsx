@@ -3,7 +3,7 @@ import Link from "next/link"
 import {
   Gauge, ScrollText, JapaneseYen, Handshake, Settings, ShieldCheck,
   Megaphone, Wrench, Tag,
-  Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, ClipboardList, ReceiptText
+  BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, ClipboardList, ReceiptText
 } from "lucide-react"
 
 type Announcement = {
@@ -11,7 +11,7 @@ type Announcement = {
   publishedAt: string; createdBy: { name: string | null; email: string }
 }
 type Permission = {
-  specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
+  specView: boolean; estimateView: boolean; eappView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
   manufacturingView: boolean; trayView: boolean; addressBookView: boolean; voucherView: boolean
@@ -71,7 +71,7 @@ function TrayIcon({ className }: { className?: string }) {
 
 const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView", addressbook: "addressBookView",
-  travel: "travelView", sop: "sopView", report: "reportView",
+  sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
   ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
   manufacturing: "manufacturingView", tray: "trayView",
@@ -81,9 +81,8 @@ const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
 const SERVICE_CARDS = [
   { label: "仕様書",      href: "/dashboard/products",  icon: "spec",     desc: "仕様一覧・パーツ一覧",          color: "text-indigo-600 bg-indigo-50" },
   { label: "見積書",      href: "/dashboard/estimates", icon: "estimate", desc: "見積一覧",                      color: "text-emerald-600 bg-emerald-50" },
-  { label: "電子申請",    href: "/dashboard/eapp",      icon: "eapp",     desc: "得意先・納品先・仕入先・用紙",   color: "text-sky-600 bg-sky-50" },
+  { label: "電子申請",    href: "/dashboard/eapp",      icon: "eapp",     desc: "経理精算・稟議書・得意先登録",   color: "text-sky-600 bg-sky-50" },
   { label: "証憑管理",    href: "/dashboard/voucher",   icon: "voucher",  desc: "請求書・領収書などの保存・検索", color: "text-blue-600 bg-blue-50" },
-  { label: "交通費精算",  href: "/dashboard/travel",    icon: "travel",   desc: "交通費の申請・精算",              color: "text-teal-600 bg-teal-50" },
   { label: "作業標準書",  href: "/dashboard/sop",       icon: "sop",      desc: "作業手順・標準書管理",            color: "text-cyan-600 bg-cyan-50" },
   { label: "業務報告書",  href: "/dashboard/report",    icon: "report",   desc: "日報・業務報告管理",              color: "text-purple-600 bg-purple-50" },
   { label: "住所録",      href: "/dashboard/address-book", icon: "addressbook", desc: "取引先・連絡先管理",          color: "text-amber-600 bg-amber-50" },
@@ -103,7 +102,6 @@ function ServiceIcon({ icon, className }: { icon: string; className?: string }) 
   if (icon === "spec")     return <ScrollText className={className} />
   if (icon === "estimate") return <JapaneseYen className={className} />
   if (icon === "eapp")     return <EApplicationIcon className={className} />
-  if (icon === "travel")   return <Train className={className} />
   if (icon === "voucher")  return <ReceiptText className={className} />
   if (icon === "sop")      return <BookOpen className={className} />
   if (icon === "report")   return <FileText className={className} />

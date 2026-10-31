@@ -31,7 +31,6 @@ async function main() {
           specView: true, specEdit: false,
           estimateView: true, estimateEdit: false,
           eappView: true, eappEdit: false,
-          travelView: true, travelEdit: false,
           sopView: true, sopEdit: false,
           reportView: true, reportEdit: false,
           bpmsView: true, bpmsEdit: false,

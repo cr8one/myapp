@@ -11,7 +11,6 @@ type Permission = {
   specView: boolean;     specEdit: boolean
   estimateView: boolean; estimateEdit: boolean
   eappView: boolean;     eappEdit: boolean
-  travelView: boolean;   travelEdit: boolean
   sopView: boolean;      sopEdit: boolean
   reportView: boolean;   reportEdit: boolean
   bpmsView: boolean;     bpmsEdit: boolean
@@ -28,6 +27,7 @@ type Permission = {
   addressBookView: boolean; addressBookEdit: boolean
   addressBookChangeRequestTarget: boolean
   isPurchasingStaff: boolean
+  isAccountingStaff: boolean
   dppStorageLedgerImport: boolean
 }
 type UserDept = {
@@ -62,7 +62,6 @@ const defaultPermission: Permission = {
   specView: true,     specEdit: false,
   estimateView: true, estimateEdit: false,
   eappView: true,     eappEdit: false,
-  travelView: true,   travelEdit: false,
   sopView: true,      sopEdit: false,
   reportView: true,   reportEdit: false,
   bpmsView: true,     bpmsEdit: false,
@@ -79,13 +78,13 @@ const defaultPermission: Permission = {
   addressBookView: true, addressBookEdit: false,
   addressBookChangeRequestTarget: false,
   isPurchasingStaff: false,
+  isAccountingStaff: false,
   dppStorageLedgerImport: false,
 }
 const permissionGroups: { group: string; color: string; items: { key: keyof Permission; label: string }[] }[] = [
   { group: "仕様書",     color: "bg-blue-50 text-blue-700",    items: [{ key: "specView", label: "閲覧" }, { key: "specEdit", label: "編集" }] },
   { group: "見積書",     color: "bg-green-50 text-green-700",  items: [{ key: "estimateView", label: "閲覧" }, { key: "estimateEdit", label: "編集" }] },
   { group: "電子申請",   color: "bg-cyan-50 text-cyan-700",    items: [{ key: "eappView", label: "閲覧" }, { key: "eappEdit", label: "編集" }] },
-  { group: "交通費精算", color: "bg-teal-50 text-teal-700",    items: [{ key: "travelView", label: "閲覧" }, { key: "travelEdit", label: "編集" }] },
   { group: "作業標準書", color: "bg-sky-50 text-sky-700",      items: [{ key: "sopView", label: "閲覧" }, { key: "sopEdit", label: "編集" }] },
   { group: "業務報告書", color: "bg-violet-50 text-violet-700",items: [{ key: "reportView", label: "閲覧" }, { key: "reportEdit", label: "編集" }] },
   { group: "BPMS",       color: "bg-indigo-50 text-indigo-700",items: [{ key: "bpmsView", label: "閲覧" }, { key: "bpmsEdit", label: "編集" }] },
@@ -95,7 +94,7 @@ const permissionGroups: { group: string; color: string; items: { key: keyof Perm
   { group: "トレイ使用予定", color: "bg-emerald-50 text-emerald-700", items: [{ key: "trayView", label: "閲覧" }, { key: "trayEdit", label: "編集" }] },
   { group: "証憑管理", color: "bg-rose-50 text-rose-700", items: [{ key: "voucherView", label: "閲覧" }, { key: "voucherEdit", label: "編集" }] },
   { group: "住所録",     color: "bg-amber-50 text-amber-700",  items: [{ key: "addressBookView", label: "閲覧" }, { key: "addressBookEdit", label: "編集" }, { key: "addressBookChangeRequestTarget", label: "変更依頼配信先" }] },
-  { group: "担当区分",   color: "bg-slate-50 text-slate-700",  items: [{ key: "isPurchasingStaff", label: "購買担当" }] },
+  { group: "担当区分",   color: "bg-slate-50 text-slate-700",  items: [{ key: "isPurchasingStaff", label: "購買担当" }, { key: "isAccountingStaff", label: "経理担当" }] },
   { group: "DPP予定表",  color: "bg-pink-50 text-pink-700",    items: [{ key: "dppView", label: "閲覧" }, { key: "dppEdit", label: "編集" }, { key: "dppStorageLedgerImport", label: "データ保管台帳 取込/出力" }] },
   { group: "SSSS",       color: "bg-yellow-50 text-yellow-700",items: [
     { key: "ssssView", label: "閲覧" }, { key: "ssssEdit", label: "編集" },
@@ -147,7 +146,7 @@ export default function UsersPage() {
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
   }
-  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher">("tokui_credit")
+  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher" | "accounting">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
   const [showApproverForm, setShowApproverForm] = useState(false)
   const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
@@ -592,6 +591,10 @@ const handleInkanDelete = async () => {
                       onClick={() => { setApproverServiceType("voucher"); fetchApproverSettings(editUser.id, "voucher") }}
                       className={`text-xs px-2 py-1 rounded ${approverServiceType === "voucher" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
                     >証憑管理</button>
+                    <button
+                      onClick={() => { setApproverServiceType("accounting"); fetchApproverSettings(editUser.id, "accounting") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "accounting" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >経理精算</button>
                   </div>
                   <button
                     onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}

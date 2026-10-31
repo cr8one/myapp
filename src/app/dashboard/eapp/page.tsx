@@ -11,6 +11,7 @@ export default async function EAppDashboardPage() {
       stats={{
         customerCount: 0,
         ringiCount: 0,
+        accountingCount: 0,
       }}
     />
   )

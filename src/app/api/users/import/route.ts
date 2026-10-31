@@ -56,8 +56,6 @@ export async function POST(request: Request) {
       estimateEdit: isChecked(row["estimateEdit"]),
       eappView:     isDefaultTrueUnlessZero(row["eappView"]),
       eappEdit:     isChecked(row["eappEdit"]),
-      travelView:   isDefaultTrueUnlessZero(row["travelView"]),
-      travelEdit:   isChecked(row["travelEdit"]),
       sopView:      isDefaultTrueUnlessZero(row["sopView"]),
       sopEdit:      isChecked(row["sopEdit"]),
       reportView:   isDefaultTrueUnlessZero(row["reportView"]),

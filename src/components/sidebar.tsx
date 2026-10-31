@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, Train, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen, ClipboardList, ReceiptText } from "lucide-react"
+import { ChevronDown, ChevronRight, Handshake, Settings, Gauge, ScrollText, JapaneseYen, ShieldCheck, BookOpen, FileText, CalendarDays, PenTool, Monitor, BookUser, PanelLeftClose, PanelLeftOpen, ClipboardList, ReceiptText } from "lucide-react"
 
 function SsssIcon({ className }: { className?: string }) {
   return (
@@ -47,7 +47,7 @@ function TrayIcon({ className }: { className?: string }) {
 }
 
 export type Permission = {
-  specView: boolean; estimateView: boolean; eappView: boolean; travelView: boolean
+  specView: boolean; estimateView: boolean; eappView: boolean
   sopView: boolean; reportView: boolean; bpmsView: boolean; dlmsView: boolean
   dppView: boolean; ssssView: boolean; mastersView: boolean; cadView: boolean; terminalView: boolean
   manufacturingView: boolean; trayView: boolean; addressBookView: boolean; voucherView: boolean
@@ -55,7 +55,7 @@ export type Permission = {
 
 export const VIEW_FLAG_MAP: Record<string, keyof NonNullable<Permission>> = {
   spec: "specView", estimate: "estimateView", eapp: "eappView", addressbook: "addressBookView",
-  travel: "travelView", sop: "sopView", report: "reportView",
+  sop: "sopView", report: "reportView",
   bpms: "bpmsView", dlms: "dlmsView", dpp: "dppView",
   ssss: "ssssView", terminal: "terminalView", masters: "mastersView", cad: "cadView",
   manufacturing: "manufacturingView", tray: "trayView",
@@ -72,6 +72,7 @@ export const baseMenuItems = [
     { label: "見積一覧", href: "/dashboard/estimates" },
   ]},
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
+    { label: "経理精算", href: "/dashboard/eapp/accounting" },
     { label: "稟議書", href: "/dashboard/eapp/ringi" },
     { label: "得意先登録", href: "/dashboard/eapp/customers" },
     // { label: "納品先登録", href: "/dashboard/eapp/deliveries" },
@@ -84,9 +85,6 @@ export const baseMenuItems = [
     { label: "訂正・削除記録簿", href: "/dashboard/voucher/corrections" },
     { label: "事務処理規程", href: "/dashboard/voucher/regulations" },
     { label: "証憑管理マスタ", href: "/dashboard/voucher/masters" },
-  ]},
-  { label: "交通費精算", href: "/dashboard/travel", icon: "travel", children: [
-    { label: "精算一覧", href: "/dashboard/travel" },
   ]},
   { label: "作業標準書", href: "/dashboard/sop", icon: "sop", children: [
     { label: "標準書一覧", href: "/dashboard/sop" },
@@ -182,7 +180,6 @@ export function MenuIcon({ icon, className }: { icon?: string; className?: strin
   if (icon === "spec")      return <ScrollText className={className} />
   if (icon === "estimate")  return <JapaneseYen className={className} />
   if (icon === "eapp")      return <EApplicationIcon className={className} />
-  if (icon === "travel")    return <Train className={className} />
   if (icon === "voucher")   return <ReceiptText className={className} />
   if (icon === "sop")       return <BookOpen className={className} />
   if (icon === "report")    return <FileText className={className} />
@@ -216,7 +213,6 @@ export function Sidebar({ isAdmin, permission }: { isAdmin: boolean; permission:
     if (label === "見積書")     return pathname.startsWith("/dashboard/estimates")
     if (label === "電子申請")   return pathname.startsWith("/dashboard/eapp")
     if (label === "証憑管理")   return pathname.startsWith("/dashboard/voucher")
-    if (label === "交通費精算") return pathname.startsWith("/dashboard/travel")
     if (label === "作業標準書") return pathname.startsWith("/dashboard/sop")
     if (label === "業務報告書") return pathname.startsWith("/dashboard/report")
     if (label === "住所録")     return pathname.startsWith("/dashboard/address-book")

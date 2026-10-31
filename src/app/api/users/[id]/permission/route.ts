@@ -13,8 +13,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       estimateEdit: body.estimateEdit ?? false,
       eappView:     body.eappView     ?? true,
       eappEdit:     body.eappEdit     ?? false,
-      travelView:   body.travelView   ?? true,
-      travelEdit:   body.travelEdit   ?? false,
       sopView:      body.sopView      ?? true,
       sopEdit:      body.sopEdit      ?? false,
       reportView:   body.reportView   ?? true,
@@ -45,6 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       addressBookEdit: body.addressBookEdit ?? false,
       addressBookChangeRequestTarget: body.addressBookChangeRequestTarget ?? false,
       isPurchasingStaff: body.isPurchasingStaff ?? false,
+      isAccountingStaff: body.isAccountingStaff ?? false,
       dppStorageLedgerImport: body.dppStorageLedgerImport ?? false,
     },
     update: {
@@ -54,8 +53,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(body.estimateEdit !== undefined && { estimateEdit: body.estimateEdit }),
       ...(body.eappView     !== undefined && { eappView:     body.eappView }),
       ...(body.eappEdit     !== undefined && { eappEdit:     body.eappEdit }),
-      ...(body.travelView   !== undefined && { travelView:   body.travelView }),
-      ...(body.travelEdit   !== undefined && { travelEdit:   body.travelEdit }),
       ...(body.sopView      !== undefined && { sopView:      body.sopView }),
       ...(body.sopEdit      !== undefined && { sopEdit:      body.sopEdit }),
       ...(body.reportView   !== undefined && { reportView:   body.reportView }),
@@ -86,6 +83,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(body.addressBookEdit !== undefined && { addressBookEdit: body.addressBookEdit }),
       ...(body.addressBookChangeRequestTarget !== undefined && { addressBookChangeRequestTarget: body.addressBookChangeRequestTarget }),
       ...(body.isPurchasingStaff !== undefined && { isPurchasingStaff: body.isPurchasingStaff }),
+      ...(body.isAccountingStaff !== undefined && { isAccountingStaff: body.isAccountingStaff }),
       ...(body.dppStorageLedgerImport !== undefined && { dppStorageLedgerImport: body.dppStorageLedgerImport }),
     },
   })

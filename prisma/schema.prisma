@@ -108,6 +108,7 @@ model UserPermission {
   addressBookEdit              Boolean @default(false) @map("address_book_edit")
   addressBookChangeRequestTarget Boolean @default(false) @map("address_book_change_request_target")
   isPurchasingStaff            Boolean @default(false) @map("is_purchasing_staff")
+  isAccountingStaff            Boolean @default(false) @map("is_accounting_staff")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt      @map("updated_at")
   @@map("user_permissions")
@@ -2019,4 +2020,80 @@ model VoucherRegulationFile {
   uploaded_at   DateTime          @default(now())
   @@index([regulation_id])
   @@map("t_voucher_regulation_files")
+}
+
+model AcctSlip {
+  id               String    @id @default(cuid())
+  slip_no          Int       @unique @default(autoincrement())
+  slip_type        String
+  title            String
+  status           String    @default("下書き")
+  slip_date        DateTime  @db.Date
+  amount           Int       @default(0)
+  requester_id     String
+  requester_name   String
+  department_name  String?
+  submitted_at     DateTime?
+  completed_at     DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  approval_steps   AcctSlipApprovalStep[]
+  files            AcctSlipFile[]
+  trip_expense     AcctTripExpense?
+  @@index([requester_id])
+  @@index([slip_type])
+  @@index([status])
+  @@index([slip_date])
+  @@map("t_acct_slips")
+}
+
+model AcctSlipApprovalStep {
+  id             String    @id @default(cuid())
+  slip_id        String
+  slip           AcctSlip  @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  stage          String
+  step_order     Int
+  position_name  String?
+  approver_id    String?
+  approver_name  String?
+  approver_email String?
+  status         String    @default("未承認")
+  approved_at    DateTime?
+  created_at     DateTime  @default(now())
+  @@index([slip_id])
+  @@index([approver_id])
+  @@map("t_acct_slip_approval_steps")
+}
+
+model AcctSlipFile {
+  id          String   @id @default(cuid())
+  slip_id     String
+  slip        AcctSlip @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  file_key    String
+  file_name   String
+  file_type   String
+  uploaded_at DateTime @default(now())
+  @@index([slip_id])
+  @@map("t_acct_slip_files")
+}
+
+model AcctTripExpense {
+  id                 String   @id @default(cuid())
+  slip_id            String   @unique
+  slip               AcctSlip @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  account_name       String   @default("旅費交通費")
+  account_code       String   @default("714")
+  tax_category       String   @default("4.課税")
+  area_purpose       String?  @db.Text
+  trip_dates         Json?
+  transport_items    Json?
+  lodging_items      Json?
+  allowance_items    Json?
+  transport_subtotal Int      @default(0)
+  lodging_subtotal   Int      @default(0)
+  allowance_subtotal Int      @default(0)
+  total_amount       Int      @default(0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  @@map("t_acct_trip_expenses")
 }
