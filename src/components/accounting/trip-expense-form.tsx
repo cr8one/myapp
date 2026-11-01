@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import SendMailDialog from "@/components/accounting/send-mail-dialog"
 
 export type TripFormValues = {
   slipDate: string
@@ -117,12 +118,13 @@ type Props = {
   error: string
   saveLabel?: string
   submitLabel?: string
-  onSave: (values: TripFormValues, submit: boolean) => void
+  onSave: (values: TripFormValues, submit: boolean, sendMail: boolean) => void
   onCancel: () => void
 }
 
 export default function TripExpenseForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel }: Props) {
   const [v, setV] = useState<TripFormValues>(initial)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }))
 
   const transportSubtotal = v.transport.reduce((a, r) => a + num(r.amount), 0)
@@ -130,10 +132,7 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
   const allowanceSubtotal = v.allowance.reduce((a, r) => a + num(r.amount), 0)
   const total = transportSubtotal + lodgingSubtotal + allowanceSubtotal
 
-  const submit = () => {
-    if (!confirm("この内容で申請しますか？")) return
-    onSave(v, true)
-  }
+  const submit = () => setConfirmOpen(true)
 
   const labelClass = "block text-xs text-gray-500 mb-1"
   const cardClass = "bg-white border rounded-lg p-4 mb-4 shadow-sm"
@@ -242,9 +241,14 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
 
       <div className="flex gap-2 justify-end">
         <Button variant="outline" disabled={saving} onClick={onCancel}>キャンセル</Button>
-        <Button variant="outline" disabled={saving} onClick={() => onSave(v, false)}>{saveLabel}</Button>
+        <Button variant="outline" disabled={saving} onClick={() => onSave(v, false, false)}>{saveLabel}</Button>
         <Button disabled={saving} onClick={submit}>{submitLabel}</Button>
       </div>
+      {confirmOpen && (
+        <SendMailDialog title="申請の確認" message="最初の承認者に、承認依頼のメールを送りますか。" actionLabel="申請する" busy={saving}
+          onSelect={sendMail => { setConfirmOpen(false); onSave(v, true, sendMail) }}
+          onCancel={() => setConfirmOpen(false)} />
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { getAccountingViewer } from "@/lib/accounting-slip-access"
 import { STATUS_REQUESTER_APPROVING, STATUS_ACCOUNTING_APPROVING, STATUS_RETURNED, STATUS_REJECTED } from "@/lib/accounting-slip-approval"
 import { checkActionableStep, STATE_CHANGED, STATE_CHANGED_MESSAGE } from "@/lib/accounting-slip-step"
+import { sendResultMailToRequester } from "@/lib/accounting-slip-mail"
 
 // 差戻し（起案者が直して再申請できる）と却下（終了）。どちらも、理由の入力が必須。
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string; stepId: string }> }) {
@@ -15,6 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "操作の種類が正しくありません" }, { status: 400 })
   }
   const comment = String(body.comment ?? "").trim().slice(0, 1000)
+  const sendMail = body.send_mail === true
   if (!comment) return NextResponse.json({ error: "理由を入力してください" }, { status: 400 })
 
   const denied = await checkActionableStep(viewer, id, stepId)
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       })
     })
+    if (sendMail) await sendResultMailToRequester(id, isReturn ? "差戻し" : "却下", viewer.name ?? viewer.email, comment)
     return NextResponse.json({ ok: true, status: isReturn ? STATUS_RETURNED : STATUS_REJECTED })
   } catch (e: any) {
     if (e?.message === STATE_CHANGED) return NextResponse.json({ error: STATE_CHANGED_MESSAGE }, { status: 409 })

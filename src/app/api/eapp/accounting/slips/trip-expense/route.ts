@@ -5,6 +5,7 @@ import { getRequesterInfo } from "@/lib/accounting-slip-requester"
 import { buildApprovalSteps, STAGE_REQUESTER, STATUS_REQUESTER_APPROVING, STATUS_ACCOUNTING_APPROVING } from "@/lib/accounting-slip-approval"
 import { SLIP_TYPES } from "@/lib/accounting-slip-types"
 import { parseTripExpense } from "@/lib/accounting-trip-expense"
+import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
 
 const TRIP = SLIP_TYPES.find(t => t.value === "trip_expense")!
 
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const b = await req.json()
   const submit = b.submit === true
+  const sendMail = b.send_mail === true
 
   const parsed = parseTripExpense(b, submit)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
@@ -51,5 +53,6 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, slip_no: true, status: true },
   })
+  if (submit && sendMail) await sendApprovalRequestMail(record.id)
   return NextResponse.json(record)
 }

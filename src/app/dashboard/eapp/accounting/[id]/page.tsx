@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import SendMailDialog from "@/components/accounting/send-mail-dialog"
 import { slipTypeLabel, statusBadgeClass } from "@/lib/accounting-slip-types"
 
 type Step = { id: string; stage: string; step_order: number; position_name: string | null; approver_name: string | null; status: string; approved_at: string | null }
@@ -44,6 +45,8 @@ export default function AccountingSlipDetailPage() {
   const [actionError, setActionError] = useState("")
   const [decision, setDecision] = useState<{ stepId: string; action: "return" | "reject" } | null>(null)
   const [reason, setReason] = useState("")
+  const [approveStepId, setApproveStepId] = useState<string | null>(null)
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false)
 
   const load = async () => {
     const res = await fetch(`/api/eapp/accounting/slips/${id}`)
@@ -75,16 +78,35 @@ export default function AccountingSlipDetailPage() {
     }
   }
 
-  const approve = async (stepId: string) => {
-    if (!confirm("この内容を承認しますか？")) return
-    if (await run(`/api/eapp/accounting/slips/${id}/approval-steps/${stepId}/approve`, "POST")) await load()
+  // 承認したあと、次の順序に進むときだけ、次の承認者へ依頼メールを送る。その場合は3択、そうでなければ普通の確認
+  const nextApproverNames = (stepId: string): string[] | null => {
+    if (!slip) return null
+    const me = slip.approval_steps.find(s => s.id === stepId)
+    if (!me) return null
+    const remaining = slip.approval_steps.filter(s => s.id !== stepId && s.status !== "承認済み")
+    if (remaining.length === 0 || remaining.some(s => s.step_order === me.step_order)) return null
+    const nextOrder = Math.min(...remaining.map(s => s.step_order))
+    return remaining.filter(s => s.step_order === nextOrder).map(s => s.approver_name ?? "未設定")
   }
-  const submitDecision = async () => {
+  const startApprove = async (stepId: string) => {
+    if (nextApproverNames(stepId)) { setApproveStepId(stepId); return }
+    if (!confirm("この内容を承認しますか？")) return
+    await doApprove(stepId, false)
+  }
+  const doApprove = async (stepId: string, sendMail: boolean) => {
+    setApproveStepId(null)
+    if (await run(`/api/eapp/accounting/slips/${id}/approval-steps/${stepId}/approve`, "POST", { send_mail: sendMail })) await load()
+  }
+  const submitDecision = () => {
     if (!decision) return
     if (!reason.trim()) { setActionError("理由を入力してください"); return }
-    const label = decision.action === "return" ? "差戻し" : "却下"
-    if (!confirm(`${label}を実行しますか？`)) return
-    const ok = await run(`/api/eapp/accounting/slips/${id}/approval-steps/${decision.stepId}/decision`, "POST", { action: decision.action, comment: reason })
+    setActionError("")
+    setDecisionDialogOpen(true)
+  }
+  const doDecision = async (sendMail: boolean) => {
+    if (!decision) return
+    setDecisionDialogOpen(false)
+    const ok = await run(`/api/eapp/accounting/slips/${id}/approval-steps/${decision.stepId}/decision`, "POST", { action: decision.action, comment: reason, send_mail: sendMail })
     if (ok) { setDecision(null); setReason(""); await load() }
   }
   const withdraw = async () => {
@@ -118,6 +140,20 @@ export default function AccountingSlipDetailPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {back}
+      {approveStepId && (
+        <SendMailDialog title="承認の確認"
+          message={`次の承認者（${(nextApproverNames(approveStepId) ?? []).join("、")}）に、承認依頼のメールを送りますか。`}
+          actionLabel="承認する" busy={busy}
+          onSelect={sendMail => doApprove(approveStepId, sendMail)}
+          onCancel={() => setApproveStepId(null)} />
+      )}
+      {decisionDialogOpen && decision && (
+        <SendMailDialog title={`${decision.action === "return" ? "差戻し" : "却下"}の確認`}
+          message="起案者に、結果と理由をメールで知らせますか。"
+          actionLabel={`${decision.action === "return" ? "差戻し" : "却下"}を実行する`} busy={busy}
+          onSelect={sendMail => doDecision(sendMail)}
+          onCancel={() => setDecisionDialogOpen(false)} />
+      )}
       <div className="flex items-start justify-between mb-4 gap-4">
         <div>
           <p className="text-xs text-gray-400">{slipTypeLabel(slip.slip_type)}　伝票番号 {slip.slip_no}</p>
@@ -216,7 +252,7 @@ export default function AccountingSlipDetailPage() {
                 <span className="text-xs text-gray-400 w-32 text-right">{s.approved_at ? fmtDateTime(s.approved_at) : ""}</span>
                 {s.id === slip.approvable_step_id && (
                   <div className="flex gap-1">
-                    <button disabled={busy} onClick={() => approve(s.id)}
+                    <button disabled={busy} onClick={() => startApprove(s.id)}
                       className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50">承認する</button>
                     <button disabled={busy} onClick={() => { setDecision({ stepId: s.id, action: "return" }); setReason(""); setActionError("") }}
                       className="text-xs px-3 py-1 border border-orange-300 text-orange-700 rounded hover:bg-orange-50 disabled:opacity-50">差戻し</button>

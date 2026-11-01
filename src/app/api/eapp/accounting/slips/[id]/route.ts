@@ -5,6 +5,7 @@ import { getRequesterInfo } from "@/lib/accounting-slip-requester"
 import { buildApprovalSteps, STATUS_REQUESTER_APPROVING, STATUS_ACCOUNTING_APPROVING, STATUS_RETURNED, STAGE_REQUESTER } from "@/lib/accounting-slip-approval"
 import { SLIP_TYPES } from "@/lib/accounting-slip-types"
 import { parseTripExpense } from "@/lib/accounting-trip-expense"
+import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
 import { STATE_CHANGED, STATE_CHANGED_MESSAGE } from "@/lib/accounting-slip-step"
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -103,6 +104,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const b = await req.json()
   const submit = b.submit === true
+  const sendMail = b.send_mail === true
   const parsed = parseTripExpense(b, submit)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const v = parsed.value
@@ -143,6 +145,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         })
       }
     })
+    if (submit && sendMail) await sendApprovalRequestMail(id)
     return NextResponse.json({ ok: true, status: submit ? nextStatus : slip.status })
   } catch (e: any) {
     if (e?.message === STATE_CHANGED) return NextResponse.json({ error: STATE_CHANGED_MESSAGE }, { status: 409 })

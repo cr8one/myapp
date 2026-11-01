@@ -37,14 +37,14 @@ export default function TripExpenseEditPage() {
     load()
   }, [id])
 
-  const save = async (v: TripFormValues, submit: boolean) => {
+  const save = async (v: TripFormValues, submit: boolean, sendMail: boolean) => {
     setSaving(true)
     setError("")
     try {
       const res = await fetch(`/api/eapp/accounting/slips/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tripFormPayload(v, submit)),
+        body: JSON.stringify({ ...tripFormPayload(v, submit), send_mail: sendMail }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "保存に失敗しました")
