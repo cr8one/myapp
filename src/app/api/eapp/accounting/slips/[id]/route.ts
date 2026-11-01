@@ -78,6 +78,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_edit: editable,
     can_delete: isOwner && slip.status === DRAFT_STATUS && slip.histories.length === 0,
     can_withdraw: isOwner && inApproval,
+    can_pdf: slip.status === "承認完了" && slip.slip_type === "trip_expense",
     approvable_step_id: approvable?.id ?? null,
   })
 }

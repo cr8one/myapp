@@ -23,7 +23,7 @@ type Slip = {
   submitted_at: string | null; created_at: string
   approval_steps: Step[]; histories: History[]; trip_expense: Trip | null
   is_owner: boolean; approvable_step_id: string | null
-  can_edit: boolean; can_delete: boolean; can_withdraw: boolean
+  can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
 }
 
 const yen = (n: number) => `${n.toLocaleString()}円`
@@ -162,8 +162,13 @@ export default function AccountingSlipDetailPage() {
         <span className={`text-xs px-2 py-1 rounded shrink-0 ${statusBadgeClass(slip.status)}`}>{slip.status}</span>
       </div>
 
-      {(slip.can_edit || slip.can_withdraw || slip.can_delete) && (
+      {(slip.can_edit || slip.can_withdraw || slip.can_delete || slip.can_pdf) && (
         <div className="flex gap-2 mb-4">
+          {slip.can_pdf && (
+            <a href={`/api/eapp/accounting/slips/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+              <Button size="sm">PDFを開く</Button>
+            </a>
+          )}
           {slip.can_edit && (
             <Link href={`/dashboard/eapp/accounting/${id}/edit`}>
               <Button size="sm">{slip.status === "差戻し" ? "直して再申請する" : "編集・申請する"}</Button>

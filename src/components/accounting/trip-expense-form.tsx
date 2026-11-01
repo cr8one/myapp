@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
+import { LIMIT } from "@/lib/accounting-trip-layout"
 
 export type TripFormValues = {
   slipDate: string
@@ -182,7 +183,8 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         </div>
         <label className={labelClass + " mt-4"}>出張区域・用</label>
         <textarea className="w-full min-h-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={v.areaPurpose} onChange={e => set({ areaPurpose: e.target.value })} maxLength={1000} />
+          value={v.areaPurpose} onChange={e => set({ areaPurpose: e.target.value })} maxLength={LIMIT.areaPurpose} />
+        <p className={"text-right text-xs mt-1 " + (v.areaPurpose.length > LIMIT.areaPurpose ? "text-red-600" : "text-gray-400")}>{v.areaPurpose.length} / {LIMIT.areaPurpose}文字</p>
       </div>
 
       <div className={cardClass}>
@@ -190,7 +192,7 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         <div className="space-y-2">
           {v.transport.map((r, i) => (
             <div key={i} className="flex gap-2">
-              <Input className="flex-1" placeholder="区間（例：東京〜静岡）" value={r.section} maxLength={100} autoComplete="off"
+              <Input className="flex-1" placeholder={`区間（例：東京〜静岡、${LIMIT.section}文字まで）`} value={r.section} maxLength={LIMIT.section} autoComplete="off"
                 onChange={e => set({ transport: setAt(v.transport, i, { section: e.target.value }) })} />
               <Input className="w-36 text-right" inputMode="numeric" placeholder="金額" value={r.amount} autoComplete="off"
                 onChange={e => set({ transport: setAt(v.transport, i, { amount: digits(e.target.value) }) })} />
@@ -205,7 +207,7 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         <div className="space-y-2">
           {v.lodging.map((r, i) => (
             <div key={i} className="flex gap-2">
-              <Input className="flex-1" placeholder="宿泊先" value={r.name} maxLength={100} autoComplete="off"
+              <Input className="flex-1" placeholder={`宿泊先（${LIMIT.lodgingName}文字まで）`} value={r.name} maxLength={LIMIT.lodgingName} autoComplete="off"
                 onChange={e => set({ lodging: setAt(v.lodging, i, { name: e.target.value }) })} />
               <Input className="w-24 text-right" inputMode="numeric" placeholder="泊数" value={r.nights} autoComplete="off"
                 onChange={e => set({ lodging: setAt(v.lodging, i, { nights: digits(e.target.value) }) })} />

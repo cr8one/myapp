@@ -1,6 +1,8 @@
 // 出張旅費精算書の入力チェックと金額の計算（新規作成・編集の両方で使う共通部品）。
 // 小計と精算合計は、画面から送られた値を使わず、ここで必ず計算し直す。
 
+import { LIMIT } from "@/lib/accounting-trip-layout"
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^\d{2}:\d{2}$/
 const toDate = (s: string) => new Date(`${s}T00:00:00.000Z`)
@@ -61,7 +63,9 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
     if (blank(r?.section) && blank(r?.amount)) continue
     const amount = blank(r?.amount) ? null : parseNum(r?.amount)
     if (amount === null) return { error: "交通費の金額が正しくありません" }
-    transport.push({ section: text(r?.section, 100), amount })
+    const section = text(r?.section, 1000)
+    if (section.length > LIMIT.section) return { error: `区間は${LIMIT.section}文字までです` }
+    transport.push({ section, amount })
   }
 
   // 宿泊費（最大3行）
@@ -73,7 +77,9 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
     const amount = blank(r?.amount) ? null : parseNum(r?.amount)
     const nights = blank(r?.nights) ? 0 : parseNum(r?.nights)
     if (amount === null || nights === null) return { error: "宿泊費の泊数または金額が正しくありません" }
-    lodging.push({ name: text(r?.name, 100), nights, amount })
+    const name = text(r?.name, 1000)
+    if (name.length > LIMIT.lodgingName) return { error: `宿泊先は${LIMIT.lodgingName}文字までです` }
+    lodging.push({ name, nights, amount })
   }
 
   // 日当（最大2行）
@@ -92,7 +98,8 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
   const lodgingSubtotal = sum(lodging)
   const allowanceSubtotal = sum(allowance)
   const total = transportSubtotal + lodgingSubtotal + allowanceSubtotal
-  const areaPurpose = text(b.area_purpose, 1000)
+  const areaPurpose = text(b.area_purpose, 5000)
+  if (areaPurpose.length > LIMIT.areaPurpose) return { error: `出張区域・用は${LIMIT.areaPurpose}文字までです` }
 
   // 申請のときだけ必須チェック（下書きは未入力でもよい）
   if (submit) {
