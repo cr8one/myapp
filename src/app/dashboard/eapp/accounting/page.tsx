@@ -19,8 +19,8 @@ type Slip = {
   department_name: string | null
   approval_steps: Step[]
 }
-type Filters = { keyword: string; slip_type: string; status: string; mine: boolean; date_from: string; date_to: string }
-const EMPTY: Filters = { keyword: "", slip_type: "", status: "", mine: false, date_from: "", date_to: "" }
+type Filters = { keyword: string; slip_type: string; status: string; mine: boolean; waiting: boolean; date_from: string; date_to: string }
+const EMPTY: Filters = { keyword: "", slip_type: "", status: "", mine: false, waiting: false, date_from: "", date_to: "" }
 
 export default function AccountingSlipsPage() {
   const router = useRouter()
@@ -42,6 +42,7 @@ export default function AccountingSlipsPage() {
     if (cond.slip_type) params.set("slip_type", cond.slip_type)
     if (cond.status) params.set("status", cond.status)
     if (cond.mine) params.set("mine", "1")
+    if (cond.waiting) params.set("waiting", "1")
     if (cond.date_from) params.set("date_from", cond.date_from)
     if (cond.date_to) params.set("date_to", cond.date_to)
     try {
@@ -117,6 +118,10 @@ export default function AccountingSlipsPage() {
           <label className="flex items-center gap-2 text-sm text-gray-600 h-10">
             <input type="checkbox" checked={f.mine} onChange={e => setF({ ...f, mine: e.target.checked })} />
             自分の伝票だけ
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-600 h-10">
+            <input type="checkbox" checked={f.waiting} onChange={e => setF({ ...f, waiting: e.target.checked })} />
+            自分の承認待ちだけ
           </label>
           <Button onClick={() => fetchSlips(1)} className="flex items-center gap-1">
             <Search className="w-4 h-4" />検索
