@@ -10,7 +10,7 @@ export const SLIP_TYPES = [
   },
 ] as const
 
-export const SLIP_STATUSES = ["下書き", "起案部承認中", "経理承認中", "承認完了"] as const
+export const SLIP_STATUSES = ["下書き", "起案部承認中", "経理承認中", "承認完了", "差戻し", "却下"] as const
 
 export function slipTypeLabel(value: string): string {
   return SLIP_TYPES.find(t => t.value === value)?.label ?? value
@@ -22,6 +22,8 @@ export function statusBadgeClass(status: string): string {
     case "起案部承認中": return "bg-amber-50 text-amber-700"
     case "経理承認中": return "bg-blue-50 text-blue-700"
     case "承認完了": return "bg-green-50 text-green-700"
+    case "差戻し": return "bg-orange-50 text-orange-700"
+    case "却下": return "bg-red-50 text-red-700"
     default: return "bg-gray-100 text-gray-600"
   }
 }

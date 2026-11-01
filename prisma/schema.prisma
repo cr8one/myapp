@@ -2040,6 +2040,7 @@ model AcctSlip {
   approval_steps   AcctSlipApprovalStep[]
   files            AcctSlipFile[]
   trip_expense     AcctTripExpense?
+  histories        AcctSlipHistory[]
   @@index([requester_id])
   @@index([slip_type])
   @@index([status])
@@ -2096,4 +2097,17 @@ model AcctTripExpense {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
   @@map("t_acct_trip_expenses")
+}
+
+model AcctSlipHistory {
+  id          String   @id @default(cuid())
+  slip_id     String
+  slip        AcctSlip @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  action      String
+  actor_id    String
+  actor_name  String
+  comment     String?  @db.Text
+  created_at  DateTime @default(now())
+  @@index([slip_id])
+  @@map("t_acct_slip_histories")
 }

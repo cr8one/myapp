@@ -1,11 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { slipTypeLabel, statusBadgeClass } from "@/lib/accounting-slip-types"
 
 type Step = { id: string; stage: string; step_order: number; position_name: string | null; approver_name: string | null; status: string; approved_at: string | null }
+type History = { id: string; action: string; actor_name: string; comment: string | null; created_at: string }
 type Trip = {
   account_name: string; account_code: string; tax_category: string; area_purpose: string | null
   trip_dates: { label: string; date: string; time: string }[] | null
@@ -18,7 +20,9 @@ type Slip = {
   id: string; slip_no: number; slip_type: string; title: string; status: string
   slip_date: string; amount: number; requester_name: string; department_name: string | null
   submitted_at: string | null; created_at: string
-  approval_steps: Step[]; trip_expense: Trip | null; is_owner: boolean; approvable_step_id: string | null
+  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null
+  is_owner: boolean; approvable_step_id: string | null
+  can_edit: boolean; can_delete: boolean; can_withdraw: boolean
 }
 
 const yen = (n: number) => `${n.toLocaleString()}円`
@@ -32,11 +36,14 @@ const fmtDateTime = (s: string | null) => {
 
 export default function AccountingSlipDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const [slip, setSlip] = useState<Slip | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [approving, setApproving] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState("")
+  const [decision, setDecision] = useState<{ stepId: string; action: "return" | "reject" } | null>(null)
+  const [reason, setReason] = useState("")
 
   const load = async () => {
     const res = await fetch(`/api/eapp/accounting/slips/${id}`)
@@ -46,20 +53,47 @@ export default function AccountingSlipDetailPage() {
   }
   useEffect(() => { load() }, [id])
 
-  const approve = async (stepId: string) => {
-    if (!confirm("この内容を承認しますか？")) return
-    setApproving(true)
+  // 操作のAPIを呼ぶ共通処理。失敗したときは、メッセージを出して、画面を最新に更新する
+  const run = async (url: string, method: string, body?: unknown): Promise<boolean> => {
+    setBusy(true)
     setActionError("")
     try {
-      const res = await fetch(`/api/eapp/accounting/slips/${id}/approval-steps/${stepId}/approve`, { method: "POST" })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "承認に失敗しました")
-      await load()
+      const res = await fetch(url, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || "操作に失敗しました")
+      return true
     } catch (e: any) {
       setActionError(e.message)
+      await load()
+      return false
     } finally {
-      setApproving(false)
+      setBusy(false)
     }
+  }
+
+  const approve = async (stepId: string) => {
+    if (!confirm("この内容を承認しますか？")) return
+    if (await run(`/api/eapp/accounting/slips/${id}/approval-steps/${stepId}/approve`, "POST")) await load()
+  }
+  const submitDecision = async () => {
+    if (!decision) return
+    if (!reason.trim()) { setActionError("理由を入力してください"); return }
+    const label = decision.action === "return" ? "差戻し" : "却下"
+    if (!confirm(`${label}を実行しますか？`)) return
+    const ok = await run(`/api/eapp/accounting/slips/${id}/approval-steps/${decision.stepId}/decision`, "POST", { action: decision.action, comment: reason })
+    if (ok) { setDecision(null); setReason(""); await load() }
+  }
+  const withdraw = async () => {
+    if (!confirm("取り下げると、承認の進み具合は消えて、下書きに戻ります。取り下げますか？")) return
+    if (await run(`/api/eapp/accounting/slips/${id}/withdraw`, "POST")) await load()
+  }
+  const remove = async () => {
+    if (!confirm("この下書きを削除しますか？元に戻せません。")) return
+    if (await run(`/api/eapp/accounting/slips/${id}`, "DELETE")) router.push("/dashboard/eapp/accounting")
   }
 
   const back = (
@@ -74,6 +108,8 @@ export default function AccountingSlipDetailPage() {
   }
 
   const t = slip.trip_expense
+  const lastDecision = [...slip.histories].reverse().find(h => h.action === "差戻し" || h.action === "却下")
+  const showReason = (slip.status === "差戻し" || slip.status === "却下") && !!lastDecision?.comment
   const cardClass = "bg-white border rounded-lg p-4 mb-4 shadow-sm"
   const headClass = "text-sm font-bold text-gray-700 mb-3"
   const rowClass = "flex justify-between gap-4 py-1.5 border-b border-gray-100 text-sm"
@@ -82,13 +118,34 @@ export default function AccountingSlipDetailPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {back}
-      <div className="flex items-start justify-between mb-6 gap-4">
+      <div className="flex items-start justify-between mb-4 gap-4">
         <div>
           <p className="text-xs text-gray-400">{slipTypeLabel(slip.slip_type)}　伝票番号 {slip.slip_no}</p>
           <h1 className="text-2xl font-bold mt-1">{slip.title}</h1>
         </div>
         <span className={`text-xs px-2 py-1 rounded shrink-0 ${statusBadgeClass(slip.status)}`}>{slip.status}</span>
       </div>
+
+      {(slip.can_edit || slip.can_withdraw || slip.can_delete) && (
+        <div className="flex gap-2 mb-4">
+          {slip.can_edit && (
+            <Link href={`/dashboard/eapp/accounting/${id}/edit`}>
+              <Button size="sm">{slip.status === "差戻し" ? "直して再申請する" : "編集・申請する"}</Button>
+            </Link>
+          )}
+          {slip.can_withdraw && <Button variant="outline" size="sm" disabled={busy} onClick={withdraw}>取り下げる</Button>}
+          {slip.can_delete && <Button variant="outline" size="sm" disabled={busy} onClick={remove} className="text-red-600">削除</Button>}
+        </div>
+      )}
+
+      {actionError && <p className="mb-4 text-sm px-4 py-2 rounded bg-red-50 text-red-600">{actionError}</p>}
+
+      {showReason && (
+        <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${slip.status === "却下" ? "border-red-200 bg-red-50 text-red-800" : "border-orange-200 bg-orange-50 text-orange-800"}`}>
+          <p className="font-bold mb-1">{slip.status}の理由（{lastDecision!.actor_name}）</p>
+          <p className="whitespace-pre-wrap">{lastDecision!.comment}</p>
+        </div>
+      )}
 
       <div className={cardClass}>
         <div className="grid gap-x-6 sm:grid-cols-2">
@@ -145,13 +202,12 @@ export default function AccountingSlipDetailPage() {
 
       <div className={cardClass}>
         <p className={headClass}>承認</p>
-        {actionError && <p className="mb-2 text-sm px-3 py-2 rounded bg-red-50 text-red-600">{actionError}</p>}
         {slip.approval_steps.length === 0 ? (
           <p className="text-sm text-gray-400">まだ申請されていません（下書きです）。</p>
         ) : (
           <div className="space-y-1">
             {slip.approval_steps.map(s => (
-              <div key={s.id} className="flex items-center gap-3 text-sm border-b border-gray-100 py-2">
+              <div key={s.id} className="flex items-center gap-3 text-sm border-b border-gray-100 py-2 flex-wrap">
                 <span className="text-xs text-slate-500 w-6">{s.step_order}</span>
                 <span className="text-xs text-gray-400 w-14">{s.stage}</span>
                 <span className="text-xs text-gray-400 w-24">{s.position_name ?? "—"}</span>
@@ -159,9 +215,47 @@ export default function AccountingSlipDetailPage() {
                 <span className={`text-xs px-2 py-0.5 rounded ${s.status === "承認済み" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>{s.status}</span>
                 <span className="text-xs text-gray-400 w-32 text-right">{s.approved_at ? fmtDateTime(s.approved_at) : ""}</span>
                 {s.id === slip.approvable_step_id && (
-                  <button disabled={approving} onClick={() => approve(s.id)}
-                    className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50">承認する</button>
+                  <div className="flex gap-1">
+                    <button disabled={busy} onClick={() => approve(s.id)}
+                      className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50">承認する</button>
+                    <button disabled={busy} onClick={() => { setDecision({ stepId: s.id, action: "return" }); setReason(""); setActionError("") }}
+                      className="text-xs px-3 py-1 border border-orange-300 text-orange-700 rounded hover:bg-orange-50 disabled:opacity-50">差戻し</button>
+                    <button disabled={busy} onClick={() => { setDecision({ stepId: s.id, action: "reject" }); setReason(""); setActionError("") }}
+                      className="text-xs px-3 py-1 border border-red-300 text-red-700 rounded hover:bg-red-50 disabled:opacity-50">却下</button>
+                  </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+        {decision && (
+          <div className="mt-3 p-3 rounded-lg bg-slate-50 border">
+            <p className="text-sm font-medium mb-2">{decision.action === "return" ? "差戻し" : "却下"}の理由（必須）</p>
+            <textarea className="w-full min-h-20 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              value={reason} onChange={e => setReason(e.target.value)} maxLength={1000} />
+            {decision.action === "reject" && <p className="text-xs text-gray-500 mt-1">却下した伝票は終了です。再申請はできません。</p>}
+            <div className="flex gap-2 justify-end mt-2">
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => { setDecision(null); setReason("") }}>やめる</Button>
+              <Button size="sm" disabled={busy} onClick={submitDecision}>{decision.action === "return" ? "差戻し" : "却下"}を実行</Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={cardClass}>
+        <p className={headClass}>履歴</p>
+        {slip.histories.length === 0 ? (
+          <p className="text-sm text-gray-400">まだ履歴がありません。</p>
+        ) : (
+          <div className="space-y-1">
+            {slip.histories.map(h => (
+              <div key={h.id} className="border-b border-gray-100 py-2 text-sm">
+                <div className="flex gap-3 items-center">
+                  <span className="text-xs text-gray-400 w-32">{fmtDateTime(h.created_at)}</span>
+                  <span className="font-medium w-16">{h.action}</span>
+                  <span className="text-gray-600">{h.actor_name}</span>
+                </div>
+                {h.comment && <p className="text-xs text-gray-500 mt-1 ml-[8.75rem] whitespace-pre-wrap">{h.comment}</p>}
               </div>
             ))}
           </div>

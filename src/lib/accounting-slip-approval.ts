@@ -8,6 +8,8 @@ export const REQUESTER_SETTING_SERVICE = "accounting"
 export const STATUS_REQUESTER_APPROVING = "起案部承認中"
 export const STATUS_ACCOUNTING_APPROVING = "経理承認中"
 export const STATUS_COMPLETED = "承認完了"
+export const STATUS_RETURNED = "差戻し"
+export const STATUS_REJECTED = "却下"
 
 export type NewApprovalStep = {
   stage: string
