@@ -7,6 +7,8 @@ import { SLIP_TYPES } from "@/lib/accounting-slip-types"
 import { parseTripExpense } from "@/lib/accounting-trip-expense"
 import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
 import { STATE_CHANGED, STATE_CHANGED_MESSAGE } from "@/lib/accounting-slip-step"
+import { DeleteObjectCommand } from "@aws-sdk/client-s3"
+import { acctS3, ACCT_BUCKET } from "@/lib/accounting-slip-files"
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getAccountingViewer()
@@ -37,6 +39,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       histories: {
         orderBy: { created_at: "asc" },
         select: { id: true, action: true, actor_name: true, comment: true, created_at: true },
+      },
+      files: {
+        orderBy: { uploaded_at: "asc" },
+        select: { id: true, file_name: true, file_type: true, uploaded_at: true },
       },
       trip_expense: {
         select: {
@@ -76,6 +82,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     approval_steps: steps,
     is_owner: isOwner,
     can_edit: editable,
+    can_edit_files: editable,
     can_delete: isOwner && slip.status === DRAFT_STATUS && slip.histories.length === 0,
     can_withdraw: isOwner && inApproval,
     can_pdf: slip.status === "承認完了" && slip.slip_type === "trip_expense",
@@ -168,11 +175,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (slip.status !== DRAFT_STATUS) {
     return NextResponse.json({ error: "下書きの伝票だけ削除できます" }, { status: 400 })
   }
+  const files = await prisma.acctSlipFile.findMany({ where: { slip_id: id }, select: { file_key: true } })
   const deleted = await prisma.acctSlip.deleteMany({
     where: { id, requester_id: viewer.userId, status: DRAFT_STATUS, histories: { none: {} } },
   })
   if (deleted.count === 0) {
     return NextResponse.json({ error: "一度申請した伝票は削除できません" }, { status: 400 })
+  }
+  // S3の添付の実物も消す（できなくても、削除は成功として扱う。ログに残す）
+  for (const f of files) {
+    await acctS3.send(new DeleteObjectCommand({ Bucket: ACCT_BUCKET, Key: f.file_key })).catch(e => console.error("添付の削除エラー:", e))
   }
   return NextResponse.json({ ok: true })
 }

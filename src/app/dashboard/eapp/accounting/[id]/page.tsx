@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
+import { openAccountingFile } from "@/lib/accounting-slip-files-client"
 import { slipTypeLabel, statusBadgeClass } from "@/lib/accounting-slip-types"
 
 type Step = { id: string; stage: string; step_order: number; position_name: string | null; approver_name: string | null; status: string; approved_at: string | null }
@@ -22,6 +23,7 @@ type Slip = {
   slip_date: string; amount: number; requester_name: string; department_name: string | null
   submitted_at: string | null; created_at: string
   approval_steps: Step[]; histories: History[]; trip_expense: Trip | null
+  files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
   is_owner: boolean; approvable_step_id: string | null
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
 }
@@ -116,6 +118,11 @@ export default function AccountingSlipDetailPage() {
   const remove = async () => {
     if (!confirm("この下書きを削除しますか？元に戻せません。")) return
     if (await run(`/api/eapp/accounting/slips/${id}`, "DELETE")) router.push("/dashboard/eapp/accounting")
+  }
+
+  const openFile = async (fileId: string) => {
+    const err = await openAccountingFile(id, fileId)
+    if (err) setActionError(err)
   }
 
   const back = (
@@ -240,6 +247,22 @@ export default function AccountingSlipDetailPage() {
           </div>
         </>
       )}
+
+      <div className={cardClass}>
+        <p className={headClass}>添付ファイル</p>
+        {slip.files.length === 0 ? (
+          <p className="text-sm text-gray-400">添付はありません。</p>
+        ) : (
+          <div className="space-y-1">
+            {slip.files.map(f => (
+              <div key={f.id} className="flex items-center gap-3 text-sm border-b border-gray-100 py-2">
+                <span className="flex-1 truncate">{f.file_name}</span>
+                <button onClick={() => openFile(f.id)} className="text-xs text-blue-500 hover:text-blue-700">開く</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className={cardClass}>
         <p className={headClass}>承認</p>

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
@@ -121,9 +121,10 @@ type Props = {
   submitLabel?: string
   onSave: (values: TripFormValues, submit: boolean, sendMail: boolean) => void
   onCancel: () => void
+  attachments?: ReactNode // 添付ファイルの欄（新規作成と編集で、中身が違う）
 }
 
-export default function TripExpenseForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel }: Props) {
+export default function TripExpenseForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel, attachments }: Props) {
   const [v, setV] = useState<TripFormValues>(initial)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }))
@@ -233,6 +234,13 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         </div>
         <p className="text-right text-sm mt-3">小計　<span className="font-bold">{yen(allowanceSubtotal)}</span></p>
       </div>
+
+      {attachments && (
+        <div className={cardClass}>
+          <p className={headClass}>添付ファイル（領収書など）</p>
+          {attachments}
+        </div>
+      )}
 
       <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mb-4 flex items-center justify-between">
         <span className="font-bold text-gray-700">精算合計</span>

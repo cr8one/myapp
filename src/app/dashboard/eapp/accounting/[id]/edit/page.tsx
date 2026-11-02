@@ -4,12 +4,15 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 import TripExpenseForm, { TripFormValues, tripFormFromSlip, tripFormPayload } from "@/components/accounting/trip-expense-form"
+import AttachmentsEditor from "@/components/accounting/attachments-editor"
+import { AttachedFile } from "@/lib/accounting-slip-files-client"
 
 export default function TripExpenseEditPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [initial, setInitial] = useState<TripFormValues | null>(null)
   const [returnReason, setReturnReason] = useState("")
+  const [attached, setAttached] = useState<AttachedFile[]>([])
   const [blocked, setBlocked] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -26,6 +29,7 @@ export default function TripExpenseEditPage() {
         else if (!data.can_edit) setBlocked("この伝票は、今は編集できません。")
         else {
           setInitial(tripFormFromSlip(data))
+          setAttached(data.files ?? [])
           const last = [...(data.histories ?? [])].reverse().find((h: any) => h.action === "差戻し")
           if (data.status === "差戻し" && last?.comment) setReturnReason(last.comment)
         }
@@ -79,6 +83,7 @@ export default function TripExpenseEditPage() {
       )}
       <TripExpenseForm initial={initial} saving={saving} error={error}
         saveLabel="保存" submitLabel="申請する"
+        attachments={<AttachmentsEditor mode="live" slipId={id} attached={attached} onAttached={setAttached} />}
         onSave={save} onCancel={() => router.push(`/dashboard/eapp/accounting/${id}`)} />
     </div>
   )
