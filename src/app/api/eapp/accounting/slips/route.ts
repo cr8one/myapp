@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getAccountingViewer, slipVisibilityWhere } from "@/lib/accounting-slip-access"
-import { STATUS_REQUESTER_APPROVING, STATUS_ACCOUNTING_APPROVING } from "@/lib/accounting-slip-approval"
+import { findWaitingSlipIds } from "@/lib/accounting-slip-approval"
 
 const PAGE_SIZE = 50
 
@@ -19,19 +19,7 @@ export async function GET(req: NextRequest) {
   if (sp.get("mine") === "1") filter.requester_id = viewer.userId
   // 自分の承認待ち：自分のステップが未承認で、伝票が承認中で、前の順序がすべて承認済み（今、自分の番）
   if (sp.get("waiting") === "1") {
-    const rows = await prisma.$queryRaw<{ slip_id: string }[]>`
-      SELECT DISTINCT s.slip_id
-      FROM t_acct_slip_approval_steps s
-      JOIN t_acct_slips a ON a.id = s.slip_id
-      WHERE s.approver_id = ${viewer.userId}
-        AND s.status = '未承認'
-        AND a.status IN (${STATUS_REQUESTER_APPROVING}, ${STATUS_ACCOUNTING_APPROVING})
-        AND NOT EXISTS (
-          SELECT 1 FROM t_acct_slip_approval_steps p
-          WHERE p.slip_id = s.slip_id AND p.step_order < s.step_order AND p.status <> '承認済み'
-        )
-    `
-    filter.id = { in: rows.map(r => r.slip_id) }
+    filter.id = { in: await findWaitingSlipIds(viewer.userId) }
   }
   const keyword = sp.get("keyword")
   if (keyword) {

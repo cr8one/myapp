@@ -82,3 +82,21 @@ export async function buildApprovalSteps(
   }
   return { steps: [...requesterSteps, ...accountingSteps], error: null }
 }
+
+// 自分の番が回ってきている伝票のID（自分のステップが未承認で、伝票が承認中で、前の順序がすべて承認済み）。
+// 一覧の「自分の承認待ち」と、電子申請トップのカードの件数は、必ずこの関数で数える
+export async function findWaitingSlipIds(userId: string): Promise<string[]> {
+  const rows = await prisma.$queryRaw<{ slip_id: string }[]>`
+    SELECT DISTINCT s.slip_id
+    FROM t_acct_slip_approval_steps s
+    JOIN t_acct_slips a ON a.id = s.slip_id
+    WHERE s.approver_id = ${userId}
+      AND s.status = '未承認'
+      AND a.status IN (${STATUS_REQUESTER_APPROVING}, ${STATUS_ACCOUNTING_APPROVING})
+      AND NOT EXISTS (
+        SELECT 1 FROM t_acct_slip_approval_steps p
+        WHERE p.slip_id = s.slip_id AND p.step_order < s.step_order AND p.status <> '承認済み'
+      )
+  `
+  return rows.map(r => r.slip_id)
+}

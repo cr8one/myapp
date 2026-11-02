@@ -6,7 +6,7 @@ import { Building2, Truck, ShoppingCart, FileText, Receipt } from "lucide-react"
 type Stats = {
   customerCount: number
   ringiCount: number
-  accountingCount: number
+  accounting: { applied: number; completed: number; total: number; waiting: number }
 }
 
 function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
@@ -32,7 +32,7 @@ function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
 const cards = [
   {
     label: "経理精算",
-    key: "accountingCount" as keyof Stats,
+    key: "accounting" as keyof Stats,
     href: "/dashboard/eapp/accounting",
     icon: Receipt,
     bg: "bg-emerald-50",
@@ -154,10 +154,28 @@ export default function EAppDashboardClient({ stats }: { stats: Stats }) {
                 </span>
               </div>
               <p className="text-sm text-gray-500">{card.label}</p>
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {stats[card.key].toLocaleString()}
-                <span className="ml-1 text-base font-normal text-gray-400">件</span>
-              </p>
+              {card.key === "accounting" ? (
+                <>
+                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                    {stats.accounting.completed.toLocaleString()}
+                    <span className="mx-1 text-xl font-normal text-gray-400">/</span>
+                    {stats.accounting.applied.toLocaleString()}
+                    <span className="ml-1 text-base font-normal text-gray-400">件</span>
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">あなたの申請：承認済み / 申請</p>
+                  <div className="mt-3 flex items-center gap-3 text-xs">
+                    <span className="text-gray-500">全体 {stats.accounting.total.toLocaleString()}件</span>
+                    {stats.accounting.waiting > 0 && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">承認待ち {stats.accounting.waiting}件</span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="mt-1 text-3xl font-bold text-gray-900">
+                  {stats[card.key].toLocaleString()}
+                  <span className="ml-1 text-base font-normal text-gray-400">件</span>
+                </p>
+              )}
             </Link>
           )
         })}
