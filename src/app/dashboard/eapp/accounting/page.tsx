@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search } from "lucide-react"
+import RegulationsMenu from "@/components/accounting/regulations-menu"
 import { SLIP_TYPES, SLIP_STATUSES, slipTypeLabel, statusBadgeClass } from "@/lib/accounting-slip-types"
 
 type Step = { stage: string; step_order: number; position_name: string | null; approver_name: string | null; status: string }
@@ -77,9 +78,12 @@ export default function AccountingSlipsPage() {
           <h1 className="text-2xl font-bold">経理精算</h1>
           <p className="text-sm text-gray-500 mt-1">{total}件</p>
         </div>
-        <Button size="sm" onClick={() => router.push("/dashboard/eapp/accounting/new")} className="flex items-center gap-1">
-          <Plus className="w-4 h-4" />新規作成
-        </Button>
+        <div className="flex items-center gap-2">
+          <RegulationsMenu />
+          <Button size="sm" onClick={() => router.push("/dashboard/eapp/accounting/new")} className="flex items-center gap-1">
+            <Plus className="w-4 h-4" />新規作成
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm space-y-3">

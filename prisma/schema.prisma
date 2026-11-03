@@ -2109,3 +2109,28 @@ model AcctSlipHistory {
   @@index([slip_id])
   @@map("t_acct_slip_histories")
 }
+
+model EappRegulation {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  versions    EappRegulationVersion[]
+  @@map("t_eapp_regulations")
+}
+
+model EappRegulationVersion {
+  id            String         @id @default(cuid())
+  regulation_id String
+  regulation    EappRegulation @relation(fields: [regulation_id], references: [id], onDelete: Cascade)
+  version_label String?
+  file_key      String
+  file_name     String
+  uploader_id   String?
+  uploader_name String?
+  uploaded_at   DateTime       @default(now())
+  @@index([regulation_id])
+  @@map("t_eapp_regulation_versions")
+}

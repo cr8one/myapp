@@ -84,6 +84,8 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_acct_slip_approval_steps", label: "経理精算承認ステップ" },
       { tableName: "t_acct_slip_files", label: "経理精算添付ファイル" },
       { tableName: "t_acct_slip_histories", label: "経理精算履歴" },
+      { tableName: "t_eapp_regulations", label: "規定等" },
+      { tableName: "t_eapp_regulation_versions", label: "規定等の版" },
       { tableName: "t_acct_trip_expenses", label: "出張旅費精算書" },
     ],
   },
