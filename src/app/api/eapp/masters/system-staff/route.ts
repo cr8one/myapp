@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
+import { requireAdmin } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -15,6 +16,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { user_id, sort_order } = await req.json()
   if (!user_id) return NextResponse.json({ error: "user_id is required" }, { status: 400 })
   const staff = await prisma.mEappSystemStaff.create({

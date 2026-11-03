@@ -68,3 +68,16 @@ export async function hasAccountingAccess(): Promise<boolean> {
   if (user.role === "ADMIN") return true
   return user.permission?.isAccountingStaff === true
 }
+
+// システム管理者かどうか。ログインしていなければ401、システム管理者でなければ403を返す（問題なければ null）。
+// 役割は、セッションの値ではなく、データベースの最新の値で見る
+export async function requireAdmin() {
+  const user = await getSessionUser()
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } })
+  }
+  if (user.role !== "ADMIN") {
+    return new Response(JSON.stringify({ error: "権限がありません" }), { status: 403, headers: { "Content-Type": "application/json" } })
+  }
+  return null
+}

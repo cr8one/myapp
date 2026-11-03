@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
+import { requireAdmin } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await params
   const { service_type, step_order, position_id, approver_user_id } = await req.json()
   const setting = await prisma.userApproverSetting.create({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
+import { requireAdmin } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: Request) {
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { service_type, step_order, category, position_id, approver_user_id } = await req.json()
   const route = await prisma.mApprovalRoute.create({
     data: {
