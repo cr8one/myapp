@@ -70,8 +70,6 @@ model UserPermission {
   estimateEdit  Boolean  @default(false) @map("estimate_edit")
   eappView      Boolean  @default(true)  @map("eapp_view")
   eappEdit      Boolean  @default(false) @map("eapp_edit")
-  travelView    Boolean  @default(true)  @map("travel_view") @ignore
-  travelEdit    Boolean  @default(false) @map("travel_edit") @ignore
   sopView       Boolean  @default(true)  @map("sop_view")
   sopEdit       Boolean  @default(false) @map("sop_edit")
   reportView    Boolean  @default(true)  @map("report_view")
