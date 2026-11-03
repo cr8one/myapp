@@ -19,7 +19,9 @@ export type TripExpenseData = {
   account_name: string
   account_code: string
   tax_category: string
-  area_purpose: string | null
+  area_purpose: string | null // これまでの「出張区域・用」（新しい伝票では使わない）
+  trip_area: string | null
+  trip_purpose: string | null
   trip_dates: { label: string; date: string; time: string }[]
   transport_items: { section: string; amount: number }[]
   lodging_items: { name: string; nights: number; amount: number }[]
@@ -98,12 +100,15 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
   const lodgingSubtotal = sum(lodging)
   const allowanceSubtotal = sum(allowance)
   const total = transportSubtotal + lodgingSubtotal + allowanceSubtotal
-  const areaPurpose = text(b.area_purpose, 5000)
-  if (areaPurpose.length > LIMIT.areaPurpose) return { error: `出張区域・用は${LIMIT.areaPurpose}文字までです` }
+  const tripArea = text(b.trip_area, 1000)
+  const tripPurpose = text(b.trip_purpose, 5000)
+  if (tripArea.length > LIMIT.tripArea) return { error: `出張区域は${LIMIT.tripArea}文字までです` }
+  if (tripPurpose.length > LIMIT.tripPurpose) return { error: `出張目的は${LIMIT.tripPurpose}文字までです` }
 
   // 申請のときだけ必須チェック（下書きは未入力でもよい）
   if (submit) {
-    if (!areaPurpose) return { error: "出張区域・用を入力してください" }
+    if (!tripArea) return { error: "出張区域を入力してください" }
+    if (!tripPurpose) return { error: "出張目的を入力してください" }
     if (total <= 0) return { error: "精算合計が0円です。金額を入力してください" }
   }
 
@@ -117,7 +122,9 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
         account_name: text(b.account_name, 50) || "旅費交通費",
         account_code: text(b.account_code, 20) || "714",
         tax_category: text(b.tax_category, 50) || "4.課税",
-        area_purpose: areaPurpose || null,
+        area_purpose: null,
+        trip_area: tripArea || null,
+        trip_purpose: tripPurpose || null,
         trip_dates: tripDates,
         transport_items: transport,
         lodging_items: lodging,

@@ -2084,6 +2084,8 @@ model AcctTripExpense {
   account_code       String   @default("714")
   tax_category       String   @default("4.課税")
   area_purpose       String?  @db.Text
+  trip_area          String?
+  trip_purpose       String?
   trip_dates         Json?
   transport_items    Json?
   lodging_items      Json?
@@ -2133,4 +2135,13 @@ model EappRegulationVersion {
   uploaded_at   DateTime       @default(now())
   @@index([regulation_id])
   @@map("t_eapp_regulation_versions")
+}
+
+model EappTripArea {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("t_eapp_trip_areas")
 }

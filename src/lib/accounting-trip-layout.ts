@@ -146,7 +146,7 @@ export const APPROVAL_HEADER_H = 5.2 // 役職名を載せる上の帯の高さ�
 export const FONT = { title: 15, body: 12, small: 7.5, label: 11, approvalHead: 7, approvalName: 9, approvalDate: 6.5 }
 
 // 入力の上限（枠に収まる文字数）
-export const LIMIT = { section: 20, lodgingName: 12, areaPurpose: 200 }
+export const LIMIT = { section: 20, lodgingName: 12, areaPurpose: 200, tripArea: 60, tripPurpose: 100 }
 
 // ---- 文字の幅の見積もり（折り返しと、枠に収める文字サイズの計算に使う） ----
 const PT_MM = 25.4 / 72

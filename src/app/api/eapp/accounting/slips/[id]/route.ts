@@ -50,6 +50,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           account_code: true,
           tax_category: true,
           area_purpose: true,
+          trip_area: true,
+          trip_purpose: true,
           trip_dates: true,
           transport_items: true,
           lodging_items: true,

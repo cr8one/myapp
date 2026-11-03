@@ -77,7 +77,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     accountName: t.account_name,
     accountCode: t.account_code,
     taxCategory: t.tax_category,
-    areaPurpose: t.area_purpose,
+    // 新しい伝票は「出張区域：〜／出張目的：〜」の2行。これまでの伝票は、これまでの文章をそのまま渡す
+    areaPurpose: (t.trip_area || t.trip_purpose)
+      ? `出張区域：${t.trip_area ?? ""}\n出張目的：${t.trip_purpose ?? ""}`
+      : t.area_purpose,
     tripDates: (t.trip_dates as unknown as TripPdfData["tripDates"] | null) ?? [],
     transport: (t.transport_items as unknown as TripPdfData["transport"] | null) ?? [],
     lodging: (t.lodging_items as unknown as TripPdfData["lodging"] | null) ?? [],

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { Plus, Pencil, Trash2, ShieldCheck, UserCog } from "lucide-react"
 import RegulationsAdmin from "@/components/accounting/regulations-admin"
+import TripAreasAdmin from "@/components/accounting/trip-areas-admin"
 
 type UserOption = { id: string; name: string | null; email: string }
 type ApprovalRoute = {
@@ -33,7 +34,7 @@ const TAB_DESCRIPTION: Record<string, string> = {
 }
 
 export default function EappMastersPage() {
-  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "regulations" | "system-staff">("tokui-approval-routes")
+  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "regulations" | "trip-areas" | "system-staff">("tokui-approval-routes")
 
   // 共通承認者設定（得意先申請・稟議書）
   const [routes, setRoutes] = useState<ApprovalRoute[]>([])
@@ -80,7 +81,7 @@ export default function EappMastersPage() {
   }
   useEffect(() => { fetchRoutes(activeTab); fetchStaff() }, [])
 
-  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "regulations" | "system-staff") => {
+  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "regulations" | "trip-areas" | "system-staff") => {
     setActiveTab(tab)
     setShowRouteForm(false)
     setEditRoute(null)
@@ -178,6 +179,14 @@ export default function EappMastersPage() {
           規定等
         </button>
         <button
+          onClick={() => switchTab("trip-areas")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "trip-areas" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          出張区域
+        </button>
+        <button
           onClick={() => switchTab("system-staff")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "system-staff" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
@@ -259,6 +268,7 @@ export default function EappMastersPage() {
       )}
 
       {activeTab === "regulations" && <RegulationsAdmin />}
+      {activeTab === "trip-areas" && <TripAreasAdmin />}
 
       {activeTab === "system-staff" && (
         <div>

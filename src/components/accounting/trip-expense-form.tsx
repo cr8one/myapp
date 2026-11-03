@@ -1,9 +1,10 @@
 "use client"
-import { useState, type ReactNode } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
 import { LIMIT } from "@/lib/accounting-trip-layout"
+import { fetchTripAreaNames } from "@/lib/eapp-trip-areas-client"
 
 export type TripFormValues = {
   slipDate: string
@@ -12,7 +13,8 @@ export type TripFormValues = {
   accountCode: string
   taxCategory: string
   departmentName: string
-  areaPurpose: string
+  tripArea: string
+  tripPurpose: string
   tripDates: { label: string; date: string; time: string }[]
   transport: { section: string; amount: string }[]
   lodging: { name: string; nights: string; amount: string }[]
@@ -34,7 +36,8 @@ export const emptyTripForm = (): TripFormValues => ({
   accountCode: "714",
   taxCategory: "4.課税",
   departmentName: "",
-  areaPurpose: "",
+  tripArea: "",
+  tripPurpose: "",
   tripDates: TRIP_LABELS.map(label => ({ label, date: "", time: "" })),
   transport: Array.from({ length: 8 }, () => ({ section: "", amount: "" })),
   lodging: Array.from({ length: 3 }, () => ({ name: "", nights: "", amount: "" })),
@@ -50,6 +53,8 @@ type SlipForForm = {
     account_code: string
     tax_category: string
     area_purpose: string | null
+    trip_area: string | null
+    trip_purpose: string | null
     trip_dates: { label: string; date: string; time: string }[] | null
     transport_items: { section: string; amount: number }[] | null
     lodging_items: { name: string; nights: number; amount: number }[] | null
@@ -73,7 +78,9 @@ export function tripFormFromSlip(slip: SlipForForm): TripFormValues {
     accountCode: t?.account_code ?? "714",
     taxCategory: t?.tax_category ?? "4.課税",
     departmentName: slip.department_name ?? "",
-    areaPurpose: t?.area_purpose ?? "",
+    tripArea: t?.trip_area ?? "",
+    // これまでの「出張区域・用」の文章は、出張目的の欄に入れる（保存のときに、新しい列に移る）
+    tripPurpose: t?.trip_purpose ?? t?.area_purpose ?? "",
     tripDates: TRIP_LABELS.map(dateRow),
     transport: Array.from({ length: 8 }, (_, i) => {
       const r = t?.transport_items?.[i]
@@ -100,7 +107,8 @@ export function tripFormPayload(v: TripFormValues, submit: boolean) {
     account_code: v.accountCode,
     tax_category: v.taxCategory,
     department_name: v.departmentName,
-    area_purpose: v.areaPurpose,
+    trip_area: v.tripArea,
+    trip_purpose: v.tripPurpose,
     trip_dates: v.tripDates,
     transport_items: v.transport,
     lodging_items: v.lodging,
@@ -127,6 +135,8 @@ type Props = {
 export default function TripExpenseForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel, attachments }: Props) {
   const [v, setV] = useState<TripFormValues>(initial)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [areaOptions, setAreaOptions] = useState<string[]>([])
+  useEffect(() => { fetchTripAreaNames().then(setAreaOptions) }, [])
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }))
 
   const transportSubtotal = v.transport.reduce((a, r) => a + num(r.amount), 0)
@@ -146,7 +156,7 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <label className={labelClass}>日付</label>
-            <Input type="date" value={v.slipDate} onChange={e => set({ slipDate: e.target.value })} />
+            <div className="w-40"><Input type="date" value={v.slipDate} onChange={e => set({ slipDate: e.target.value })} /></div>
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>タイトル（空欄なら自動で付きます）</label>
@@ -173,19 +183,35 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
 
       <div className={cardClass}>
         <p className={headClass}>出張期間</p>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {v.tripDates.map((r, i) => (
-            <div key={i} className="flex gap-2 items-center flex-wrap">
-              <span className="text-sm text-gray-600 w-32">{r.label}</span>
-              <Input type="date" className="w-44" value={r.date} onChange={e => set({ tripDates: setAt(v.tripDates, i, { date: e.target.value }) })} />
+            <div key={i} className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-600 w-28 shrink-0">{r.label}</span>
+              <div className="w-40 shrink-0">
+                <Input type="date" value={r.date} onChange={e => set({ tripDates: setAt(v.tripDates, i, { date: e.target.value }) })} />
+              </div>
               <Input type="time" className="w-32" value={r.time} onChange={e => set({ tripDates: setAt(v.tripDates, i, { time: e.target.value }) })} />
             </div>
           ))}
         </div>
-        <label className={labelClass + " mt-4"}>出張区域・用</label>
-        <textarea className="w-full min-h-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-          value={v.areaPurpose} onChange={e => set({ areaPurpose: e.target.value })} maxLength={LIMIT.areaPurpose} />
-        <p className={"text-right text-xs mt-1 " + (v.areaPurpose.length > LIMIT.areaPurpose ? "text-red-600" : "text-gray-400")}>{v.areaPurpose.length} / {LIMIT.areaPurpose}文字</p>
+      </div>
+
+      <div className={cardClass}>
+        <p className={headClass}>出張区域・目的</p>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>出張区域（申請に必須・{LIMIT.tripArea}文字まで。文字を打つと、候補が出ます）</label>
+            <Input list="trip-area-list" value={v.tripArea} maxLength={LIMIT.tripArea} autoComplete="off"
+              placeholder="例：島田プロダクションセンター" onChange={e => set({ tripArea: e.target.value })} />
+            <datalist id="trip-area-list">{areaOptions.map(n => <option key={n} value={n} />)}</datalist>
+          </div>
+          <div>
+            <label className={labelClass}>出張目的（申請に必須・{LIMIT.tripPurpose}文字まで）</label>
+            <Input value={v.tripPurpose} maxLength={LIMIT.tripPurpose} autoComplete="off"
+              placeholder="例：ISMS内部監査の為" onChange={e => set({ tripPurpose: e.target.value })} />
+            <p className={"text-right text-xs mt-1 " + (v.tripPurpose.length > LIMIT.tripPurpose ? "text-red-600" : "text-gray-400")}>{v.tripPurpose.length} / {LIMIT.tripPurpose}文字</p>
+          </div>
+        </div>
       </div>
 
       <div className={cardClass}>

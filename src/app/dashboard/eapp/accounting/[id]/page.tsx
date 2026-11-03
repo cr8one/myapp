@@ -12,6 +12,7 @@ type Step = { id: string; stage: string; step_order: number; position_name: stri
 type History = { id: string; action: string; actor_name: string; comment: string | null; created_at: string }
 type Trip = {
   account_name: string; account_code: string; tax_category: string; area_purpose: string | null
+  trip_area: string | null; trip_purpose: string | null
   trip_dates: { label: string; date: string; time: string }[] | null
   transport_items: { section: string; amount: number }[] | null
   lodging_items: { name: string; nights: number; amount: number }[] | null
@@ -213,8 +214,18 @@ export default function AccountingSlipDetailPage() {
             {(t.trip_dates ?? []).length === 0 ? dash : (t.trip_dates ?? []).map((r, i) => (
               <div key={i} className={rowClass}><span className="text-gray-500">{r.label}</span><span>{fmtDate(r.date || null)}　{r.time}</span></div>
             ))}
-            <p className="text-xs text-gray-500 mt-4 mb-1">出張区域・用</p>
-            <p className="text-sm whitespace-pre-wrap">{t.area_purpose || "—"}</p>
+          </div>
+
+          <div className={cardClass}>
+            <p className={headClass}>出張区域・目的</p>
+            {t.trip_area || t.trip_purpose ? (
+              <>
+                <div className={rowClass}><span className="text-gray-500">出張区域</span><span>{t.trip_area || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">出張目的</span><span>{t.trip_purpose || "—"}</span></div>
+              </>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap">{t.area_purpose || "—"}</p>
+            )}
           </div>
 
           <div className={cardClass}>
