@@ -35,7 +35,7 @@ export type TripExpenseData = {
 export type ParsedTrip = {
   dateText: string
   slipDate: Date
-  title: string
+  departmentCode: string
   departmentName: string
   expense: TripExpenseData
 }
@@ -104,6 +104,8 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
   const tripPurpose = text(b.trip_purpose, 5000)
   if (tripArea.length > LIMIT.tripArea) return { error: `出張区域は${LIMIT.tripArea}文字までです` }
   if (tripPurpose.length > LIMIT.tripPurpose) return { error: `出張目的は${LIMIT.tripPurpose}文字までです` }
+  const departmentCode = text(b.department_code, 10)
+  if (departmentCode && !/^\d{3}$/.test(departmentCode)) return { error: "部門コードは数字3桁で入力してください" }
 
   // 申請のときだけ必須チェック（下書きは未入力でもよい）
   if (submit) {
@@ -116,7 +118,7 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
     value: {
       dateText,
       slipDate: toDate(dateText),
-      title: text(b.title, 100),
+      departmentCode,
       departmentName: text(b.department_name, 100),
       expense: {
         account_name: text(b.account_name, 50) || "旅費交通費",

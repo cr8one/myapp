@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 
-// 起案者の氏名・メールと、伝票に載せる部署の表示（例：「541 総務部 システム課」）を作る。
-// 部署の表示は「部門コード＋主たる部署名＋主たるグループ名」。未設定の項目は飛ばしてつなぐ。
+// 起案者の氏名・メールと、伝票に載せる部署を作る。
+// 部門コード：ユーザーマスタの部門コード（例：541）
+// 部署名：主たる部署の名前と、主たるグループの名前（例：総務部 システム課）。未設定の項目は飛ばしてつなぐ
 export async function getRequesterInfo(userId: string) {
   const u = await prisma.user.findUnique({
     where: { id: userId },
@@ -13,6 +14,13 @@ export async function getRequesterInfo(userId: string) {
   if (!u) return null
   const dep = u.departments.find(d => d.is_primary) ?? u.departments[0]
   const grp = u.groups.find(g => g.is_primary) ?? u.groups[0]
-  const departmentText = [u.divisionCode, dep?.department.name, grp?.group.name].filter(Boolean).join(" ")
-  return { name: u.name ?? u.email, email: u.email, departmentText }
+  const departmentCode = u.divisionCode ?? ""
+  const departmentName = [dep?.department.name, grp?.group.name].filter(Boolean).join(" ")
+  return {
+    name: u.name ?? u.email,
+    email: u.email,
+    departmentCode,
+    departmentName,
+    departmentText: [departmentCode, departmentName].filter(Boolean).join(" "),
+  }
 }

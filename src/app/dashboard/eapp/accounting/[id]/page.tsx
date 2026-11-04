@@ -21,7 +21,7 @@ type Trip = {
 }
 type Slip = {
   id: string; slip_no: number; slip_type: string; title: string; status: string
-  slip_date: string; amount: number; requester_name: string; department_name: string | null
+  slip_date: string; amount: number; requester_name: string; department_code: string | null; department_name: string | null
   submitted_at: string | null; created_at: string
   approval_steps: Step[]; histories: History[]; trip_expense: Trip | null
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
@@ -200,7 +200,7 @@ export default function AccountingSlipDetailPage() {
         <div className="grid gap-x-6 sm:grid-cols-2">
           <div className={rowClass}><span className="text-gray-500">日付</span><span>{fmtDate(slip.slip_date)}</span></div>
           <div className={rowClass}><span className="text-gray-500">起案者</span><span>{slip.requester_name}</span></div>
-          <div className={rowClass}><span className="text-gray-500">部署</span><span>{slip.department_name ?? dash}</span></div>
+          <div className={rowClass}><span className="text-gray-500">部署</span><span>{[slip.department_code, slip.department_name].filter(Boolean).join(" ") || dash}</span></div>
           <div className={rowClass}><span className="text-gray-500">申請日時</span><span>{fmtDateTime(slip.submitted_at)}</span></div>
           {t && <div className={rowClass}><span className="text-gray-500">勘定科目</span><span>{t.account_name}　{t.account_code}</span></div>}
           {t && <div className={rowClass}><span className="text-gray-500">課税区分</span><span>{t.tax_category}</span></div>}

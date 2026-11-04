@@ -22,8 +22,11 @@ export async function POST(req: NextRequest) {
 
   const info = await getRequesterInfo(viewer.userId)
   if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const departmentName = v.departmentName || info.departmentText || null
-  const title = v.title || `${TRIP.label} ${v.dateText.replace(/-/g, "/")}`
+  // 部門コードも部署名も空のときは、ユーザーマスタの値で補う
+  const noDept = !v.departmentCode && !v.departmentName
+  const departmentCode = (noDept ? info.departmentCode : v.departmentCode) || null
+  const departmentName = (noDept ? info.departmentName : v.departmentName) || null
+  const title = `${TRIP.label} ${v.dateText.replace(/-/g, "/")}`
 
   // 申請のときだけ、承認ステップを作る
   let steps: Awaited<ReturnType<typeof buildApprovalSteps>>["steps"] = []
@@ -45,6 +48,7 @@ export async function POST(req: NextRequest) {
       amount: v.expense.total_amount,
       requester_id: viewer.userId,
       requester_name: info.name,
+      department_code: departmentCode,
       department_name: departmentName,
       submitted_at: submit ? new Date() : null,
       trip_expense: { create: v.expense },

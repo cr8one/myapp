@@ -8,10 +8,10 @@ import { fetchTripAreaNames } from "@/lib/eapp-trip-areas-client"
 
 export type TripFormValues = {
   slipDate: string
-  title: string
   accountName: string
   accountCode: string
   taxCategory: string
+  departmentCode: string
   departmentName: string
   tripArea: string
   tripPurpose: string
@@ -31,10 +31,10 @@ const today = () => {
 
 export const emptyTripForm = (): TripFormValues => ({
   slipDate: today(),
-  title: "",
   accountName: "旅費交通費",
   accountCode: "714",
   taxCategory: "4.課税",
+  departmentCode: "",
   departmentName: "",
   tripArea: "",
   tripPurpose: "",
@@ -45,8 +45,8 @@ export const emptyTripForm = (): TripFormValues => ({
 })
 
 type SlipForForm = {
-  title: string
   slip_date: string
+  department_code: string | null
   department_name: string | null
   trip_expense: {
     account_name: string
@@ -66,18 +66,22 @@ type SlipForForm = {
 export function tripFormFromSlip(slip: SlipForForm): TripFormValues {
   const t = slip.trip_expense
   const date = slip.slip_date.slice(0, 10)
-  const autoTitle = `出張旅費精算書 ${date.replace(/-/g, "/")}`
+  // これまでの伝票は、コードと名前が1つの文字列（例：「541 総務部 システム課」）で入っているので、先頭の3桁の数字を、コードの欄に分ける
+  const legacy = /^(\d{3})\s+(.+)$/.exec(slip.department_name ?? "")
+  const dept = slip.department_code
+    ? { code: slip.department_code, name: slip.department_name ?? "" }
+    : legacy ? { code: legacy[1], name: legacy[2] } : { code: "", name: slip.department_name ?? "" }
   const dateRow = (label: string) => {
     const r = t?.trip_dates?.find(x => x.label === label)
     return { label, date: r?.date ?? "", time: r?.time ?? "" }
   }
   return {
     slipDate: date,
-    title: slip.title === autoTitle ? "" : slip.title,
     accountName: t?.account_name ?? "旅費交通費",
     accountCode: t?.account_code ?? "714",
     taxCategory: t?.tax_category ?? "4.課税",
-    departmentName: slip.department_name ?? "",
+    departmentCode: dept.code,
+    departmentName: dept.name,
     tripArea: t?.trip_area ?? "",
     // これまでの「出張区域・用」の文章は、出張目的の欄に入れる（保存のときに、新しい列に移る）
     tripPurpose: t?.trip_purpose ?? t?.area_purpose ?? "",
@@ -102,10 +106,10 @@ export function tripFormPayload(v: TripFormValues, submit: boolean) {
   return {
     submit,
     slip_date: v.slipDate,
-    title: v.title,
     account_name: v.accountName,
     account_code: v.accountCode,
     tax_category: v.taxCategory,
+    department_code: v.departmentCode,
     department_name: v.departmentName,
     trip_area: v.tripArea,
     trip_purpose: v.tripPurpose,
@@ -137,6 +141,13 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [areaOptions, setAreaOptions] = useState<string[]>([])
   useEffect(() => { fetchTripAreaNames().then(setAreaOptions) }, [])
+  // 部署は、開いた時点で、本人のユーザーマスタの値を入れておく（すでに入っている伝票は、そのまま）
+  useEffect(() => {
+    fetch("/api/eapp/accounting/requester-info").then(r => (r.ok ? r.json() : null)).then(d => {
+      if (!d) return
+      setV(prev => (prev.departmentCode || prev.departmentName) ? prev : { ...prev, departmentCode: d.department_code ?? "", departmentName: d.department_name ?? "" })
+    }).catch(() => {})
+  }, [])
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }))
 
   const transportSubtotal = v.transport.reduce((a, r) => a + num(r.amount), 0)
@@ -158,10 +169,6 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
             <label className={labelClass}>日付</label>
             <div className="w-40"><Input type="date" value={v.slipDate} onChange={e => set({ slipDate: e.target.value })} /></div>
           </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass}>タイトル（空欄なら自動で付きます）</label>
-            <Input value={v.title} onChange={e => set({ title: e.target.value })} maxLength={100} autoComplete="off" />
-          </div>
           <div>
             <label className={labelClass}>勘定科目</label>
             <Input value={v.accountName} onChange={e => set({ accountName: e.target.value })} maxLength={50} autoComplete="off" />
@@ -174,9 +181,15 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
             <label className={labelClass}>課税区分</label>
             <Input value={v.taxCategory} onChange={e => set({ taxCategory: e.target.value })} maxLength={50} autoComplete="off" />
           </div>
-          <div className="sm:col-span-3">
-            <label className={labelClass}>部署（空欄なら、部門コード・部署・グループから自動で入ります）</label>
-            <Input value={v.departmentName} onChange={e => set({ departmentName: e.target.value })} maxLength={100} autoComplete="off" />
+          <div>
+            <label className={labelClass}>部門コード（数字3桁）</label>
+            <Input value={v.departmentCode} inputMode="numeric" maxLength={3} autoComplete="off" placeholder="例：541"
+              onChange={e => set({ departmentCode: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>部署名</label>
+            <Input value={v.departmentName} maxLength={100} autoComplete="off" placeholder="例：総務部 システム課"
+              onChange={e => set({ departmentName: e.target.value })} />
           </div>
         </div>
       </div>

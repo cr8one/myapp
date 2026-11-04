@@ -2031,6 +2031,7 @@ model AcctSlip {
   requester_id     String
   requester_name   String
   department_name  String?
+  department_code  String?
   submitted_at     DateTime?
   completed_at     DateTime?
   created_at       DateTime  @default(now())

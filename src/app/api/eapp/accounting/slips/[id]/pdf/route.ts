@@ -38,6 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       status: true,
       slip_date: true,
       requester_name: true,
+      department_code: true,
       department_name: true,
       approval_steps: {
         orderBy: { step_order: "asc" },
@@ -73,7 +74,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     slipNo: slip.slip_no,
     slipDate: slip.slip_date.toISOString().slice(0, 10),
     requesterName: slip.requester_name,
-    departmentName: slip.department_name,
+    departmentName: [slip.department_code, slip.department_name].filter(Boolean).join(" ") || null,
     accountName: t.account_name,
     accountCode: t.account_code,
     taxCategory: t.tax_category,

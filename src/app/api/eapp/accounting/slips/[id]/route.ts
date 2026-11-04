@@ -28,6 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       amount: true,
       requester_id: true,
       requester_name: true,
+      department_code: true,
       department_name: true,
       submitted_at: true,
       completed_at: true,
@@ -121,8 +122,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const info = await getRequesterInfo(viewer.userId)
   if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  const departmentName = v.departmentName || info.departmentText || null
-  const title = v.title || `${type.label} ${v.dateText.replace(/-/g, "/")}`
+  // 部門コードも部署名も空のときは、ユーザーマスタの値で補う
+  const noDept = !v.departmentCode && !v.departmentName
+  const departmentCode = (noDept ? info.departmentCode : v.departmentCode) || null
+  const departmentName = (noDept ? info.departmentName : v.departmentName) || null
+  const title = `${type.label} ${v.dateText.replace(/-/g, "/")}`
 
   let steps: Awaited<ReturnType<typeof buildApprovalSteps>>["steps"] = []
   if (submit) {
@@ -141,6 +145,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           title,
           slip_date: v.slipDate,
           amount: v.expense.total_amount,
+          department_code: departmentCode,
           department_name: departmentName,
           ...(submit ? { status: nextStatus, submitted_at: new Date(), completed_at: null } : {}),
         },

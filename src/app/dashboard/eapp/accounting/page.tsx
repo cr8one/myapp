@@ -17,6 +17,7 @@ type Slip = {
   slip_date: string
   amount: number
   requester_name: string
+  department_code: string | null
   department_name: string | null
   approval_steps: Step[]
 }
@@ -91,7 +92,7 @@ export default function AccountingSlipsPage() {
           <div className="flex-1 min-w-48">
             <label className="block text-xs text-gray-500 mb-1">キーワード</label>
             <Input value={f.keyword} onChange={e => setF({ ...f, keyword: e.target.value })}
-              placeholder="タイトル・起案者で検索"
+              placeholder="起案者・部署で検索"
               onKeyDown={e => { if (e.key === "Enter") fetchSlips(1) }}
               autoComplete="off" />
           </div>
@@ -148,7 +149,6 @@ export default function AccountingSlipsPage() {
                 <tr>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">伝票番号</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">種類</th>
-                  <th className="text-left px-3 py-2.5 text-gray-600 font-medium">タイトル</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">日付</th>
                   <th className="text-right px-3 py-2.5 text-gray-600 font-medium">金額</th>
                   <th className="text-left px-3 py-2.5 text-gray-600 font-medium">起案者</th>
@@ -164,11 +164,10 @@ export default function AccountingSlipsPage() {
                     className="hover:bg-blue-50 cursor-pointer h-12">
                     <td className="px-3 py-2 text-gray-500">{r.slip_no}</td>
                     <td className="px-3 py-2">{slipTypeLabel(r.slip_type)}</td>
-                    <td className="px-3 py-2 font-medium max-w-[220px]"><div className="truncate">{r.title}</div></td>
                     <td className="px-3 py-2 text-gray-500">{fmtDate(r.slip_date)}</td>
                     <td className="px-3 py-2 text-right">{r.amount.toLocaleString()}円</td>
                     <td className="px-3 py-2 text-gray-500">{r.requester_name}</td>
-                    <td className="px-3 py-2 text-gray-500 max-w-[140px]"><div className="truncate">{r.department_name ?? "—"}</div></td>
+                    <td className="px-3 py-2 text-gray-500 max-w-[140px]"><div className="truncate">{[r.department_code, r.department_name].filter(Boolean).join(" ") || "—"}</div></td>
                     <td className="px-3 py-2">
                       <span className={`text-xs px-2 py-0.5 rounded ${statusBadgeClass(r.status)}`}>{r.status}</span>
                     </td>

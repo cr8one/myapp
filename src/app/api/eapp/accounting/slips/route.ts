@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
   const keyword = sp.get("keyword")
   if (keyword) {
     filter.OR = [
-      { title: { contains: keyword } },
+      { department_name: { contains: keyword } },
+      { department_code: { contains: keyword } },
       { requester_name: { contains: keyword } },
     ]
   }
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
         amount: true,
         requester_id: true,
         requester_name: true,
+        department_code: true,
         department_name: true,
         submitted_at: true,
         completed_at: true,
