@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
 import { LIMIT } from "@/lib/accounting-trip-layout"
 import { TRANSPORT_CATEGORIES } from "@/lib/accounting-trip-expense"
-import { fetchTripAreaNames } from "@/lib/eapp-trip-areas-client"
+import { stayMinutes, stayText, calcAllowance } from "@/lib/accounting-trip-allowance"
+import { fetchTripAreas, type TripAreaOption } from "@/lib/eapp-trip-areas-client"
 
 export type TripFormValues = {
   slipDate: string
@@ -140,8 +141,10 @@ type Props = {
 export default function TripExpenseForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel, attachments }: Props) {
   const [v, setV] = useState<TripFormValues>(initial)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [areaOptions, setAreaOptions] = useState<string[]>([])
-  useEffect(() => { fetchTripAreaNames().then(setAreaOptions) }, [])
+  const [areaList, setAreaList] = useState<TripAreaOption[]>([])
+  const [allowanceMsg, setAllowanceMsg] = useState("")
+  useEffect(() => { fetchTripAreas().then(setAreaList) }, [])
+  const areaOptions = areaList.map(a => a.name)
   // 部署は、開いた時点で、本人のユーザーマスタの値を入れておく（すでに入っている伝票は、そのまま）
   useEffect(() => {
     fetch("/api/eapp/accounting/requester-info").then(r => (r.ok ? r.json() : null)).then(d => {
@@ -152,6 +155,14 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }))
 
   const transportSubtotal = v.transport.reduce((a, r) => a + num(r.amount), 0)
+  const stay = stayMinutes(v.tripDates)
+  const autoAllowance = () => {
+    const cls = areaList.find(a => a.name === v.tripArea.trim())?.allowance_class ?? null
+    const r = calcAllowance(v.tripDates, cls)
+    if (!r.ok) { setAllowanceMsg(r.message); return }
+    setAllowanceMsg(r.note)
+    set({ allowance: setAt(v.allowance, 0, { days: String(r.days), amount: String(r.amount) }) })
+  }
   const lodgingSubtotal = v.lodging.reduce((a, r) => a + num(r.amount), 0)
   const allowanceSubtotal = v.allowance.reduce((a, r) => a + num(r.amount), 0)
   const total = transportSubtotal + lodgingSubtotal + allowanceSubtotal
@@ -207,6 +218,12 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
               <Input type="time" className="w-32" value={r.time} onChange={e => set({ tripDates: setAt(v.tripDates, i, { time: e.target.value }) })} />
             </div>
           ))}
+          {stay !== null && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 w-28 shrink-0">現地滞在時間</span>
+              <span className="text-sm font-medium text-gray-900">{stayText(stay)}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -266,7 +283,11 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
       </div>
 
       <div className={cardClass}>
-        <p className={headClass}>日当</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className={headClass}>日当</p>
+          <button type="button" onClick={autoAllowance} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50">現地滞在時間と出張区域から自動入力</button>
+        </div>
+        {allowanceMsg && <p className="text-xs text-gray-500 mb-2">{allowanceMsg}</p>}
         <div className="space-y-2">
           {v.allowance.map((r, i) => (
             <div key={i} className="flex gap-2">
