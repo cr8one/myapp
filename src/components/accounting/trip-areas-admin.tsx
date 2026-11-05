@@ -1,8 +1,9 @@
 "use client"
 import { useEffect, useState } from "react"
+import { ALLOWANCE_CLASSES, allowanceClassLabel } from "@/lib/eapp-trip-area-classes"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 
-type Area = { id: string; name: string; sort_order: number }
+type Area = { id: string; name: string; sort_order: number; allowance_class: string | null }
 
 // 電子申請マスタの「出張区域」タブ。出張旅費精算書の「出張区域」の入力候補を管理する
 export default function TripAreasAdmin() {
@@ -14,6 +15,7 @@ export default function TripAreasAdmin() {
   const [editId, setEditId] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [sortOrder, setSortOrder] = useState("")
+  const [allowanceClass, setAllowanceClass] = useState("")
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState("")
 
@@ -33,9 +35,9 @@ export default function TripAreasAdmin() {
   }
   useEffect(() => { load() }, [])
 
-  const startAdd = () => { setEditId(null); setName(""); setSortOrder(String(areas.length + 1)); setFormError(""); setFormOpen(true) }
-  const startEdit = (a: Area) => { setEditId(a.id); setName(a.name); setSortOrder(String(a.sort_order)); setFormError(""); setFormOpen(true) }
-  const closeForm = () => { setFormOpen(false); setEditId(null); setName(""); setSortOrder(""); setFormError("") }
+  const startAdd = () => { setEditId(null); setName(""); setAllowanceClass(""); setSortOrder(String(areas.length + 1)); setFormError(""); setFormOpen(true) }
+  const startEdit = (a: Area) => { setEditId(a.id); setName(a.name); setAllowanceClass(a.allowance_class ?? ""); setSortOrder(String(a.sort_order)); setFormError(""); setFormOpen(true) }
+  const closeForm = () => { setFormOpen(false); setEditId(null); setName(""); setSortOrder(""); setAllowanceClass(""); setFormError("") }
 
   const send = async (url: string, method: string, body?: unknown) => {
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined })
@@ -49,7 +51,7 @@ export default function TripAreasAdmin() {
     if (name.trim().length > 60) { setFormError("名前は60文字までです"); return }
     setBusy(true)
     try {
-      const body = { name, sort_order: Number(sortOrder || 0) }
+      const body = { name, sort_order: Number(sortOrder || 0), allowance_class: allowanceClass || null }
       if (editId) await send(`/api/eapp/trip-areas/${editId}`, "PUT", body)
       else await send("/api/eapp/trip-areas", "POST", body)
       closeForm()
@@ -100,6 +102,13 @@ export default function TripAreasAdmin() {
               <label className="block text-xs text-gray-500 mb-1">表示順</label>
               <input className={inputClass} inputMode="numeric" value={sortOrder} autoComplete="off" onChange={e => setSortOrder(e.target.value.replace(/\D/g, "").slice(0, 4))} />
             </div>
+            <div className="sm:col-span-4">
+              <label className="block text-xs text-gray-500 mb-1">日当の区分（日当の自動計算に使います。空欄のままでも保存できます）</label>
+              <select className={inputClass} value={allowanceClass} onChange={e => setAllowanceClass(e.target.value)}>
+                <option value="">-- 未設定 --</option>
+                {ALLOWANCE_CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
           </div>
           {formError && <p className="text-sm px-3 py-2 rounded bg-red-50 text-red-600">{formError}</p>}
           <div className="flex gap-2 justify-end">
@@ -117,6 +126,7 @@ export default function TripAreasAdmin() {
             <div key={a.id} className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm">
               <span className="text-xs font-bold text-slate-500 w-8">{a.sort_order}</span>
               <span className="flex-1 text-sm font-medium text-gray-900">{a.name}</span>
+              <span className="text-xs text-gray-500">{allowanceClassLabel(a.allowance_class)}</span>
               <button onClick={() => startEdit(a)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
               <button onClick={() => remove(a)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
             </div>
