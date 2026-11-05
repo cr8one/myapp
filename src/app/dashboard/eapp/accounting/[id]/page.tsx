@@ -14,7 +14,7 @@ type Trip = {
   account_name: string; account_code: string; tax_category: string; area_purpose: string | null
   trip_area: string | null; trip_purpose: string | null
   trip_dates: { label: string; date: string; time: string }[] | null
-  transport_items: { section: string; amount: number }[] | null
+  transport_items: { category?: string; section: string; amount: number }[] | null
   lodging_items: { name: string; nights: number; amount: number }[] | null
   allowance_items: { days: number; amount: number }[] | null
   transport_subtotal: number; lodging_subtotal: number; allowance_subtotal: number; total_amount: number
@@ -231,7 +231,7 @@ export default function AccountingSlipDetailPage() {
           <div className={cardClass}>
             <p className={headClass}>交通費</p>
             {(t.transport_items ?? []).length === 0 ? dash : (t.transport_items ?? []).map((r, i) => (
-              <div key={i} className={rowClass}><span>{r.section || "—"}</span><span>{yen(r.amount)}</span></div>
+              <div key={i} className={rowClass}><span>{r.category && <span className="text-gray-500 mr-2">{r.category}</span>}{r.section || "—"}</span><span>{yen(r.amount)}</span></div>
             ))}
             <p className="text-right text-sm mt-3">小計　<span className="font-bold">{yen(t.transport_subtotal)}</span></p>
           </div>

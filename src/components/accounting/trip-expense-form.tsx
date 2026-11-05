@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
 import { LIMIT } from "@/lib/accounting-trip-layout"
+import { TRANSPORT_CATEGORIES } from "@/lib/accounting-trip-expense"
 import { fetchTripAreaNames } from "@/lib/eapp-trip-areas-client"
 
 export type TripFormValues = {
@@ -16,7 +17,7 @@ export type TripFormValues = {
   tripArea: string
   tripPurpose: string
   tripDates: { label: string; date: string; time: string }[]
-  transport: { section: string; amount: string }[]
+  transport: { category: string; section: string; amount: string }[]
   lodging: { name: string; nights: string; amount: string }[]
   allowance: { days: string; amount: string }[]
 }
@@ -39,7 +40,7 @@ export const emptyTripForm = (): TripFormValues => ({
   tripArea: "",
   tripPurpose: "",
   tripDates: TRIP_LABELS.map(label => ({ label, date: "", time: "" })),
-  transport: Array.from({ length: 8 }, () => ({ section: "", amount: "" })),
+  transport: Array.from({ length: 8 }, () => ({ category: "", section: "", amount: "" })),
   lodging: Array.from({ length: 3 }, () => ({ name: "", nights: "", amount: "" })),
   allowance: Array.from({ length: 2 }, () => ({ days: "", amount: "" })),
 })
@@ -56,7 +57,7 @@ type SlipForForm = {
     trip_area: string | null
     trip_purpose: string | null
     trip_dates: { label: string; date: string; time: string }[] | null
-    transport_items: { section: string; amount: number }[] | null
+    transport_items: { category?: string; section: string; amount: number }[] | null
     lodging_items: { name: string; nights: number; amount: number }[] | null
     allowance_items: { days: number; amount: number }[] | null
   } | null
@@ -88,7 +89,7 @@ export function tripFormFromSlip(slip: SlipForForm): TripFormValues {
     tripDates: TRIP_LABELS.map(dateRow),
     transport: Array.from({ length: 8 }, (_, i) => {
       const r = t?.transport_items?.[i]
-      return { section: r?.section ?? "", amount: r ? String(r.amount) : "" }
+      return { category: r?.category ?? "", section: r?.section ?? "", amount: r ? String(r.amount) : "" }
     }),
     lodging: Array.from({ length: 3 }, (_, i) => {
       const r = t?.lodging_items?.[i]
@@ -232,6 +233,11 @@ export default function TripExpenseForm({ initial, saving, error, saveLabel = "�
         <div className="space-y-2">
           {v.transport.map((r, i) => (
             <div key={i} className="flex gap-2">
+              <select value={r.category} onChange={e => set({ transport: setAt(v.transport, i, { category: e.target.value }) })}
+                className="h-8 border rounded px-2 text-sm bg-white w-40">
+                <option value="">-- 分類 --</option>
+                {TRANSPORT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
               <Input className="flex-1" placeholder={`区間（例：東京〜静岡、${LIMIT.section}文字まで）`} value={r.section} maxLength={LIMIT.section} autoComplete="off"
                 onChange={e => set({ transport: setAt(v.transport, i, { section: e.target.value }) })} />
               <Input className="w-36 text-right" inputMode="numeric" placeholder="金額" value={r.amount} autoComplete="off"

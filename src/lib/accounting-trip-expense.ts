@@ -23,7 +23,7 @@ export type TripExpenseData = {
   trip_area: string | null
   trip_purpose: string | null
   trip_dates: { label: string; date: string; time: string }[]
-  transport_items: { section: string; amount: number }[]
+  transport_items: { category?: string; section: string; amount: number }[]
   lodging_items: { name: string; nights: number; amount: number }[]
   allowance_items: { days: number; amount: number }[]
   transport_subtotal: number
@@ -39,6 +39,9 @@ export type ParsedTrip = {
   departmentName: string
   expense: TripExpenseData
 }
+
+// 交通費の分類（入力画面の選択肢と同じ並び）
+export const TRANSPORT_CATEGORIES: readonly string[] = ["電車・バス・新幹線", "タクシー", "パーキング"]
 
 export function parseTripExpense(b: any, submit: boolean): { error: string } | { value: ParsedTrip } {
   const dateText = String(b.slip_date ?? "")
@@ -67,7 +70,9 @@ export function parseTripExpense(b: any, submit: boolean): { error: string } | {
     if (amount === null) return { error: "交通費の金額が正しくありません" }
     const section = text(r?.section, 1000)
     if (section.length > LIMIT.section) return { error: `区間は${LIMIT.section}文字までです` }
-    transport.push({ section, amount })
+    const category = text(r?.category, 20)
+    if (category && TRANSPORT_CATEGORIES.includes(category) === false) return { error: "交通費の分類が正しくありません" }
+    transport.push({ category, section, amount })
   }
 
   // 宿泊費（最大3行）
