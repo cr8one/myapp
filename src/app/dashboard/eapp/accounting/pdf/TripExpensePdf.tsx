@@ -97,7 +97,7 @@ export default function TripExpensePdf({ data }: { data: TripPdfData }) {
         </Svg>
 
         {/* タイトルと日付 */}
-        <Cell b={TITLE} text="出金伝票　(出張旅費精算書)" max={FONT.title} min={FONT.title} align="left" pad={0} />
+        <Cell b={TITLE} text="出金伝票　(出張旅費精算書（国内）)" max={FONT.title} min={FONT.title} align="left" pad={0} />
         <Cell b={DATE_LINE} text={fmtYMD(d.slipDate)} max={FONT.label} align="right" pad={0} />
         <Cell b={SLIP_NO} text={`伝票番号 ${d.slipNo}`} max={FONT.small} align="right" pad={0} />
 
