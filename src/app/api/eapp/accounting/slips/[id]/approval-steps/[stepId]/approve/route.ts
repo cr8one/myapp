@@ -23,6 +23,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         data: { status: "承認済み", approved_at: new Date() },
       })
       if (updated.count === 0) throw new Error(STATE_CHANGED)
+      // 経理側は、同じ順序の承認者のうち1人が承認したら、その順序は完了とする。まだ承認していない同じ順序のステップは、ここで削除する
+      let skipNote: string | null = null
+      const mine = await tx.acctSlipApprovalStep.findUnique({ where: { id: stepId }, select: { stage: true, step_order: true } })
+      if (mine && mine.stage !== STAGE_REQUESTER) {
+        const others = await tx.acctSlipApprovalStep.findMany({
+          where: { slip_id: id, stage: mine.stage, step_order: mine.step_order, status: "未承認", id: { not: stepId } },
+          select: { id: true, approver_name: true },
+        })
+        if (others.length > 0) {
+          await tx.acctSlipApprovalStep.deleteMany({ where: { id: { in: others.map(o => o.id) }, status: "未承認" } })
+          skipNote = `同じ順序の他の承認者（${others.map(o => o.approver_name ?? "不明").join("、")}）の承認は、不要になりました`
+        }
+      }
       const steps = await tx.acctSlipApprovalStep.findMany({
         where: { slip_id: id },
         select: { id: true, stage: true, step_order: true, status: true },
@@ -39,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
       if (slipUpdated.count === 0) throw new Error(STATE_CHANGED)
       await tx.acctSlipHistory.create({
-        data: { slip_id: id, action: "承認", actor_id: viewer.userId, actor_name: viewer.name ?? viewer.email },
+        data: { slip_id: id, action: "承認", actor_id: viewer.userId, actor_name: viewer.name ?? viewer.email, comment: skipNote },
       })
       return { status: next, orderCompleted }
     })
