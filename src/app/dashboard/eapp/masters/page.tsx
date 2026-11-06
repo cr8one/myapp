@@ -24,7 +24,7 @@ const TAB_SERVICE_TYPE: Record<string, string> = {
   "ringi-approval-routes": "ringi",
 }
 const ACCOUNTING_TYPES = [
-  { value: "accounting_trip_expense", label: "出張旅費精算書" },
+  { value: "accounting_trip_expense", label: "出張旅費精算書（国内）" },
 ]
 const serviceTypeOf = (tab: string, acctType: string) => tab === "accounting-routes" ? acctType : TAB_SERVICE_TYPE[tab]
 const ACCOUNTING_DESCRIPTION = "選んだ書類の種類に共通で適用される、経理側の承認ステップです（経理担当・経理マネージャー・専務・社長など）。起案者ごとの承認者（課長・部長など）の承認が終わったあと、ここでの順序で承認が進みます。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。"

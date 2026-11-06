@@ -87,7 +87,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_eapp_regulations", label: "規定等" },
       { tableName: "t_eapp_regulation_versions", label: "規定等の版" },
       { tableName: "t_eapp_trip_areas", label: "出張区域マスタ" },
-      { tableName: "t_acct_trip_expenses", label: "出張旅費精算書" },
+      { tableName: "t_acct_trip_expenses", label: "出張旅費精算書（国内）" },
     ],
   },
   {

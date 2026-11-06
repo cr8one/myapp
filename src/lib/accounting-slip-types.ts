@@ -2,7 +2,7 @@
 export const SLIP_TYPES = [
   {
     value: "trip_expense",
-    label: "出張旅費精算書",
+    label: "出張旅費精算書（国内）",
     description: "出張の交通費・宿泊費・日当の精算",
     href: "/dashboard/eapp/accounting/new/trip-expense",
     // 経理側の承認者（電子申請マスタ）のサービス名

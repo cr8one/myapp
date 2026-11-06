@@ -82,7 +82,7 @@ export default function TripAreasAdmin() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 gap-4">
-        <p className="text-xs text-gray-400">出張旅費精算書の「出張区域」に、文字を打つと出る候補を登録します。候補にない場所も、入力画面では自由に入力できます。</p>
+        <p className="text-xs text-gray-400">出張旅費精算書（国内）の「出張区域」に、文字を打つと出る候補を登録します。候補にない場所も、入力画面では自由に入力できます。</p>
         <button onClick={startAdd} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
           <Plus className="w-4 h-4" /> 出張区域を追加
         </button>

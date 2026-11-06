@@ -74,7 +74,7 @@ export default function TripExpenseEditPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {back}
-      <h1 className="text-2xl font-bold mb-6">出金伝票（出張旅費精算書）を編集</h1>
+      <h1 className="text-2xl font-bold mb-6">出金伝票（出張旅費精算書（国内））を編集</h1>
       {returnReason && (
         <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
           <p className="font-bold mb-1">差戻しの理由</p>

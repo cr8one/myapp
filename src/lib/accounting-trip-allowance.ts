@@ -1,5 +1,5 @@
 // 出張旅費精算書の「現地滞在時間」と「日当」の自動計算（サーバー・ブラウザの両方から使えるよう、"use client" は付けない）
-// 根拠：出張旅費規定（国内）第4条・第9条、海外旅費規程第8条
+// 根拠：出張旅費規定（国内）第4条・第9条（国内限定。海外出張は対象外）
 
 type DateTimeRow = { date: string; time: string }
 
@@ -38,10 +38,6 @@ export function calcAllowance(dates: DateTimeRow[], areaClass: string | null): A
   if (isNaN(days) || days < 1) {
     return { ok: false, message: "現地出発の日付が、現地到着より前になっています" }
   }
-
-  // 海外：日数 × 1日あたりの日当（A地区10,000円、B地区8,000円）
-  if (areaClass === "overseas_a") return { ok: true, days, amount: days * 10000, note: `海外A地区：${days}日 × ${yen(10000)}` }
-  if (areaClass === "overseas_b") return { ok: true, days, amount: days * 8000, note: `海外B地区：${days}日 × ${yen(8000)}` }
 
   if (areaClass !== "domestic_base" && areaClass !== "domestic_other") {
     return { ok: false, message: "この区域の日当の区分が正しくありません" }
