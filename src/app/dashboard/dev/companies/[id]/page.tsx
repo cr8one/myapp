@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
 import AuditHistory from "@/components/audit-history"
+import AddressMap from "@/components/address-map"
 
 type TypeMaster = { id: string; name: string }
 type Contact = { id?: string; name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
@@ -273,6 +274,9 @@ export default function DevCompanyDetailPage() {
                 </div>
                 <div className="md:col-span-2"><dt className="text-gray-500">備考</dt><dd>{company.notes || "—"}</dd></div>
               </dl>
+              <div className="mt-4">
+                <AddressMap postalCode={company.postalCode} addresses={[company.address]} />
+              </div>
             </CardContent>
           </Card>
 
