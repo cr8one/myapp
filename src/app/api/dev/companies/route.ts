@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { logDevCreate } from "@/lib/dev-history"
 
 export async function GET() {
   const companies = await prisma.devCompany.findMany({
@@ -32,5 +34,7 @@ export async function POST(req: Request) {
       types: { include: { typeMaster: true } },
     },
   })
+  const session = await auth()
+  await logDevCreate({ userId: session?.user?.id, targetModel: "DevCompany", targetId: company.id, targetLabel: company.name })
   return NextResponse.json(company)
 }

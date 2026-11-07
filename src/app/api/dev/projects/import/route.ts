@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { DEV_PROJECT_LABELS, logDevCreate, logDevUpdate } from "@/lib/dev-history"
 
 export async function POST(req: NextRequest) {
   try {
     const { projects, companies, assignees, files } = await req.json()
+    const session = await auth()
 
     for (const row of projects) {
       if (!row.title) continue
-      await prisma.devProject.upsert({
+      const before = row.id ? await prisma.devProject.findUnique({ where: { id: row.id }, include: { primaryCompany: { select: { name: true } } } }) : null
+      const project = await prisma.devProject.upsert({
         where: { id: row.id ?? "" },
         update: {
           title: row.title,
@@ -31,6 +35,22 @@ export async function POST(req: NextRequest) {
           orderedAmount: row.orderedAmount ? parseInt(row.orderedAmount) : null,
         },
       })
+      if (before) {
+        const after = await prisma.devProject.findUnique({ where: { id: project.id }, include: { primaryCompany: { select: { name: true } } } })
+        if (after) {
+          await logDevUpdate({
+            userId: session?.user?.id, targetModel: "DevProject", targetId: project.id, targetLabel: project.title,
+            before: { ...before, primaryCompanyName: before.primaryCompany?.name ?? null },
+            after: { ...after, primaryCompanyName: after.primaryCompany?.name ?? null },
+            labels: DEV_PROJECT_LABELS, classification: "インポート（編集）",
+          })
+        }
+      } else {
+        await logDevCreate({
+          userId: session?.user?.id, targetModel: "DevProject", targetId: project.id, targetLabel: project.title,
+          classification: "インポート（新規）",
+        })
+      }
     }
 
     for (const row of companies) {

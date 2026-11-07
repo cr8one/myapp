@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { logDevImportSummary } from "@/lib/dev-history"
 
 export const maxDuration = 60 // 秒
 
 export async function POST(req: NextRequest) {
   try {
     const { rows } = await req.json()
+    const session = await auth()
     const validRows = rows.filter((r: Record<string, string>) => r.name?.trim())
 
     // 既存の名前一覧を取得
@@ -42,6 +45,7 @@ export async function POST(req: NextRequest) {
       )
     )
 
+    await logDevImportSummary({ userId: session?.user?.id, targetModel: "DevCompanyTypeMaster", targetLabel: "種別マスタ（インポート）", created: toCreate.length, updated: toUpdate.length })
     return NextResponse.json({ message: `${validRows.length}件をインポートしました` })
   } catch (e) {
     console.error(e)

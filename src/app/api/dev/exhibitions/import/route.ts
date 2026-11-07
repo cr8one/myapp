@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { DEV_EXHIBITION_LABELS, logDevCreate, logDevUpdate } from "@/lib/dev-history"
 
 export async function POST(req: NextRequest) {
   try {
     const { exhibitions, visitors, contacts } = await req.json()
+    const session = await auth()
 
     for (const row of exhibitions) {
       if (!row.name) continue
-      await prisma.devExhibition.upsert({
+      const before = row.id ? await prisma.devExhibition.findUnique({ where: { id: row.id } }) : null
+      const exhibition = await prisma.devExhibition.upsert({
         where: { id: row.id ?? "" },
         update: {
           name: row.name,
@@ -28,6 +32,17 @@ export async function POST(req: NextRequest) {
           notes: row.notes || null,
         },
       })
+      if (before) {
+        await logDevUpdate({
+          userId: session?.user?.id, targetModel: "DevExhibition", targetId: exhibition.id, targetLabel: exhibition.name,
+          before, after: exhibition, labels: DEV_EXHIBITION_LABELS, classification: "インポート（編集）",
+        })
+      } else {
+        await logDevCreate({
+          userId: session?.user?.id, targetModel: "DevExhibition", targetId: exhibition.id, targetLabel: exhibition.name,
+          classification: "インポート（新規）",
+        })
+      }
     }
 
     // visitorsのインポート

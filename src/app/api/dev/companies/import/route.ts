@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/auth"
+import { DEV_COMPANY_LABELS, logDevCreate, logDevUpdate } from "@/lib/dev-history"
 
 export async function POST(req: NextRequest) {
   try {
     const { companies, contacts, types } = await req.json()
+    const session = await auth()
 
     // 会社をupsert
     for (const row of companies) {
       if (!row.name) continue
-      await prisma.devCompany.upsert({
+      const before = row.id ? await prisma.devCompany.findUnique({ where: { id: row.id } }) : null
+      const company = await prisma.devCompany.upsert({
         where: { id: row.id ?? "" },
         update: {
           name: row.name,
@@ -33,6 +37,17 @@ export async function POST(req: NextRequest) {
           notes: row.notes || null,
         },
       })
+      if (before) {
+        await logDevUpdate({
+          userId: session?.user?.id, targetModel: "DevCompany", targetId: company.id, targetLabel: company.name,
+          before, after: company, labels: DEV_COMPANY_LABELS, classification: "インポート（編集）",
+        })
+      } else {
+        await logDevCreate({
+          userId: session?.user?.id, targetModel: "DevCompany", targetId: company.id, targetLabel: company.name,
+          classification: "インポート（新規）",
+        })
+      }
     }
 
     // 担当者をupsert（companyIdが必須）

@@ -32,6 +32,7 @@ const MODEL_LABELS: Record<string, string> = {
   DevCompany: "BPMS会社",
   DevProject: "BPMS案件",
   DevExhibition: "BPMS展示会",
+  DevCompanyTypeMaster: "BPMS種別",
   SealSupply: "SSSS支給管理",
   User: "ユーザー",
   Product: "製品",

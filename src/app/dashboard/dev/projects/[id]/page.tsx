@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ProjectFiles from "@/components/dev/project-files"
+import AuditHistory from "@/components/audit-history"
 import { SingleSelectModal, MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
 type DevCompany = { id: string; name: string }
@@ -47,6 +48,7 @@ export default function DevProjectDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [historyKey, setHistoryKey] = useState(0)
   const [title, setTitle] = useState("")
   const [status, setStatus] = useState("商談中")
   const [description, setDescription] = useState("")
@@ -105,6 +107,7 @@ export default function DevProjectDetailPage() {
     if (!res.ok) { setError("保存に失敗しました"); setLoading(false); return }
     setEditing(false)
     setLoading(false)
+    setHistoryKey((k) => k + 1)
     fetchProject()
   }
 
@@ -322,6 +325,14 @@ export default function DevProjectDetailPage() {
             </CardContent>
           </Card>
           <ProjectFiles projectId={id} mode={editing ? "edit" : "view"} />
+          {!editing && (
+            <Card>
+              <CardHeader><CardTitle>履歴</CardTitle></CardHeader>
+              <CardContent>
+                <AuditHistory targetModel="DevProject" targetId={id} reloadKey={historyKey} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

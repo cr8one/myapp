@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { SingleSelectModal } from "@/components/ui/searchable-select-modal"
+import AuditHistory from "@/components/audit-history"
 
 type User = { id: string; name?: string }
 type DevCompany = { id: string; name: string }
@@ -32,6 +33,7 @@ export default function DevExhibitionDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [historyKey, setHistoryKey] = useState(0)
   const [name, setName] = useState("")
   const [location, setLocation] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -109,6 +111,7 @@ export default function DevExhibitionDetailPage() {
     })
     if (!res.ok) { setError("保存に失敗しました"); setLoading(false); return }
     await fetchExhibition()
+    setHistoryKey((k) => k + 1)
     setEditing(false)
     setLoading(false)
   }
@@ -305,6 +308,13 @@ export default function DevExhibitionDetailPage() {
               ) : (
                 <p className="text-sm text-gray-500">接触先が登録されていません</p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>履歴</CardTitle></CardHeader>
+            <CardContent>
+              <AuditHistory targetModel="DevExhibition" targetId={id} reloadKey={historyKey} />
             </CardContent>
           </Card>
         </div>

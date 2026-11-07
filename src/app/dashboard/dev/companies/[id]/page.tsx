@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
+import AuditHistory from "@/components/audit-history"
 
 type TypeMaster = { id: string; name: string }
 type Contact = { id?: string; name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
@@ -40,6 +41,7 @@ export default function DevCompanyDetailPage() {
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [historyKey, setHistoryKey] = useState(0)
   const [name, setName] = useState("")
   const [nameKana, setNameKana] = useState("")
   const [industry, setIndustry] = useState("")
@@ -98,6 +100,7 @@ export default function DevCompanyDetailPage() {
     })
     if (!res.ok) { setError("保存に失敗しました"); setLoading(false); return }
     await fetchCompany()
+    setHistoryKey((k) => k + 1)
     setEditing(false)
     setLoading(false)
   }
@@ -326,6 +329,13 @@ export default function DevCompanyDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader><CardTitle>履歴</CardTitle></CardHeader>
+            <CardContent>
+              <AuditHistory targetModel="DevCompany" targetId={id} reloadKey={historyKey} />
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
