@@ -1,12 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Building2, Truck, ShoppingCart, FileText, Receipt } from "lucide-react"
+import { Building2, Truck, ShoppingCart, FileText, Receipt, Laptop } from "lucide-react"
 
 type Stats = {
   customerCount: number
   ringiCount: number
   accounting: { applied: number; completed: number; total: number; waiting: number }
+  pcTakeout: { applied: number; completed: number; total: number; waiting: number }
 }
 
 function EAppIcon({ size, sending }: { size: number; sending: boolean }) {
@@ -39,6 +40,16 @@ const cards = [
     text: "text-emerald-600",
     border: "border-emerald-100",
     hover: "hover:border-emerald-300",
+  },
+  {
+    label: "PC持ち出し申請",
+    key: "pcTakeout" as keyof Stats,
+    href: "/dashboard/eapp/pc-takeout",
+    icon: Laptop,
+    bg: "bg-orange-50",
+    text: "text-orange-600",
+    border: "border-orange-100",
+    hover: "hover:border-orange-300",
   },
   {
     label: "稟議書",
@@ -154,19 +165,19 @@ export default function EAppDashboardClient({ stats }: { stats: Stats }) {
                 </span>
               </div>
               <p className="text-sm text-gray-500">{card.label}</p>
-              {card.key === "accounting" ? (
+              {card.key === "accounting" || card.key === "pcTakeout" ? (
                 <>
                   <p className="mt-1 text-3xl font-bold text-gray-900">
-                    {stats.accounting.completed.toLocaleString()}
+                    {(card.key === "pcTakeout" ? stats.pcTakeout : stats.accounting).completed.toLocaleString()}
                     <span className="mx-1 text-xl font-normal text-gray-400">/</span>
-                    {stats.accounting.applied.toLocaleString()}
+                    {(card.key === "pcTakeout" ? stats.pcTakeout : stats.accounting).applied.toLocaleString()}
                     <span className="ml-1 text-base font-normal text-gray-400">件</span>
                   </p>
                   <p className="mt-1 text-xs text-gray-400">あなたの申請：承認済み / 申請</p>
                   <div className="mt-3 flex items-center gap-3 text-xs">
-                    <span className="text-gray-500">全体 {stats.accounting.total.toLocaleString()}件</span>
-                    {stats.accounting.waiting > 0 && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">承認待ち {stats.accounting.waiting}件</span>
+                    <span className="text-gray-500">全体 {(card.key === "pcTakeout" ? stats.pcTakeout : stats.accounting).total.toLocaleString()}件</span>
+                    {(card.key === "pcTakeout" ? stats.pcTakeout : stats.accounting).waiting > 0 && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-700">承認待ち {(card.key === "pcTakeout" ? stats.pcTakeout : stats.accounting).waiting}件</span>
                     )}
                   </div>
                 </>

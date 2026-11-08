@@ -846,6 +846,7 @@ model Device {
   parentDeviceId Int?      @map("parent_device_id")
   parent         Device?   @relation("DeviceChildren", fields: [parentDeviceId], references: [deviceId])
   children       Device[]  @relation("DeviceChildren")
+  takeout_users  UserTakeoutDevice[]
   remarks    DeviceRemark[]
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
@@ -2146,4 +2147,76 @@ model EappTripArea {
   updated_at DateTime @updatedAt
   allowance_class String?
   @@map("t_eapp_trip_areas")
+}
+
+// ===== PC持ち出し申請（電子申請）=====
+model PcTakeoutRequest {
+  id              String    @id @default(cuid())
+  request_no      Int       @unique @default(autoincrement())
+  status          String    @default("下書き")
+  request_date    DateTime  @db.Date
+  requester_id    String
+  requester_name  String
+  department_name String?
+  reason          String    @default("") @db.Text
+  period_start    DateTime? @db.Date
+  period_end      DateTime? @db.Date
+  device_id       Int?
+  device_name     String?
+  model_label     String?
+  accessories     Json?
+  software        Json?
+  submitted_at    DateTime?
+  completed_at    DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  approval_steps  PcTakeoutApprovalStep[]
+  histories       PcTakeoutHistory[]
+  @@index([requester_id])
+  @@index([status])
+  @@index([request_date])
+  @@map("t_pc_takeout_requests")
+}
+
+model PcTakeoutApprovalStep {
+  id             String           @id @default(cuid())
+  request_id     String
+  request        PcTakeoutRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  step_order     Int
+  role           String
+  position_name  String?
+  approver_id    String?
+  approver_name  String?
+  approver_email String?
+  status         String           @default("未承認")
+  approved_at    DateTime?
+  created_at     DateTime         @default(now())
+  @@index([request_id])
+  @@index([approver_id])
+  @@map("t_pc_takeout_approval_steps")
+}
+
+model PcTakeoutHistory {
+  id         String           @id @default(cuid())
+  request_id String
+  request    PcTakeoutRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  action     String
+  actor_id   String
+  actor_name String
+  comment    String?          @db.Text
+  created_at DateTime         @default(now())
+  @@index([request_id])
+  @@map("t_pc_takeout_histories")
+}
+
+model UserTakeoutDevice {
+  id         String   @id @default(cuid())
+  user_id    String
+  device_id  Int
+  device     Device   @relation(fields: [device_id], references: [deviceId], onDelete: Cascade)
+  is_main    Boolean  @default(false)
+  created_at DateTime @default(now())
+  @@unique([user_id, device_id])
+  @@index([user_id])
+  @@map("t_user_takeout_devices")
 }

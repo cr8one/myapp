@@ -125,6 +125,13 @@ export default function UsersPage() {
   const [password, setPassword] = useState("")
   const [positionId, setPositionId] = useState("")
   const [mainBaseId, setMainBaseId] = useState("")
+  type TakeoutDeviceOption = { device_id: number; device_name: string; model_label: string }
+  const [deviceOptions, setDeviceOptions] = useState<TakeoutDeviceOption[]>([])
+  const [takeoutDevices, setTakeoutDevices] = useState<TakeoutDeviceOption[]>([])
+  const [takeoutMainId, setTakeoutMainId] = useState<number | null>(null)
+  const [takeoutAddId, setTakeoutAddId] = useState("")
+  const [takeoutSaving, setTakeoutSaving] = useState(false)
+  const [takeoutMessage, setTakeoutMessage] = useState("")
   const [positions, setPositions] = useState<{ id: string; name: string; sort_order: number }[]>([])
   const [bases, setBases] = useState<{ id: string; name: string }[]>([])
   const [employeeNo, setEmployeeNo] = useState("")
@@ -146,7 +153,7 @@ export default function UsersPage() {
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
   }
-  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher" | "accounting">("tokui_credit")
+  const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher" | "accounting" | "pc_takeout">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
   const [showApproverForm, setShowApproverForm] = useState(false)
   const [editApprover, setEditApprover] = useState<ApproverSetting | null>(null)
@@ -225,9 +232,39 @@ export default function UsersPage() {
       setInkanPreviewUrl(data.url)
     }
   }
+  const fetchTakeoutDevices = async (userId: string) => {
+    setTakeoutMessage("")
+    setTakeoutAddId("")
+    if (deviceOptions.length === 0) {
+      const r = await fetch("/api/devices/options")
+      if (r.ok) setDeviceOptions(await r.json())
+    }
+    const res = await fetch(`/api/users/${userId}/takeout-devices`)
+    if (!res.ok) { setTakeoutDevices([]); setTakeoutMainId(null); return }
+    const rows: (TakeoutDeviceOption & { is_main: boolean })[] = await res.json()
+    setTakeoutDevices(rows.map(r => ({ device_id: r.device_id, device_name: r.device_name, model_label: r.model_label })))
+    setTakeoutMainId(rows.find(r => r.is_main)?.device_id ?? null)
+  }
+  const saveTakeoutDevices = async (userId: string) => {
+    setTakeoutSaving(true)
+    setTakeoutMessage("")
+    const res = await fetch(`/api/users/${userId}/takeout-devices`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_ids: takeoutDevices.map(d => d.device_id), main_device_id: takeoutMainId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setTakeoutSaving(false)
+    if (!res.ok) { setTakeoutMessage(data.error || "保存に失敗しました"); return }
+    const rows: (TakeoutDeviceOption & { is_main: boolean })[] = data
+    setTakeoutDevices(rows.map(r => ({ device_id: r.device_id, device_name: r.device_name, model_label: r.model_label })))
+    setTakeoutMainId(rows.find(r => r.is_main)?.device_id ?? null)
+    setTakeoutMessage("保存しました")
+  }
   const handleEdit = (user: User) => {
     setEditUser(user)
     fetchApproverSettings(user.id)
+    fetchTakeoutDevices(user.id)
     setLastName(user.lastName ?? ""); setFirstName(user.firstName ?? "")
     setFuriganaLastName(user.furiganaLastName ?? ""); setFuriganaFirstName(user.furiganaFirstName ?? "")
     setEmail(user.email)
@@ -595,6 +632,10 @@ const handleInkanDelete = async () => {
                       onClick={() => { setApproverServiceType("accounting"); fetchApproverSettings(editUser.id, "accounting") }}
                       className={`text-xs px-2 py-1 rounded ${approverServiceType === "accounting" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
                     >経理精算</button>
+                    <button
+                      onClick={() => { setApproverServiceType("pc_takeout"); fetchApproverSettings(editUser.id, "pc_takeout") }}
+                      className={`text-xs px-2 py-1 rounded ${approverServiceType === "pc_takeout" ? "bg-slate-700 text-white" : "bg-gray-100 text-gray-500"}`}
+                    >PC持ち出し</button>
                   </div>
                   <button
                     onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
@@ -657,6 +698,65 @@ const handleInkanDelete = async () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+            {editUser && (
+              <div className="space-y-2">
+                <Label>持ち出し用端末（PC持ち出し申請で、メイン機が自動で入ります）</Label>
+                <div className="flex gap-2">
+                  <select className="flex-1 border rounded-md px-3 py-2 text-sm bg-white" value={takeoutAddId} onChange={e => setTakeoutAddId(e.target.value)}>
+                    <option value="">-- 端末を選んでください --</option>
+                    {deviceOptions.filter(o => !takeoutDevices.some(d => d.device_id === o.device_id)).map(o => (
+                      <option key={o.device_id} value={o.device_id}>{o.device_name}{o.model_label ? `（${o.model_label}）` : ""}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!takeoutAddId}
+                    onClick={() => {
+                      const opt = deviceOptions.find(o => String(o.device_id) === takeoutAddId)
+                      if (!opt) return
+                      const next = [...takeoutDevices, opt]
+                      setTakeoutDevices(next)
+                      if (next.length === 1) setTakeoutMainId(opt.device_id)
+                      setTakeoutAddId("")
+                    }}
+                    className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50"
+                  >追加</button>
+                </div>
+                {takeoutDevices.length === 0 ? (
+                  <p className="text-xs text-gray-400">持ち出し用端末が、まだ登録されていません</p>
+                ) : (
+                  <div className="space-y-1">
+                    {takeoutDevices.map(d => (
+                      <div key={d.device_id} className="flex items-center gap-2 text-sm border-b py-1">
+                        <label className="flex items-center gap-1 text-xs text-gray-500 w-20 cursor-pointer">
+                          <input type="radio" name="takeoutMain" checked={takeoutMainId === d.device_id} onChange={() => setTakeoutMainId(d.device_id)} />
+                          メイン機
+                        </label>
+                        <span className="flex-1">{d.device_name}{d.model_label ? `（${d.model_label}）` : ""}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = takeoutDevices.filter(x => x.device_id !== d.device_id)
+                            setTakeoutDevices(next)
+                            if (takeoutMainId === d.device_id) setTakeoutMainId(next.length === 1 ? next[0].device_id : null)
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700"
+                        >削除</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={takeoutSaving}
+                    onClick={() => saveTakeoutDevices(editUser.id)}
+                    className="text-xs px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50"
+                  >{takeoutSaving ? "保存中..." : "持ち出し用端末を保存"}</button>
+                  {takeoutMessage && <span className="text-xs text-gray-500">{takeoutMessage}</span>}
+                </div>
               </div>
             )}
             {role === "USER" && (

@@ -73,6 +73,7 @@ export const baseMenuItems = [
   ]},
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
     { label: "経理精算", href: "/dashboard/eapp/accounting" },
+    { label: "PC持ち出し申請", href: "/dashboard/eapp/pc-takeout" },
     { label: "稟議書", href: "/dashboard/eapp/ringi" },
     { label: "得意先登録", href: "/dashboard/eapp/customers" },
     // { label: "納品先登録", href: "/dashboard/eapp/deliveries" },

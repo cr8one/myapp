@@ -2,6 +2,8 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getAccountingViewer, DRAFT_STATUS } from "@/lib/accounting-slip-access"
 import { STATUS_COMPLETED, STATUS_REJECTED, findWaitingSlipIds } from "@/lib/accounting-slip-approval"
+import { findWaitingPcIds } from "@/lib/pc-takeout-approval"
+import { PC_STATUS_DRAFT, PC_STATUS_COMPLETED, PC_STATUS_REJECTED } from "@/lib/pc-takeout"
 import EAppDashboardClient from "./EAppDashboardClient"
 
 export default async function EAppDashboardPage() {
@@ -24,12 +26,27 @@ export default async function EAppDashboardPage() {
     console.error("経理精算の件数の取得エラー:", e)
   }
 
+  // PC持ち出し申請の件数。経理精算と同じ数え方。失敗したときは0件で表示する
+  let pcTakeout = { applied: 0, completed: 0, total: 0, waiting: 0 }
+  try {
+    const [applied, completed, total, waiting] = await Promise.all([
+      prisma.pcTakeoutRequest.count({ where: { requester_id: viewer.userId, status: { notIn: [PC_STATUS_DRAFT, PC_STATUS_REJECTED] } } }),
+      prisma.pcTakeoutRequest.count({ where: { requester_id: viewer.userId, status: PC_STATUS_COMPLETED } }),
+      prisma.pcTakeoutRequest.count({ where: { status: { not: PC_STATUS_DRAFT } } }),
+      findWaitingPcIds(viewer.userId).then(ids => ids.length),
+    ])
+    pcTakeout = { applied, completed, total, waiting }
+  } catch (e) {
+    console.error("PC持ち出し申請の件数の取得エラー:", e)
+  }
+
   return (
     <EAppDashboardClient
       stats={{
         customerCount: 0,
         ringiCount: 0,
         accounting,
+        pcTakeout,
       }}
     />
   )
