@@ -62,7 +62,7 @@ export async function buildPcApprovalSteps(
     ismsSteps.push({
       step_order: base + Math.max(1, r.step_order),
       role: PC_ROLE_ISMS,
-      position_name: r.position?.name ?? null,
+      position_name: r.category?.trim() || r.position?.name || null,
       approver_id: r.approver.id,
       approver_name: r.approver.name,
       approver_email: r.approver.email,

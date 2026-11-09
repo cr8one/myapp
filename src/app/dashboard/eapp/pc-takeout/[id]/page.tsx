@@ -225,7 +225,7 @@ export default function PcTakeoutDetailPage() {
       <div className={cardClass}>
         <p className={headClass}>承認</p>
         <div className="flex justify-between items-end">
-          <StampBox title={PC_ROLE_ISMS} name={ismsStep?.approver_name ?? null} url={ismsStep?.inkan_image_url ?? null} done={ismsStep?.status === "承認済み"} />
+          <StampBox title={ismsStep?.position_name || PC_ROLE_ISMS} name={ismsStep?.approver_name ?? null} url={ismsStep?.inkan_image_url ?? null} done={ismsStep?.status === "承認済み"} />
           <div className="flex gap-0">
             {confirmerStep && (
               <StampBox title="確認者" name={confirmerStep.approver_name} url={confirmerStep.inkan_image_url} done={confirmerStep.status === "承認済み"} />
@@ -239,7 +239,7 @@ export default function PcTakeoutDetailPage() {
             {req.approval_steps.map(s => (
               <div key={s.id} className="flex items-center gap-3 text-sm border-b border-gray-100 py-1.5">
                 <span className="text-xs text-gray-400 w-6">{s.step_order}</span>
-                <span className="w-24 text-gray-500">{s.role}</span>
+                <span className="w-24 text-gray-500">{s.position_name || s.role}</span>
                 <span className="flex-1">{s.approver_name ?? "—"}</span>
                 <span className={`text-xs px-2 py-0.5 rounded ${s.status === "承認済み" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>{s.status}</span>
                 {s.id === req.approvable_step_id && (

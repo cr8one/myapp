@@ -5,6 +5,13 @@ import { prisma } from "@/lib/prisma"
 
 // ユーザーごとの持ち出し用端末（PC持ち出し申請で、メイン機が自動で入る）。読み出しはログイン済みなら誰でも、書き込みはシステム管理者だけ
 
+// 例外の内容を、画面に返す（このAPIは、書き込みがシステム管理者だけ。エラーの種類と、メッセージの最後の1行だけを返す）
+function errorResponse(label: string, e: any) {
+  console.error(label, e)
+  const last = String(e?.message ?? "").split("\n").map((s: string) => s.trim()).filter(Boolean).slice(-1)[0] ?? ""
+  return NextResponse.json({ error: `${label}（${e?.code ?? e?.name ?? "不明"}）${last.slice(0, 200)}` }, { status: 500 })
+}
+
 async function listFor(userId: string) {
   const rows = await prisma.userTakeoutDevice.findMany({
     where: { user_id: userId },
@@ -28,7 +35,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
-  return NextResponse.json(await listFor(id))
+  try {
+    return NextResponse.json(await listFor(id))
+  } catch (e: any) {
+    return errorResponse("持ち出し用端末の読み込みに失敗しました", e)
+  }
 }
 
 // 置き換え：device_ids（端末の番号の一覧）と main_device_id（メイン機）を受け取る。
@@ -56,13 +67,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (found !== deviceIds.length) return NextResponse.json({ error: "存在しない端末が含まれています" }, { status: 400 })
   }
 
-  await prisma.$transaction([
-    prisma.userTakeoutDevice.deleteMany({ where: { user_id: id } }),
-    ...(deviceIds.length > 0
-      ? [prisma.userTakeoutDevice.createMany({
-          data: deviceIds.map(d => ({ user_id: id, device_id: d, is_main: d === mainId })),
-        })]
-      : []),
-  ])
-  return NextResponse.json(await listFor(id))
+  try {
+    await prisma.$transaction([
+      prisma.userTakeoutDevice.deleteMany({ where: { user_id: id } }),
+      ...(deviceIds.length > 0
+        ? [prisma.userTakeoutDevice.createMany({
+            data: deviceIds.map(d => ({ user_id: id, device_id: d, is_main: d === mainId })),
+          })]
+        : []),
+    ])
+    return NextResponse.json(await listFor(id))
+  } catch (e: any) {
+    return errorResponse("保存に失敗しました", e)
+  }
 }

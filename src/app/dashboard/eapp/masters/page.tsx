@@ -92,7 +92,7 @@ export default function EappMastersPage() {
 
   const saveRoute = async () => {
     const serviceType = serviceTypeOf(activeTab, accountingType)
-    const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, category: categoryValue || null, position_id: positionId || null, approver_user_id: approverUserId || null })
+    const body = JSON.stringify({ service_type: serviceType, step_order: stepOrder, category: categoryValue.trim() || null, position_id: activeTab === "pctakeout-approval-routes" ? null : (positionId || null), approver_user_id: approverUserId || null })
     if (editRoute) {
       await fetch(`/api/eapp/masters/approval-routes/${editRoute.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     } else {
@@ -241,10 +241,14 @@ export default function EappMastersPage() {
                     <option value="社長">社長</option>
                   </select>
                 )}
-                <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={positionId} onChange={e => setPositionId(e.target.value)}>
-                  <option value="">-- 役職を選択 --</option>
-                  {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                {activeTab === "pctakeout-approval-routes" ? (
+                  <input autoComplete="off" type="text" maxLength={30} className="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="役職名（例：ISMS責任者）" value={categoryValue} onChange={e => setCategoryValue(e.target.value)} />
+                ) : (
+                  <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={positionId} onChange={e => setPositionId(e.target.value)}>
+                    <option value="">-- 役職を選択 --</option>
+                    {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
                 <select className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 text-sm" value={approverUserId} onChange={e => setApproverUserId(e.target.value)}>
                   <option value="">-- 承認者(氏名)を選択 --</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -266,7 +270,7 @@ export default function EappMastersPage() {
                   {activeTab === "ringi-approval-routes" && (
                     <span className="text-xs text-gray-400 w-16">{route.category ?? "-"}</span>
                   )}
-                  <span className="text-sm text-gray-500 w-24">{route.position?.name ?? "-"}</span>
+                  <span className="text-sm text-gray-500 w-24">{activeTab === "pctakeout-approval-routes" ? (route.category ?? "-") : (route.position?.name ?? "-")}</span>
                   <span className="flex-1 text-sm font-medium text-gray-900">{route.approver?.name ?? "-"}</span>
                   <button onClick={() => startEditRoute(route)} className="p-1 text-gray-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
                   <button onClick={() => removeRoute(route.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>

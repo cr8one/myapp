@@ -240,7 +240,12 @@ export default function UsersPage() {
       if (r.ok) setDeviceOptions(await r.json())
     }
     const res = await fetch(`/api/users/${userId}/takeout-devices`)
-    if (!res.ok) { setTakeoutDevices([]); setTakeoutMainId(null); return }
+    if (!res.ok) {
+      setTakeoutDevices([]); setTakeoutMainId(null)
+      const d = await res.json().catch(() => ({}))
+      setTakeoutMessage(d.error || "持ち出し用端末の読み込みに失敗しました")
+      return
+    }
     const rows: (TakeoutDeviceOption & { is_main: boolean })[] = await res.json()
     setTakeoutDevices(rows.map(r => ({ device_id: r.device_id, device_name: r.device_name, model_label: r.model_label })))
     setTakeoutMainId(rows.find(r => r.is_main)?.device_id ?? null)
