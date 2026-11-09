@@ -68,14 +68,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   try {
-    await prisma.$transaction([
-      prisma.userTakeoutDevice.deleteMany({ where: { user_id: id } }),
-      ...(deviceIds.length > 0
-        ? [prisma.userTakeoutDevice.createMany({
-            data: deviceIds.map(d => ({ user_id: id, device_id: d, is_main: d === mainId })),
-          })]
-        : []),
-    ])
+    // 複数の書き込みは、コールバック形式のトランザクションで行う（配列形式は、このプロジェクトのPrismaクライアントでは使えない）
+    await prisma.$transaction(async (tx) => {
+      await tx.userTakeoutDevice.deleteMany({ where: { user_id: id } })
+      if (deviceIds.length > 0) {
+        await tx.userTakeoutDevice.createMany({
+          data: deviceIds.map(d => ({ user_id: id, device_id: d, is_main: d === mainId })),
+        })
+      }
+    })
     return NextResponse.json(await listFor(id))
   } catch (e: any) {
     return errorResponse("保存に失敗しました", e)
