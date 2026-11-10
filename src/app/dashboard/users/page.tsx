@@ -253,10 +253,18 @@ export default function UsersPage() {
   const saveTakeoutDevices = async (userId: string) => {
     setTakeoutSaving(true)
     setTakeoutMessage("")
+    // 選んだだけで「追加」を押していない端末も、一覧に加えて保存する
+    let devices = takeoutDevices
+    let mainId = takeoutMainId
+    const pending = deviceOptions.find(o => String(o.device_id) === takeoutAddId)
+    if (pending && !devices.some(d => d.device_id === pending.device_id)) {
+      devices = [...devices, pending]
+      if (devices.length === 1) mainId = pending.device_id
+    }
     const res = await fetch(`/api/users/${userId}/takeout-devices`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_ids: takeoutDevices.map(d => d.device_id), main_device_id: takeoutMainId }),
+      body: JSON.stringify({ device_ids: devices.map(d => d.device_id), main_device_id: mainId }),
     })
     const data = await res.json().catch(() => ({}))
     setTakeoutSaving(false)
@@ -264,6 +272,7 @@ export default function UsersPage() {
     const rows: (TakeoutDeviceOption & { is_main: boolean })[] = data
     setTakeoutDevices(rows.map(r => ({ device_id: r.device_id, device_name: r.device_name, model_label: r.model_label })))
     setTakeoutMainId(rows.find(r => r.is_main)?.device_id ?? null)
+    setTakeoutAddId("")
     setTakeoutMessage("保存しました")
   }
   const handleEdit = (user: User) => {
