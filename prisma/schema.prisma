@@ -2303,6 +2303,7 @@ model EstStandardValue {
   item_id     String
   item        EstSheetItem @relation(fields: [item_id], references: [id], onDelete: Cascade)
   value       Decimal?     @db.Decimal(14, 4)
+  is_lump     Boolean      @default(false)
   updated_at  DateTime     @updatedAt
   @@unique([standard_id, item_id])
   @@map("m_est_standard_values")
@@ -2331,6 +2332,7 @@ model EstStandardCell {
   item_id String
   item    EstSheetItem    @relation(fields: [item_id], references: [id], onDelete: Cascade)
   value   Decimal?        @db.Decimal(14, 4)
+  is_lump Boolean         @default(false)
   @@unique([tier_id, item_id])
   @@map("m_est_standard_cells")
 }

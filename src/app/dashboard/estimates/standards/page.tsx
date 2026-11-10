@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Plus, Pencil, Trash2, Copy, Archive, RotateCcw } from "lucide-react"
+import Link from "next/link"
 
 type Standard = {
   id: string
@@ -83,9 +84,14 @@ export default function EstimateStandardsPage() {
         <p className="text-xs text-gray-400">
           見積書の単価の基準です。親の基準を指定すると、表ごとに親の値を引き継げます。見積に使われている基準は、削除できません（アーカイブしてください）。
         </p>
-        <button onClick={openNew} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 shrink-0">
-          <Plus className="w-4 h-4" /> 追加
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/dashboard/estimates/standards/import" className="px-3 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
+            FileMakerから取り込み
+          </Link>
+          <button onClick={openNew} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800">
+            <Plus className="w-4 h-4" /> 追加
+          </button>
+        </div>
       </div>
 
       <label className="flex items-center gap-2 mb-4 text-sm text-gray-600">
