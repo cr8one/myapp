@@ -2220,3 +2220,180 @@ model UserTakeoutDevice {
   @@index([user_id])
   @@map("t_user_takeout_devices")
 }
+
+
+// ============================================================
+// 見積書（基準マスタ＋見積）
+// ============================================================
+
+// 基準（見積書マスタ）。parent_id で親の基準を指定できる
+model EstStandard {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  parent_id   String?
+  parent      EstStandard?  @relation("EstStandardParent", fields: [parent_id], references: [id], onDelete: Restrict)
+  children    EstStandard[] @relation("EstStandardParent")
+  remarks     String?
+  is_archived Boolean       @default(false)
+  sort_order  Int           @default(0)
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  sheets      EstStandardSheet[]
+  values      EstStandardValue[]
+  tiers       EstStandardTier[]
+  estimates   Estimate[]
+  @@map("m_est_standards")
+}
+
+// 表の定義（全基準で共通）。kind は values（単独の値）／list（名前と単価の一覧）／matrix（ロット別の単価表）
+model EstSheetDef {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  kind       String
+  sort_order Int      @default(0)
+  remarks    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  items            EstSheetItem[]
+  standard_sheets  EstStandardSheet[]
+  tiers            EstStandardTier[]
+  @@map("m_est_sheet_defs")
+}
+
+// 表の項目（全基準で共通）。values・list では行、matrix では列にあたる
+model EstSheetItem {
+  id           String      @id @default(cuid())
+  sheet_def_id String
+  sheet_def    EstSheetDef @relation(fields: [sheet_def_id], references: [id], onDelete: Cascade)
+  name         String
+  unit         String?
+  sort_order   Int         @default(0)
+  is_active    Boolean     @default(true)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  values       EstStandardValue[]
+  cells        EstStandardCell[]
+  @@unique([sheet_def_id, name])
+  @@index([sheet_def_id, sort_order])
+  @@map("m_est_sheet_items")
+}
+
+// 基準ごと・表ごとの引き継ぎ設定。mode は own（自分の値）／inherit（親の値を使う）
+model EstStandardSheet {
+  id           String      @id @default(cuid())
+  standard_id  String
+  standard     EstStandard @relation(fields: [standard_id], references: [id], onDelete: Cascade)
+  sheet_def_id String
+  sheet_def    EstSheetDef @relation(fields: [sheet_def_id], references: [id], onDelete: Cascade)
+  mode         String      @default("own")
+  updated_at   DateTime    @updatedAt
+  @@unique([standard_id, sheet_def_id])
+  @@map("m_est_standard_sheets")
+}
+
+// 単独の値と一覧の値（null は未設定）
+model EstStandardValue {
+  id          String       @id @default(cuid())
+  standard_id String
+  standard    EstStandard  @relation(fields: [standard_id], references: [id], onDelete: Cascade)
+  item_id     String
+  item        EstSheetItem @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  value       Decimal?     @db.Decimal(14, 4)
+  updated_at  DateTime     @updatedAt
+  @@unique([standard_id, item_id])
+  @@map("m_est_standard_values")
+}
+
+// ロット別の単価表の行（lot_to が null なら上限なし）
+model EstStandardTier {
+  id           String      @id @default(cuid())
+  standard_id  String
+  standard     EstStandard @relation(fields: [standard_id], references: [id], onDelete: Cascade)
+  sheet_def_id String
+  sheet_def    EstSheetDef @relation(fields: [sheet_def_id], references: [id], onDelete: Cascade)
+  lot_from     Int
+  lot_to       Int?
+  sort_order   Int         @default(0)
+  cells        EstStandardCell[]
+  @@unique([standard_id, sheet_def_id, lot_from])
+  @@map("m_est_standard_tiers")
+}
+
+// ロット別の単価表のセル（行 × 列）
+model EstStandardCell {
+  id      String          @id @default(cuid())
+  tier_id String
+  tier    EstStandardTier @relation(fields: [tier_id], references: [id], onDelete: Cascade)
+  item_id String
+  item    EstSheetItem    @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  value   Decimal?        @db.Decimal(14, 4)
+  @@unique([tier_id, item_id])
+  @@map("m_est_standard_cells")
+}
+
+// 見積書（ヘッダーと計算結果）
+model Estimate {
+  id                    String      @id @default(cuid())
+  estimate_no           String      @unique
+  customer_name         String
+  department            String?
+  title                 String?
+  product_code          String?
+  content               String?
+  issue_date            DateTime    @db.Date
+  new_old_kind          String      @default("新")
+  standard_id           String
+  standard              EstStandard @relation(fields: [standard_id], references: [id], onDelete: Restrict)
+  main_qty              Int
+  sample_qty            Int         @default(0)
+  related_product_codes String[]
+  memo                  String?     @db.Text
+  delivery_to           String?
+  packing               String?
+  remarks               String?     @db.Text
+  options               Json?
+  sales_rate_override   Decimal?    @db.Decimal(6, 4)
+  subtotal              Int         @default(0)
+  sales_cost            Int         @default(0)
+  total                 Int         @default(0)
+  unit_price            Decimal     @default(0) @db.Decimal(12, 2)
+  amount                Int         @default(0)
+  is_confirmed          Boolean     @default(false)
+  confirmed_at          DateTime?
+  drafter_id            String?
+  drafter_name          String?
+  checker_id            String?
+  checker_name          String?
+  deleted_flg           Boolean     @default(false)
+  deleted_at            DateTime?
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+  lines                 EstimateLine[]
+  @@index([customer_name])
+  @@index([product_code])
+  @@index([issue_date])
+  @@map("t_estimates")
+}
+
+// 見積書の明細行。section は paper（用紙）／plate_making（製版）／plate（刷版）／print（印刷）／processing（加工）／tray（トレイ）／expense（諸経費）／submission（入稿形態）
+model EstimateLine {
+  id           String   @id @default(cuid())
+  estimate_id  String
+  estimate     Estimate @relation(fields: [estimate_id], references: [id], onDelete: Cascade)
+  section      String
+  sort_order   Int      @default(0)
+  label        String?
+  unit         String?
+  qty_calc     Decimal? @db.Decimal(14, 4)
+  qty_manual   Decimal? @db.Decimal(14, 4)
+  price_calc   Decimal? @db.Decimal(14, 4)
+  price_manual Decimal? @db.Decimal(14, 4)
+  amount       Int      @default(0)
+  params       Json?
+  source_note  String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  @@index([estimate_id, section, sort_order])
+  @@map("t_estimate_lines")
+}

@@ -69,7 +69,7 @@ export const baseMenuItems = [
     { label: "パーツ一覧", href: "/dashboard/parts" },
   ]},
   { label: "見積書", icon: "estimate", children: [
-    { label: "見積一覧", href: "/dashboard/estimates" },
+    { label: "見積書マスタ", href: "/dashboard/estimates/standards" },
   ]},
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
     { label: "経理精算", href: "/dashboard/eapp/accounting" },

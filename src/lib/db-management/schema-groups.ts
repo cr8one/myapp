@@ -220,6 +220,21 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
     ],
   },
   {
+    key: "estimate",
+    label: "見積書",
+    tables: [
+      { tableName: "m_est_standards", label: "見積基準" },
+      { tableName: "m_est_sheet_defs", label: "見積基準の表定義" },
+      { tableName: "m_est_sheet_items", label: "見積基準の表項目" },
+      { tableName: "m_est_standard_sheets", label: "見積基準の引き継ぎ設定" },
+      { tableName: "m_est_standard_values", label: "見積基準の値" },
+      { tableName: "m_est_standard_tiers", label: "見積基準のロット範囲" },
+      { tableName: "m_est_standard_cells", label: "見積基準の単価" },
+      { tableName: "t_estimates", label: "見積書" },
+      { tableName: "t_estimate_lines", label: "見積書明細" },
+    ],
+  },
+  {
     key: "system",
     label: "システム",
     tables: [
