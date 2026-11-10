@@ -21,3 +21,17 @@ export async function listTakeoutDevices(userId: string): Promise<TakeoutDevice[
     is_main: r.is_main,
   }))
 }
+
+// 持ち出し用端末として登録されている端末かを確かめ、申請に残す端末名とメーカー・型番を、台帳から取る。
+// 画面から送られてきた端末名や型番は、信用しない
+export async function resolveTakeoutDevice(
+  userId: string,
+  deviceId: number
+): Promise<{ error: string } | { device_id: number; device_name: string; model_label: string }> {
+  const list = await listTakeoutDevices(userId)
+  const d = list.find(x => x.device_id === deviceId)
+  if (!d) {
+    return { error: "この端末は、あなたの持ち出し用端末として登録されていません。システム管理者に、ユーザーマスタでの登録を依頼してください。" }
+  }
+  return { device_id: d.device_id, device_name: d.device_name, model_label: d.model_label }
+}

@@ -2170,6 +2170,9 @@ model PcTakeoutRequest {
   completed_at    DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
+  destination     String?
+  pledge_version  Int?
+  pledged_at      DateTime?
   approval_steps  PcTakeoutApprovalStep[]
   histories       PcTakeoutHistory[]
   @@index([requester_id])

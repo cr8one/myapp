@@ -19,6 +19,7 @@ type Detail = {
   id: string; request_no: number; status: string; request_date: string
   requester_name: string; department_name: string | null; reason: string
   period_start: string | null; period_end: string | null
+  destination: string | null; pledge_version: number | null; pledged_at: string | null
   device_name: string | null; model_label: string | null
   accessories: unknown; software: unknown
   requester_inkan_url: string | null
@@ -211,6 +212,7 @@ export default function PcTakeoutDetailPage() {
         <p className={headClass}>持出期間</p>
         <p className="text-sm">{fmtDate(req.period_start)} ～ {fmtDate(req.period_end)}{days !== null && <span className="ml-2 text-gray-500">（{days}日間）</span>}</p>
         {overDays && <p className="mt-2 text-xs px-3 py-2 rounded bg-amber-50 text-amber-700">原則最長1週間を超える持出期間です。</p>}
+        <p className="mt-3 text-sm"><span className="text-gray-500">持出先：</span>{req.destination || "—"}</p>
       </div>
 
       <div className={cardClass}>
@@ -219,6 +221,10 @@ export default function PcTakeoutDetailPage() {
           <div><dt className="text-gray-500">メーカー・型番</dt><dd>{req.model_label || "—"}</dd></div>
           <div><dt className="text-gray-500">付属品</dt><dd>{accessories.length > 0 ? accessories.join("、") : "なし"}</dd></div>
           <div><dt className="text-gray-500">必要ソフト</dt><dd>{software.length > 0 ? software.join("、") : "なし"}</dd></div>
+          <div className="sm:col-span-2">
+            <dt className="text-gray-500">厳守事項への同意</dt>
+            <dd>{req.pledge_version != null && req.pledged_at ? `同意済み（厳守事項 版${req.pledge_version}・${fmtDateTime(req.pledged_at)}）` : "—"}</dd>
+          </div>
         </dl>
       </div>
 

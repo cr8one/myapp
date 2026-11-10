@@ -4,6 +4,7 @@ import { getPcViewer, pcVisibilityWhere } from "@/lib/pc-takeout-access"
 import { getRequesterInfo } from "@/lib/accounting-slip-requester"
 import { buildPcApprovalSteps } from "@/lib/pc-takeout-approval"
 import { parsePcTakeout } from "@/lib/pc-takeout-input"
+import { resolveTakeoutDevice } from "@/lib/pc-takeout-devices"
 import { sendPcApprovalRequestMail } from "@/lib/pc-takeout-mail"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
@@ -36,6 +37,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       requester_name: true,
       department_name: true,
       reason: true,
+      destination: true,
+      pledge_version: true,
+      pledged_at: true,
       period_start: true,
       period_end: true,
       device_id: true,
@@ -126,6 +130,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const v = parsed.value
 
+  // 端末は、本人の持ち出し用端末として登録されたものだけ。端末名とメーカー・型番は、台帳から取る（画面の値は信用しない）
+  let deviceName: string | null = null
+  let modelLabel: string | null = null
+  if (v.device_id !== null) {
+    const dev = await resolveTakeoutDevice(viewer.userId, v.device_id)
+    if ("error" in dev) return NextResponse.json({ error: dev.error }, { status: 400 })
+    deviceName = dev.device_name
+    modelLabel = dev.model_label
+  }
+
   const info = await getRequesterInfo(viewer.userId)
   if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const departmentName = v.department_name || info.departmentName || null
@@ -149,9 +163,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           reason: v.reason,
           period_start: v.period_start,
           period_end: v.period_end,
+          destination: v.destination,
           device_id: v.device_id,
-          device_name: v.device_name,
-          model_label: v.model_label,
+          device_name: deviceName,
+          model_label: modelLabel,
+          pledge_version: v.pledge?.version ?? null,
+          pledged_at: v.pledge?.at ?? null,
           accessories: v.accessories,
           software: v.software,
           ...(submit ? { status: nextStatus, submitted_at: new Date(), completed_at: null } : {}),
@@ -162,7 +179,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         await tx.pcTakeoutApprovalStep.deleteMany({ where: { request_id: id } })
         await tx.pcTakeoutApprovalStep.createMany({ data: steps.map(s => ({ ...s, request_id: id })) })
         await tx.pcTakeoutHistory.create({
-          data: { request_id: id, action: wasReturned ? "再申請" : "申請", actor_id: viewer.userId, actor_name: info.name },
+          data: { request_id: id, action: wasReturned ? "再申請" : "申請", actor_id: viewer.userId, actor_name: info.name, comment: v.pledge ? `厳守事項（版${v.pledge.version}）に同意` : null },
         })
       }
     })

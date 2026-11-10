@@ -40,3 +40,31 @@ export function pcStatusBadgeClass(status: string): string {
     default: return "bg-gray-100 text-gray-600"
   }
 }
+
+// 持出先（申請に必須。プルダウンで選ぶ）
+export const PC_DESTINATIONS = ["自宅", "出張先", "客先", "海外", "その他"] as const
+
+// 厳守事項と誓約文。申請のときに、同意のチェックを必須にし、同意した版の番号と日時を残す。
+// 文面を変えるときは、古い版を消さずに、新しい版を末尾に足すこと（どの文言に同意したかを、後から追えるようにするため）
+export type PcPledge = { version: number; intro: string[]; rules: string[] }
+export const PC_PLEDGES: PcPledge[] = [
+  {
+    version: 1,
+    intro: [
+      "下記の理由により、会社所有のPCを社外にて使用いたしたく、ここに申請いたします。",
+      "なお、持ち出しに際し、下記の厳守事項を遵守することを誓約します。",
+    ],
+    rules: [
+      "持出中は、紛失、盗難、不正使用、破損などが生じないよう管理に万全を期すること。",
+      "上記トラブルを発生した場合には、速やかに管理責任者および上司に申告すること。",
+      "無断で、設定の変更やソフトウェアをインストールしないこと。",
+      "申請者以外がPCを使用する場合は、必ず本人が同席し、使用状況を監視すること。",
+      "個人情報を持ち出さないこと。",
+      "指定されたネットワーク以外には接続しないこと。",
+    ],
+  },
+]
+export const PC_PLEDGE_LATEST: PcPledge = PC_PLEDGES[PC_PLEDGES.length - 1]
+
+// 今日の日付（日本時間）。YYYY-MM-DD。サーバーは世界標準時で動くので、日本時間に直す
+export const todayJst = (): string => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
