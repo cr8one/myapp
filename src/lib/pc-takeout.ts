@@ -21,7 +21,7 @@ export const PC_SERVICE_TYPE = "pc_takeout"
 // 持出期間は、原則最長1週間（現行の申請書の注記：勤務状況により要相談）。画面で警告を出すだけで、申請は止めない
 export const PC_MAX_PERIOD_DAYS = 7
 
-export const PC_NO_PREFIX = "TOPC-"
+export const PC_NO_PREFIX = "TPC"
 export const formatPcRequestNo = (n: number) => `${PC_NO_PREFIX}${n}`
 
 // 状態のバッジの色
