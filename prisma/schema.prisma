@@ -2164,8 +2164,6 @@ model PcTakeoutRequest {
   device_id       Int?
   device_name     String?
   model_label     String?
-  accessories     Json? @ignore
-  software        Json? @ignore
   submitted_at    DateTime?
   completed_at    DateTime?
   created_at      DateTime  @default(now())
