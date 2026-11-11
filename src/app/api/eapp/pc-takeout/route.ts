@@ -128,8 +128,6 @@ export async function POST(req: NextRequest) {
       model_label: modelLabel,
       pledge_version: v.pledge?.version ?? null,
       pledged_at: v.pledge?.at ?? null,
-      accessories: v.accessories,
-      software: v.software,
       submitted_at: submit ? new Date() : null,
       approval_steps: submit ? { create: steps } : undefined,
       histories: submit ? { create: { action: "申請", actor_id: viewer.userId, actor_name: info.name, comment: v.pledge ? `厳守事項（版${v.pledge.version}）に同意` : null } } : undefined,

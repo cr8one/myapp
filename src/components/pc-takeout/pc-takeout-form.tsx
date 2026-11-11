@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
-import { PC_ACCESSORIES, PC_SOFTWARE, PC_DESTINATIONS, PC_MAX_PERIOD_DAYS, PC_PLEDGE_LATEST } from "@/lib/pc-takeout"
+import { PC_DESTINATIONS, PC_MAX_PERIOD_DAYS, PC_PLEDGE_LATEST } from "@/lib/pc-takeout"
 
 // PC持ち出し申請の入力フォーム（新規作成と編集で共有する）。
 // - 申請日は、サーバーが保存した日に決める（画面では入力できない）
@@ -18,8 +18,6 @@ export type PcTakeoutFormValues = {
   device_id: string
   device_name: string
   model_label: string
-  accessories: string[]
-  software: string[]
   pledge_agreed: boolean
   pledge_version: number
 }
@@ -42,8 +40,6 @@ export const emptyPcTakeoutForm = (): PcTakeoutFormValues => ({
   device_id: "",
   device_name: "",
   model_label: "",
-  accessories: [],
-  software: [],
   pledge_agreed: false,
   pledge_version: PC_PLEDGE_LATEST.version,
 })
@@ -58,10 +54,7 @@ export function pcTakeoutFormFromRequest(r: {
   device_id: number | null
   device_name: string | null
   model_label: string | null
-  accessories: unknown
-  software: unknown
 }): PcTakeoutFormValues {
-  const list = (v: unknown) => (Array.isArray(v) ? v.map(String) : [])
   return {
     department_name: r.department_name ?? "",
     reason: r.reason ?? "",
@@ -71,8 +64,6 @@ export function pcTakeoutFormFromRequest(r: {
     device_id: r.device_id != null ? String(r.device_id) : "",
     device_name: r.device_name ?? "",
     model_label: r.model_label ?? "",
-    accessories: list(r.accessories),
-    software: list(r.software),
     pledge_agreed: false,
     pledge_version: PC_PLEDGE_LATEST.version,
   }
@@ -129,9 +120,6 @@ export default function PcTakeoutForm({ initial, isNew, saving, error, onSave, o
       .catch(() => {})
     return () => { alive = false }
   }, [isNew])
-
-  const toggle = (key: "accessories" | "software", name: string) =>
-    set({ [key]: v[key].includes(name) ? v[key].filter(x => x !== name) : [...v[key], name] } as Partial<PcTakeoutFormValues>)
 
   const pickDevice = (idText: string) => {
     const d = me?.devices.find(x => String(x.device_id) === idText)
@@ -226,28 +214,6 @@ export default function PcTakeoutForm({ initial, isNew, saving, error, onSave, o
             )}
           </>
         )}
-        <div className="mt-4 space-y-3">
-          <div>
-            <p className={labelClass}>付属品</p>
-            <div className="flex gap-5 flex-wrap">
-              {PC_ACCESSORIES.map(n => (
-                <label key={n} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input type="checkbox" checked={v.accessories.includes(n)} onChange={() => toggle("accessories", n)} />{n}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className={labelClass}>必要ソフト</p>
-            <div className="flex gap-5 flex-wrap">
-              {PC_SOFTWARE.map(n => (
-                <label key={n} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input type="checkbox" checked={v.software.includes(n)} onChange={() => toggle("software", n)} />{n}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className={cardClass}>

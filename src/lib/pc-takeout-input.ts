@@ -1,4 +1,4 @@
-import { PC_ACCESSORIES, PC_SOFTWARE, PC_DESTINATIONS, PC_PLEDGE_LATEST, todayJst } from "@/lib/pc-takeout"
+import { PC_DESTINATIONS, PC_PLEDGE_LATEST, todayJst } from "@/lib/pc-takeout"
 
 // PC持ち出し申請の入力チェック（新規作成・編集の両方で使う共通部品）。
 // 下書きは緩く保存でき、申請（submit）のときだけ、必須の項目を確かめる。
@@ -22,21 +22,7 @@ export type PcTakeoutData = {
   period_start: Date | null
   period_end: Date | null
   device_id: number | null
-  accessories: string[]
-  software: string[]
   pledge: { version: number; at: Date } | null
-}
-
-function pickList(raw: unknown, allowed: readonly string[], label: string): { error: string } | { list: string[] } {
-  if (raw === undefined || raw === null) return { list: [] }
-  if (!Array.isArray(raw)) return { error: `${label}の形式が正しくありません` }
-  const list: string[] = []
-  for (const v of raw) {
-    const s = String(v)
-    if (!allowed.includes(s)) return { error: `${label}に、選択肢にない項目が含まれています` }
-    if (!list.includes(s)) list.push(s)
-  }
-  return { list }
 }
 
 export function parsePcTakeout(b: any, submit: boolean): { error: string } | { value: PcTakeoutData } {
@@ -62,11 +48,6 @@ export function parsePcTakeout(b: any, submit: boolean): { error: string } | { v
     deviceId = n
   }
 
-  const acc = pickList(b.accessories, PC_ACCESSORIES, "付属品")
-  if ("error" in acc) return { error: acc.error }
-  const soft = pickList(b.software, PC_SOFTWARE, "必要ソフト")
-  if ("error" in soft) return { error: soft.error }
-
   let pledge: PcTakeoutData["pledge"] = null
   if (submit) {
     if (!reason) return { error: "申請理由を入力してください" }
@@ -90,8 +71,6 @@ export function parsePcTakeout(b: any, submit: boolean): { error: string } | { v
       period_start: startText ? toDate(startText) : null,
       period_end: endText ? toDate(endText) : null,
       device_id: deviceId,
-      accessories: acc.list,
-      software: soft.list,
       pledge,
     },
   }

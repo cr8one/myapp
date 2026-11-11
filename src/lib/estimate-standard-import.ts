@@ -7,11 +7,18 @@ import { createAuditLog } from "@/lib/audit"
 // 現行の式：加工単価が750以上なら「一式」（数量1）として扱う
 export const LUMP_THRESHOLD = 750
 
+// 使っていない枠に入っている印の文字（名前ではない）
+const PLACEHOLDER_NAME = "未設定"
+
+// 現行の式（加単計算03〜08）：同じ名前の項目が2つ並ぶ場合、1つ目はオーダー数2,000未満、2つ目は2,000以上
+export const SPLIT_AT = 2000
+
 export const SHEETS = [
   { code: "basic", name: "基本", kind: "values", sort_order: 10 },
   { code: "paper", name: "用紙（kg単価）", kind: "list", sort_order: 20 },
   { code: "tray", name: "トレイ代", kind: "list", sort_order: 30 },
   { code: "processing_single", name: "加工代（単独）", kind: "list", sort_order: 40 },
+  { code: "processing_split", name: "加工代（数量で切替）", kind: "matrix", sort_order: 45 },
   { code: "processing", name: "加工・製本", kind: "matrix", sort_order: 50 },
   { code: "outer_box", name: "外箱加工", kind: "matrix", sort_order: 60 },
 ] as const
@@ -170,6 +177,7 @@ function readList(
     const name = rv.name(opts.nameField(i))
     let value = rv.num(opts.valueField(i))
     if (opts.zeroAsNull && value === 0) value = null
+    if (name === PLACEHOLDER_NAME) continue
     if (!name) {
       if (value !== null && value !== 0) w.push(`${sheetName(sheet)}：${opts.valueField(i)} に値（${value}）があるが、名前がありません`)
       continue
@@ -201,6 +209,7 @@ function readMatrix(
   const usable: { name: string; prefix: string }[] = []
   for (const c of opts.cols) {
     const name = rv.name(`加工名${c.slot}`)
+    if (name === PLACEHOLDER_NAME) continue
     const hasValue = lotRows.some(r => {
       const v = rv.num(`${c.prefix}${pad2(r.k)}`)
       return v !== null && v !== 0
@@ -251,6 +260,55 @@ function readMatrix(
   return tiers
 }
 
+// 加工名29〜38（投込み代・デジ加工代）。同じ名前が2つ並ぶ項目は、数量で切り替える1組として扱う
+function readSingleSlots(rv: RowView, w: string[]): { values: ParsedValue[]; tiers: ParsedTier[] } {
+  const label = sheetName("processing_single")
+  const groups = new Map<string, (number | null)[]>()
+  for (const s of SINGLE_SLOTS) {
+    const name = rv.name(`加工名${s.slot}`)
+    let value = rv.num(s.field)
+    if (value === 0) value = null
+    if (name === PLACEHOLDER_NAME) continue
+    if (!name) {
+      if (value !== null) w.push(`${label}：${s.field} に値（${value}）があるが、名前がありません`)
+      continue
+    }
+    const arr = groups.get(name) ?? []
+    arr.push(value)
+    groups.set(name, arr)
+  }
+
+  const values: ParsedValue[] = []
+  const split: { name: string; below: number | null; above: number | null }[] = []
+  for (const [name, arr] of Array.from(groups.entries())) {
+    if (arr.length === 1) {
+      const v = arr[0]
+      values.push({ sheet: "processing_single", item: name, value: v, is_lump: v !== null && v >= LUMP_THRESHOLD })
+      continue
+    }
+    if (arr.length > 2) w.push(`${label}：「${name}」が${arr.length}つあります。先頭の2つだけを取り込みます`)
+    split.push({ name, below: arr[0], above: arr[1] })
+  }
+
+  const tiers: ParsedTier[] = []
+  if (split.length > 0) {
+    const mk = (v: number | null) => ({ value: v, is_lump: v !== null && v >= LUMP_THRESHOLD })
+    tiers.push({
+      sheet: "processing_split",
+      lot_from: 1,
+      lot_to: SPLIT_AT - 1,
+      cells: split.map(s => ({ item: s.name, ...mk(s.below) })),
+    })
+    tiers.push({
+      sheet: "processing_split",
+      lot_from: SPLIT_AT,
+      lot_to: null,
+      cells: split.map(s => ({ item: s.name, ...mk(s.above) })),
+    })
+  }
+  return { values, tiers }
+}
+
 export function parseStandardRow(row: Row): ParsedStandard | null {
   const rv = new RowView(row)
   const rawName = rv.raw("基準名")
@@ -271,17 +329,11 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
   values.push(
     ...readList(rv, "tray", w, { count: 15, nameField: i => `トレイ名${pad2(i)}`, valueField: i => `トレイ代${pad2(i)}` })
   )
-  values.push(
-    ...readList(rv, "processing_single", w, {
-      count: SINGLE_SLOTS.length,
-      nameField: i => `加工名${SINGLE_SLOTS[i - 1].slot}`,
-      valueField: i => SINGLE_SLOTS[i - 1].field,
-      zeroAsNull: true,
-      lump: true,
-    })
-  )
+  const single = readSingleSlots(rv, w)
+  values.push(...single.values)
 
   const tiers: ParsedTier[] = [
+    ...single.tiers,
     ...readMatrix(rv, "processing", w, { lotPrefix: "加工通し数", rows: 10, cols: PROCESSING_COLS }),
     ...readMatrix(rv, "outer_box", w, { lotPrefix: "DVD外箱ロット", rows: 15, cols: OUTER_BOX_COLS }),
   ]

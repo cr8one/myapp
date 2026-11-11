@@ -21,7 +21,6 @@ type Detail = {
   period_start: string | null; period_end: string | null
   destination: string | null; pledge_version: number | null; pledged_at: string | null
   device_name: string | null; model_label: string | null
-  accessories: unknown; software: unknown
   requester_inkan_url: string | null
   approval_steps: Step[]; histories: History[]
   is_owner: boolean; approvable_step_id: string | null
@@ -34,7 +33,6 @@ const fmtDateTime = (s: string) => {
   const p = (n: number) => String(n).padStart(2, "0")
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
-const list = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : [])
 const periodDays = (s: string | null, e: string | null) => {
   if (!s || !e) return null
   const n = Math.round((Date.parse(`${e.slice(0, 10)}T00:00:00Z`) - Date.parse(`${s.slice(0, 10)}T00:00:00Z`)) / 86400000) + 1
@@ -136,8 +134,6 @@ export default function PcTakeoutDetailPage() {
   const ismsStep = req.approval_steps.find(s => s.role === PC_ROLE_ISMS)
   const cardClass = "bg-white border rounded-lg p-5 mb-4 shadow-sm"
   const headClass = "text-sm font-bold text-gray-700 mb-2"
-  const accessories = list(req.accessories)
-  const software = list(req.software)
 
   // 押印の枠：名前と、承認済みの印影
   const StampBox = ({ title, name, url, done }: { title: string; name: string | null; url: string | null; done: boolean }) => (
@@ -219,8 +215,6 @@ export default function PcTakeoutDetailPage() {
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div><dt className="text-gray-500">PC管理番号</dt><dd className="font-medium">{req.device_name || "—"}</dd></div>
           <div><dt className="text-gray-500">メーカー・型番</dt><dd>{req.model_label || "—"}</dd></div>
-          <div><dt className="text-gray-500">付属品</dt><dd>{accessories.length > 0 ? accessories.join("、") : "なし"}</dd></div>
-          <div><dt className="text-gray-500">必要ソフト</dt><dd>{software.length > 0 ? software.join("、") : "なし"}</dd></div>
           <div className="sm:col-span-2">
             <dt className="text-gray-500">厳守事項への同意</dt>
             <dd>{req.pledge_version != null && req.pledged_at ? `同意済み（厳守事項 版${req.pledge_version}・${fmtDateTime(req.pledged_at)}）` : "—"}</dd>

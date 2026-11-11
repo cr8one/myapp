@@ -45,8 +45,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       device_id: true,
       device_name: true,
       model_label: true,
-      accessories: true,
-      software: true,
       submitted_at: true,
       completed_at: true,
       created_at: true,
@@ -169,8 +167,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           model_label: modelLabel,
           pledge_version: v.pledge?.version ?? null,
           pledged_at: v.pledge?.at ?? null,
-          accessories: v.accessories,
-          software: v.software,
           ...(submit ? { status: nextStatus, submitted_at: new Date(), completed_at: null } : {}),
         },
       })

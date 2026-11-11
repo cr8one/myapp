@@ -18,10 +18,6 @@ export const PC_ROLE_ISMS = "ISMS責任者"
 // ユーザーマスタの承認者設定（確認者）と、電子申請マスタの共通承認ルート（ISMS責任者）の service_type
 export const PC_SERVICE_TYPE = "pc_takeout"
 
-// 付属品・必要ソフトの選択肢（現行の申請書の項目。申請には、チェックした名前のリストを保存する）
-export const PC_ACCESSORIES = ["バッテリー", "マウス"] as const
-export const PC_SOFTWARE = ["Office365", "Remote View", "Teams", "メール設定"] as const
-
 // 持出期間は、原則最長1週間（現行の申請書の注記：勤務状況により要相談）。画面で警告を出すだけで、申請は止めない
 export const PC_MAX_PERIOD_DAYS = 7
 
