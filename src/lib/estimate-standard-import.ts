@@ -1,5 +1,5 @@
 // FileMakerの基準（見積基準_SP）を、新しい基準マスタの形に変換して取り込む。
-// 対応表は、FileMaker側の見積書の式（加単計算など）から読み取ったもの。
+// 対応表は、FileMaker側の見積書の式（加単計算、印通計算、損通計算、表加通計など）から読み取ったもの。
 import { randomUUID } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { createAuditLog } from "@/lib/audit"
@@ -13,6 +13,13 @@ const PLACEHOLDER_NAME = "未設定"
 // 現行の式（加単計算03〜08）：同じ名前の項目が2つ並ぶ場合、1つ目はオーダー数2,000未満、2つ目は2,000以上
 export const SPLIT_AT = 2000
 
+// 一式（または固定値）の判定。表によって基準が違う
+const PROCESSING_LUMP = (v: number) => v >= LUMP_THRESHOLD
+// 印刷代：現行の式（通し数001）では、印刷代が1,000を超えると通し数を1にする（一式）
+const PRINTING_LUMP = (v: number) => v > 1000
+// 損紙：1以上は固定の枚数、1未満は通し数に対する率（損通計算のL・M段）。is_lump は「固定の枚数」の意味で使う
+const WASTE_FIXED = (v: number) => v >= 1
+
 export const SHEETS = [
   { code: "basic", name: "基本", kind: "values", sort_order: 10 },
   { code: "paper", name: "用紙（kg単価）", kind: "list", sort_order: 20 },
@@ -21,6 +28,9 @@ export const SHEETS = [
   { code: "processing_split", name: "加工代（数量で切替）", kind: "matrix", sort_order: 45 },
   { code: "processing", name: "加工・製本", kind: "matrix", sort_order: 50 },
   { code: "outer_box", name: "外箱加工", kind: "matrix", sort_order: 60 },
+  { code: "printing", name: "印刷代", kind: "matrix", sort_order: 70 },
+  { code: "waste", name: "損紙", kind: "matrix", sort_order: 80 },
+  { code: "surface", name: "表面加工", kind: "matrix", sort_order: 90 },
 ] as const
 export type SheetCode = (typeof SHEETS)[number]["code"]
 const sheetName = (code: string) => SHEETS.find(s => s.code === code)?.name ?? code
@@ -125,7 +135,8 @@ const SINGLE_SLOTS: { slot: string; field: string }[] = [
   { slot: "38", field: "基準ﾃﾞｼﾞ加工代02D" },
 ]
 
-type MatrixCol = { slot: string; prefix: string }
+// 単価表の列。名前は、label があればそれを使い、なければ「加工名{slot}」のデータから読む
+type MatrixCol = { slot?: string; label?: string; prefix: string }
 
 // 加工・製本：ロット範囲は「加工通し数」。加工基準A〜K、製本基準A〜I、DVD製本基準A〜G
 const PROCESSING_COLS: MatrixCol[] = [
@@ -157,6 +168,40 @@ const OUTER_BOX_COLS: MatrixCol[] = [
   "376", "377", "378", "379", "380", "381", "382", "383", "384", "385",
 ].map((slot, i) => ({ slot, prefix: `外箱${String.fromCharCode(65 + i)}` }))
 
+// 印刷代：ロット範囲は「印刷通し数」（15段）。印刷種別 × 版の大きさ（A＝菊半才まで、B＝四六半才・菊全）。名前は画面の見出しに合わせた
+const PRINTING_COLS: MatrixCol[] = [
+  { label: "薄紙 菊半才・A3・四六4才", prefix: "印刷基準A" },
+  { label: "薄紙 四六半才・菊全", prefix: "印刷基準B" },
+  { label: "厚紙 菊半才・A3・四六4才", prefix: "厚印刷基準A" },
+  { label: "厚紙 四六半才・菊全", prefix: "厚印刷基準B" },
+  { label: "UV薄紙 菊半才以下", prefix: "UV印刷基準A" },
+  { label: "UV薄紙 四六半才・菊全", prefix: "UV印刷基準B" },
+  { label: "UV厚紙 菊半才以下", prefix: "UV厚印刷基準A" },
+  { label: "UV厚紙 四六半才・菊全", prefix: "UV厚印刷基準B" },
+]
+
+// 損紙：ロット範囲は「損紙通し数」（13段）。A〜Eの意味は、式（表面加工通しN＝通し数＋B＋C＋D）と画面の見出しから
+const WASTE_COLS: MatrixCol[] = [
+  { label: "印刷1C", prefix: "損紙基準A" },
+  { label: "製本", prefix: "損紙基準B" },
+  { label: "断裁", prefix: "損紙基準C" },
+  { label: "抜き", prefix: "損紙基準D" },
+  { label: "表面加工", prefix: "損紙基準E" },
+]
+
+// 表面加工：ロット範囲は損紙と同じ「損紙通し数」（13段）。列は、式（PP貼り01〜05など）から読み取った
+// 大きさの順：A1/2（菊半才）、B1/2（四六半才）、A全（菊全）、A1/3（菊3才）、B1/4（四六4才）
+const SURFACE_SIZES = ["菊半才", "四六半才", "菊全", "菊3才", "四六4才"]
+const SURFACE_GROUPS: { family: string; letters: string[] }[] = [
+  { family: "PP貼り", letters: ["D", "E", "F", "O", "P"] },
+  { family: "マットPP貼り", letters: ["G", "H", "I", "Q", "R"] },
+  { family: "サック用PP貼り", letters: ["J", "K", "L", "S", "T"] },
+  { family: "サック用マットPP貼り", letters: ["A", "B", "C", "M", "N"] },
+]
+const SURFACE_COLS: MatrixCol[] = SURFACE_GROUPS.flatMap(g =>
+  g.letters.map((letter, i) => ({ label: `${g.family} ${SURFACE_SIZES[i]}`, prefix: `表面加工${letter}` }))
+)
+
 // ---- 読み取り ----
 
 function readList(
@@ -186,78 +231,6 @@ function readList(
     out.push({ sheet, item, value, is_lump: !!opts.lump && value !== null && value >= LUMP_THRESHOLD })
   }
   return out
-}
-
-function readMatrix(
-  rv: RowView,
-  sheet: SheetCode,
-  w: string[],
-  opts: { lotPrefix: string; rows: number; cols: MatrixCol[] }
-): ParsedTier[] {
-  const label = sheetName(sheet)
-  const lotRows: { k: number; from: number | null; to: number | null }[] = []
-  for (let k = 1; k <= opts.rows; k++) {
-    lotRows.push({
-      k,
-      from: rv.num(`${opts.lotPrefix}${pad2(2 * k - 1)}`),
-      to: rv.num(`${opts.lotPrefix}${pad2(2 * k)}`),
-    })
-  }
-
-  // 列：値が1つもない列は取り込まない。名前がない列は警告
-  const seen = new Set<string>()
-  const usable: { name: string; prefix: string }[] = []
-  for (const c of opts.cols) {
-    const name = rv.name(`加工名${c.slot}`)
-    if (name === PLACEHOLDER_NAME) continue
-    const hasValue = lotRows.some(r => {
-      const v = rv.num(`${c.prefix}${pad2(r.k)}`)
-      return v !== null && v !== 0
-    })
-    if (!hasValue) continue
-    if (!name) {
-      w.push(`${label}：${c.prefix}01〜 に値があるが、加工名${c.slot} が空欄のため取り込めません`)
-      continue
-    }
-    usable.push({ name: uniqueName(name, seen, c.slot, w, `${label} 加工名${c.slot}`), prefix: c.prefix })
-  }
-
-  // 行：ロットの区切り（開始）が空欄の行は取り込まない
-  const tiers: ParsedTier[] = []
-  const seenFrom = new Set<number>()
-  let ignored = 0
-  let last: number | null = null
-  for (const r of lotRows) {
-    const cells: ParsedCell[] = usable.map(c => {
-      let v = rv.num(`${c.prefix}${pad2(r.k)}`)
-      if (v === 0) v = null
-      return { item: c.name, value: v, is_lump: v !== null && v >= LUMP_THRESHOLD }
-    })
-    const hasAny = cells.some(c => c.value !== null)
-    if (r.from === null) {
-      if (hasAny) ignored++
-      continue
-    }
-    if (!hasAny) continue
-    const from = Math.round(r.from)
-    if (seenFrom.has(from)) {
-      w.push(`${label}：${r.k}行目の開始（${from}）が、ほかの行と重複しているため取り込みません`)
-      continue
-    }
-    seenFrom.add(from)
-    let to: number | null = r.to === null ? null : Math.round(r.to)
-    if (to !== null && to < from) {
-      w.push(`${label}：${r.k}行目の範囲が不正です（${from}〜${to}）。上限なしとして取り込みます`)
-      to = null
-    }
-    if (last !== null && from <= last) {
-      w.push(`${label}：${r.k}行目の開始（${from}）が、前の行の上限（${last}）以下です`)
-    }
-    if (to !== null) last = to
-    tiers.push({ sheet, lot_from: from, lot_to: to, cells })
-  }
-  if (ignored > 0) w.push(`${label}：ロットの区切りが空欄で、値がある行が${ignored}行あります（取り込んでいません）`)
-  return tiers
 }
 
 // 加工名29〜38（投込み代・デジ加工代）。同じ名前が2つ並ぶ項目は、数量で切り替える1組として扱う
@@ -309,6 +282,80 @@ function readSingleSlots(rv: RowView, w: string[]): { values: ParsedValue[]; tie
   return { values, tiers }
 }
 
+function readMatrix(
+  rv: RowView,
+  sheet: SheetCode,
+  w: string[],
+  opts: { lotPrefix: string; rows: number; cols: MatrixCol[]; lump?: (v: number) => boolean }
+): ParsedTier[] {
+  const label = sheetName(sheet)
+  const isLump = opts.lump ?? PROCESSING_LUMP
+  const lotRows: { k: number; from: number | null; to: number | null }[] = []
+  for (let k = 1; k <= opts.rows; k++) {
+    lotRows.push({
+      k,
+      from: rv.num(`${opts.lotPrefix}${pad2(2 * k - 1)}`),
+      to: rv.num(`${opts.lotPrefix}${pad2(2 * k)}`),
+    })
+  }
+
+  // 列：値が1つもない列は取り込まない。名前がない列は警告
+  const seen = new Set<string>()
+  const usable: { name: string; prefix: string }[] = []
+  for (const c of opts.cols) {
+    const name = c.label ?? rv.name(`加工名${c.slot}`)
+    if (name === PLACEHOLDER_NAME) continue
+    const hasValue = lotRows.some(r => {
+      const v = rv.num(`${c.prefix}${pad2(r.k)}`)
+      return v !== null && v !== 0
+    })
+    if (!hasValue) continue
+    if (!name) {
+      w.push(`${label}：${c.prefix}01〜 に値があるが、名前（加工名${c.slot}）が空欄のため取り込めません`)
+      continue
+    }
+    const where = `${label} ${c.slot ? `加工名${c.slot}` : c.prefix}`
+    usable.push({ name: uniqueName(name, seen, c.slot ?? c.prefix, w, where), prefix: c.prefix })
+  }
+
+  // 行：ロットの区切り（開始）が空欄の行は取り込まない
+  const tiers: ParsedTier[] = []
+  const seenFrom = new Set<number>()
+  let ignored = 0
+  let last: number | null = null
+  for (const r of lotRows) {
+    const cells: ParsedCell[] = usable.map(c => {
+      let v = rv.num(`${c.prefix}${pad2(r.k)}`)
+      if (v === 0) v = null
+      return { item: c.name, value: v, is_lump: v !== null && isLump(v) }
+    })
+    const hasAny = cells.some(c => c.value !== null)
+    if (r.from === null) {
+      if (hasAny) ignored++
+      continue
+    }
+    if (!hasAny) continue
+    const from = Math.round(r.from)
+    if (seenFrom.has(from)) {
+      w.push(`${label}：${r.k}行目の開始（${from}）が、ほかの行と重複しているため取り込みません`)
+      continue
+    }
+    seenFrom.add(from)
+    let to: number | null = r.to === null ? null : Math.round(r.to)
+    if (to !== null && to < from) {
+      w.push(`${label}：${r.k}行目の範囲が不正です（${from}〜${to}）。上限なしとして取り込みます`)
+      to = null
+    }
+    if (last !== null && from <= last) {
+      w.push(`${label}：${r.k}行目の開始（${from}）が、前の行の上限（${last}）以下です`)
+    }
+    if (to !== null) last = to
+    tiers.push({ sheet, lot_from: from, lot_to: to, cells })
+  }
+  if (ignored > 0) w.push(`${label}：ロットの区切りが空欄で、値がある行が${ignored}行あります（取り込んでいません）`)
+  return tiers
+}
+
 export function parseStandardRow(row: Row): ParsedStandard | null {
   const rv = new RowView(row)
   const rawName = rv.raw("基準名")
@@ -329,6 +376,7 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
   values.push(
     ...readList(rv, "tray", w, { count: 15, nameField: i => `トレイ名${pad2(i)}`, valueField: i => `トレイ代${pad2(i)}` })
   )
+
   const single = readSingleSlots(rv, w)
   values.push(...single.values)
 
@@ -336,6 +384,9 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
     ...single.tiers,
     ...readMatrix(rv, "processing", w, { lotPrefix: "加工通し数", rows: 10, cols: PROCESSING_COLS }),
     ...readMatrix(rv, "outer_box", w, { lotPrefix: "DVD外箱ロット", rows: 15, cols: OUTER_BOX_COLS }),
+    ...readMatrix(rv, "printing", w, { lotPrefix: "印刷通し数", rows: 15, cols: PRINTING_COLS, lump: PRINTING_LUMP }),
+    ...readMatrix(rv, "waste", w, { lotPrefix: "損紙通し数", rows: 13, cols: WASTE_COLS, lump: WASTE_FIXED }),
+    ...readMatrix(rv, "surface", w, { lotPrefix: "損紙通し数", rows: 13, cols: SURFACE_COLS }),
   ]
 
   return { name, values, tiers, warnings: w, unmapped: rv.unmappedNonEmpty() }
