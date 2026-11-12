@@ -282,17 +282,78 @@ function readSingleSlots(rv: RowView, w: string[]): { values: ParsedValue[]; tie
   return { values, tiers }
 }
 
+type RawRow = { k: number; from: number | null; to: number | null; cells: ParsedCell[] }
+
+// 単価表の行から、実際に使われる範囲を決める。現行の式の読み方に合わせる。
+//  lower：「数量 ≥ 開始」を、後ろの行から順に調べて、最初に合う行を使う（終了の値は使わない）
+//  upper：「数量 ≤ 終了」を、前の行から順に調べて、最初に合う行を使う（開始の値は使わない）
+function resolveTiers(sheet: SheetCode, rows: RawRow[], bound: "lower" | "upper", w: string[]): ParsedTier[] {
+  const label = sheetName(sheet)
+  const hasValue = (r: RawRow) => r.cells.some(c => c.value !== null)
+  const keyOf = (r: RawRow) => (bound === "lower" ? r.from : r.to)
+  const valid = rows.filter(r => keyOf(r) !== null)
+  const ignored = rows.filter(r => keyOf(r) === null && hasValue(r)).length
+  if (ignored > 0) {
+    w.push(`${label}：ロットの区切りが空欄で、値がある行が${ignored}行あります（取り込んでいません）`)
+  }
+
+  // 区切りの値ごとに、使われる行を決める。同じ行が続くときは、まとめる
+  const points = Array.from(new Set(valid.map(r => Math.round(keyOf(r)!)))).sort((a, b) => a - b)
+  const segs: { point: number; row: RawRow }[] = []
+  for (const p of points) {
+    let win: RawRow | null = null
+    for (const r of valid) {
+      const v = Math.round(keyOf(r)!)
+      if (bound === "lower") {
+        if (v <= p && (!win || r.k > win.k)) win = r
+      } else {
+        if (v >= p && (!win || r.k < win.k)) win = r
+      }
+    }
+    if (!win) continue
+    const prev = segs[segs.length - 1]
+    if (!prev || prev.row !== win) segs.push({ point: p, row: win })
+    else if (bound === "upper") prev.point = p
+  }
+
+  const used = new Set(segs.map(s => s.row.k))
+  const dead = valid.filter(r => !used.has(r.k) && hasValue(r)).map(r => r.k)
+  if (dead.length > 0) {
+    const rule = bound === "lower" ? "開始が同じ行は後ろの行が" : "範囲が重なる行は前の行が"
+    w.push(`${label}：${dead.join("・")}行目は、現行の式では使われない行のため、取り込んでいません（${rule}使われます）`)
+  }
+
+  const tiers: ParsedTier[] = []
+  segs.forEach((s, idx) => {
+    if (!hasValue(s.row)) return
+    if (bound === "lower") {
+      const next = segs[idx + 1]
+      tiers.push({ sheet, lot_from: s.point, lot_to: next ? next.point - 1 : null, cells: s.row.cells })
+    } else {
+      const prev = segs[idx - 1]
+      tiers.push({ sheet, lot_from: prev ? prev.point + 1 : 1, lot_to: s.point, cells: s.row.cells })
+    }
+  })
+  return tiers
+}
+
 function readMatrix(
   rv: RowView,
   sheet: SheetCode,
   w: string[],
-  opts: { lotPrefix: string; rows: number; cols: MatrixCol[]; lump?: (v: number) => boolean }
+  opts: {
+    lotPrefix: string
+    rows: number
+    cols: MatrixCol[]
+    lump?: (v: number) => boolean
+    bound?: "lower" | "upper"
+  }
 ): ParsedTier[] {
   const label = sheetName(sheet)
   const isLump = opts.lump ?? PROCESSING_LUMP
-  const lotRows: { k: number; from: number | null; to: number | null }[] = []
+  const lots: { k: number; from: number | null; to: number | null }[] = []
   for (let k = 1; k <= opts.rows; k++) {
-    lotRows.push({
+    lots.push({
       k,
       from: rv.num(`${opts.lotPrefix}${pad2(2 * k - 1)}`),
       to: rv.num(`${opts.lotPrefix}${pad2(2 * k)}`),
@@ -305,7 +366,7 @@ function readMatrix(
   for (const c of opts.cols) {
     const name = c.label ?? rv.name(`加工名${c.slot}`)
     if (name === PLACEHOLDER_NAME) continue
-    const hasValue = lotRows.some(r => {
+    const hasValue = lots.some(r => {
       const v = rv.num(`${c.prefix}${pad2(r.k)}`)
       return v !== null && v !== 0
     })
@@ -318,42 +379,17 @@ function readMatrix(
     usable.push({ name: uniqueName(name, seen, c.slot ?? c.prefix, w, where), prefix: c.prefix })
   }
 
-  // 行：ロットの区切り（開始）が空欄の行は取り込まない
-  const tiers: ParsedTier[] = []
-  const seenFrom = new Set<number>()
-  let ignored = 0
-  let last: number | null = null
-  for (const r of lotRows) {
-    const cells: ParsedCell[] = usable.map(c => {
+  const rows: RawRow[] = lots.map(r => ({
+    k: r.k,
+    from: r.from,
+    to: r.to,
+    cells: usable.map(c => {
       let v = rv.num(`${c.prefix}${pad2(r.k)}`)
       if (v === 0) v = null
       return { item: c.name, value: v, is_lump: v !== null && isLump(v) }
-    })
-    const hasAny = cells.some(c => c.value !== null)
-    if (r.from === null) {
-      if (hasAny) ignored++
-      continue
-    }
-    if (!hasAny) continue
-    const from = Math.round(r.from)
-    if (seenFrom.has(from)) {
-      w.push(`${label}：${r.k}行目の開始（${from}）が、ほかの行と重複しているため取り込みません`)
-      continue
-    }
-    seenFrom.add(from)
-    let to: number | null = r.to === null ? null : Math.round(r.to)
-    if (to !== null && to < from) {
-      w.push(`${label}：${r.k}行目の範囲が不正です（${from}〜${to}）。上限なしとして取り込みます`)
-      to = null
-    }
-    if (last !== null && from <= last) {
-      w.push(`${label}：${r.k}行目の開始（${from}）が、前の行の上限（${last}）以下です`)
-    }
-    if (to !== null) last = to
-    tiers.push({ sheet, lot_from: from, lot_to: to, cells })
-  }
-  if (ignored > 0) w.push(`${label}：ロットの区切りが空欄で、値がある行が${ignored}行あります（取り込んでいません）`)
-  return tiers
+    }),
+  }))
+  return resolveTiers(sheet, rows, opts.bound ?? "lower", w)
 }
 
 export function parseStandardRow(row: Row): ParsedStandard | null {
@@ -383,7 +419,7 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
   const tiers: ParsedTier[] = [
     ...single.tiers,
     ...readMatrix(rv, "processing", w, { lotPrefix: "加工通し数", rows: 10, cols: PROCESSING_COLS }),
-    ...readMatrix(rv, "outer_box", w, { lotPrefix: "DVD外箱ロット", rows: 15, cols: OUTER_BOX_COLS }),
+    ...readMatrix(rv, "outer_box", w, { lotPrefix: "DVD外箱ロット", rows: 15, cols: OUTER_BOX_COLS, bound: "upper" }),
     ...readMatrix(rv, "printing", w, { lotPrefix: "印刷通し数", rows: 15, cols: PRINTING_COLS, lump: PRINTING_LUMP }),
     ...readMatrix(rv, "waste", w, { lotPrefix: "損紙通し数", rows: 13, cols: WASTE_COLS, lump: WASTE_FIXED }),
     ...readMatrix(rv, "surface", w, { lotPrefix: "損紙通し数", rows: 13, cols: SURFACE_COLS }),
