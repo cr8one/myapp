@@ -172,11 +172,17 @@ export default function PcTakeoutForm({ initial, isNew, saving, error, onSave, o
             {PC_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Input type="date" className="w-44" min={today()} value={v.period_start} onChange={e => set({ period_start: e.target.value })} />
-          <span className="text-gray-500">～</span>
-          <Input type="date" className="w-44" min={v.period_start || today()} value={v.period_end} onChange={e => set({ period_end: e.target.value })} />
-          {days !== null && <span className="text-sm text-gray-500">{days}日間</span>}
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="w-44 shrink-0">
+            <label className={labelClass}>開始日</label>
+            <Input type="date" min={today()} value={v.period_start} onChange={e => set({ period_start: e.target.value })} />
+          </div>
+          <span className="pb-2 text-gray-500">～</span>
+          <div className="w-44 shrink-0">
+            <label className={labelClass}>返却予定日</label>
+            <Input type="date" min={v.period_start || today()} value={v.period_end} onChange={e => set({ period_end: e.target.value })} />
+          </div>
+          {days !== null && <span className="pb-2 text-sm text-gray-500">{days}日間</span>}
         </div>
         <p className="mt-2 text-xs text-gray-400">持出期間の開始日は、今日以降に限ります（事後の申請は、できません）。</p>
         {overDays && (
