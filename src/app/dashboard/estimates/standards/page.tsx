@@ -139,7 +139,7 @@ export default function EstimateStandardsPage() {
           {visible.map(s => (
             <div key={s.id} className={`flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-xl shadow-sm text-sm ${s.is_archived ? "bg-gray-50" : "bg-white"}`}>
               <div className="w-72">
-                <span className="font-medium text-gray-900">{s.name}</span>
+                <Link href={`/dashboard/estimates/standards/${s.id}`} className="font-medium text-blue-700 hover:underline">{s.name}</Link>
                 {s.is_archived && <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">アーカイブ</span>}
               </div>
               <span className="w-56 text-gray-500">{s.parent ? `親：${s.parent.name}` : "親なし"}</span>
