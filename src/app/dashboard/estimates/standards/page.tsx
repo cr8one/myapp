@@ -29,6 +29,7 @@ export default function EstimateStandardsPage() {
   const [error, setError] = useState("")
   const [form, setForm] = useState<Form | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [q, setQ] = useState("")
 
   const load = async () => {
     setLoading(true)
@@ -73,7 +74,7 @@ export default function EstimateStandardsPage() {
     await load()
   }
 
-  const visible = rows.filter(r => showArchived || !r.is_archived)
+  const visible = rows.filter(r => (showArchived || !r.is_archived) && (!q.trim() || r.name.normalize("NFKC").toLowerCase().includes(q.trim().normalize("NFKC").toLowerCase())))
   const parentOptions = form ? rows.filter(r => r.id !== form.id && (!r.is_archived || r.id === form.parent_id)) : []
 
   return (
@@ -85,8 +86,8 @@ export default function EstimateStandardsPage() {
           見積書の単価の基準です。親の基準を指定すると、表ごとに親の値を引き継げます。見積に使われている基準は、削除できません（アーカイブしてください）。
         </p>
         <div className="flex items-center gap-2 shrink-0">
-          <Link href="/dashboard/estimates/standards/import" className="px-3 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
-            FileMakerから取り込み
+          <Link href="/dashboard/estimates/standards/grid" className="px-3 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
+            一覧表（まとめて編集）
           </Link>
           <button onClick={openNew} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800">
             <Plus className="w-4 h-4" /> 追加
@@ -94,10 +95,19 @@ export default function EstimateStandardsPage() {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-        <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
-        アーカイブ済みを表示
-      </label>
+      <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
+        <input
+          autoComplete="off"
+          placeholder="基準名で検索"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white w-56"
+        />
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
+          アーカイブ済みを表示
+        </label>
+      </div>
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
