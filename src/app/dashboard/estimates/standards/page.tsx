@@ -89,6 +89,9 @@ export default function EstimateStandardsPage() {
           <Link href="/dashboard/estimates/standards/grid" className="px-3 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
             一覧表（まとめて編集）
           </Link>
+          <Link href="/dashboard/estimates/standards/import" className="px-3 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50">
+            FileMakerから取り込み
+          </Link>
           <button onClick={openNew} className="flex items-center gap-1 px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800">
             <Plus className="w-4 h-4" /> 追加
           </button>
