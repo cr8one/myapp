@@ -30,7 +30,7 @@ type Edit = {
 type Col = { key: string; label: string; itemId: string; lotFrom?: number }
 type Ref = { key: string; base: Cell | null; editable: boolean; tierId: string | null; title: string }
 
-const NO_LUMP_SHEETS = ["basic", "paper", "tray"]
+const NO_LUMP_SHEETS = ["basic", "paper", "tray", "plate_size", "plate_spec"]
 const normalize = (s: string) => s.normalize("NFKC").toLowerCase()
 const fmt = (v: number | null) => (v === null ? "" : String(v))
 

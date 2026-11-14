@@ -31,6 +31,9 @@ export const SHEETS = [
   { code: "printing", name: "印刷代", kind: "matrix", sort_order: 70 },
   { code: "waste", name: "損紙", kind: "matrix", sort_order: 80 },
   { code: "surface", name: "表面加工", kind: "matrix", sort_order: 90 },
+  { code: "plate_size", name: "製版（サイズ別）", kind: "list", sort_order: 35 },
+  { code: "plate_spec", name: "製版（仕様別）", kind: "list", sort_order: 36 },
+  { code: "digipak", name: "デジパック抜き貼り代", kind: "matrix", sort_order: 65 },
 ] as const
 export type SheetCode = (typeof SHEETS)[number]["code"]
 const sheetName = (code: string) => SHEETS.find(s => s.code === code)?.name ?? code
@@ -119,6 +122,7 @@ const BASIC_ITEMS = [
   { name: "UV刷版基本料金（菊半才・A3・四六4才）", field: "刷版基本料金03" },
   { name: "UV刷版基本料金（四六半才・菊全）", field: "刷版基本料金04" },
   { name: "サンプル代", field: "ｻﾝﾌﾟﾙ代" },
+  { name: "デジパックトレイ代", field: "ﾃﾞｼﾞﾊﾟｯｸﾄﾚｲ代" },
 ]
 
 // 加工名の番号 → 単価の項目（単独の値）
@@ -392,6 +396,60 @@ function readMatrix(
   return resolveTiers(sheet, rows, opts.bound ?? "lower", w)
 }
 
+// デジパック抜き貼り代：ロット範囲は「DVDigiロット」（16段、数量以下で選ぶ方式）。DV#P# と DV#P・P# の9列
+const DIGIPAK_COLS: MatrixCol[] = [
+  ...["2", "3", "4", "5", "6"].map(n => ({ label: `DV${n}P`, prefix: `DV${n}P` })),
+  ...["2", "3", "4", "5"].map(n => ({ label: `DV${n}P・P`, prefix: `DV${n}P・P` })),
+]
+
+// 製版（サイズ別）：製版単価A〜Eの01〜12。サイズの順は、見積書の式（製版単価0001）から
+const PLATE_SIZES = ["A6", "A5", "A4", "A3", "A2", "A1", "B6", "B5", "B4", "B3", "B2", "B1"]
+const PLATE_KINDS = [
+  { letter: "A", name: "CTP編集費" },
+  { letter: "B", name: "本機校正費（薄紙）" },
+  { letter: "C", name: "本機校正費（厚紙）" },
+  { letter: "D", name: "デジタル校正C4（薄紙）" }, // 名前は画面の見出しから
+  { letter: "E", name: "デジタル校正C4（厚紙）" },
+]
+
+function readPlateSizes(rv: RowView): ParsedValue[] {
+  const out: ParsedValue[] = []
+  for (const k of PLATE_KINDS) {
+    PLATE_SIZES.forEach((size, i) => {
+      let v = rv.num(`製版単価${k.letter}${pad2(i + 1)}`)
+      if (v === 0) v = null
+      if (v !== null) out.push({ sheet: "plate_size", item: `${k.name} ${size}`, value: v, is_lump: false })
+    })
+  }
+  return out
+}
+
+// 製版（仕様別）：製版仕様01〜30の名前と、製版カラーA（色校正）・B（青焼き）の価格（製版単価A・B）
+function readPlateSpecs(rv: RowView, w: string[]): ParsedValue[] {
+  const strip = (s: string) => s.replace(/^[（(]\s*/, "").replace(/\s*[）)]$/, "").trim()
+  const colA = strip(rv.name("製版カラーA")) || "色校正"
+  const colB = strip(rv.name("製版カラーB")) || "青焼き"
+  const seen = new Set<string>()
+  const out: ParsedValue[] = []
+  for (let k = 1; k <= 30; k++) {
+    const name = rv.name(`製版仕様${pad2(k)}`)
+    let a = rv.num(`製版単価A${pad2(k)}`)
+    let b = rv.num(`製版単価B${pad2(k)}`)
+    if (a === 0) a = null
+    if (b === 0) b = null
+    if (name === PLACEHOLDER_NAME) continue
+    if (!name) {
+      // 01〜12は、サイズ別の価格と共用の欄なので、名前がなくてもよい
+      if (k > 12 && (a !== null || b !== null)) w.push(`製版（仕様別）：製版仕様${pad2(k)} に値があるが、名前がありません`)
+      continue
+    }
+    const base = uniqueName(name, seen, pad2(k), w, `製版仕様${pad2(k)}`)
+    out.push({ sheet: "plate_spec", item: `${base}（${colA}）`, value: a, is_lump: false })
+    out.push({ sheet: "plate_spec", item: `${base}（${colB}）`, value: b, is_lump: false })
+  }
+  return out
+}
+
 export function parseStandardRow(row: Row): ParsedStandard | null {
   const rv = new RowView(row)
   const rawName = rv.raw("基準名")
@@ -415,6 +473,8 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
 
   const single = readSingleSlots(rv, w)
   values.push(...single.values)
+  values.push(...readPlateSizes(rv))
+  values.push(...readPlateSpecs(rv, w))
 
   const tiers: ParsedTier[] = [
     ...single.tiers,
@@ -423,6 +483,7 @@ export function parseStandardRow(row: Row): ParsedStandard | null {
     ...readMatrix(rv, "printing", w, { lotPrefix: "印刷通し数", rows: 15, cols: PRINTING_COLS, lump: PRINTING_LUMP }),
     ...readMatrix(rv, "waste", w, { lotPrefix: "損紙通し数", rows: 13, cols: WASTE_COLS, lump: WASTE_FIXED }),
     ...readMatrix(rv, "surface", w, { lotPrefix: "損紙通し数", rows: 13, cols: SURFACE_COLS }),
+    ...readMatrix(rv, "digipak", w, { lotPrefix: "DVDigiﾛｯﾄ", rows: 16, cols: DIGIPAK_COLS, bound: "upper" }),
   ]
 
   return { name, values, tiers, warnings: w, unmapped: rv.unmappedNonEmpty() }
