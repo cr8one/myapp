@@ -1,0 +1,62 @@
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { getAccountingViewer, DRAFT_STATUS } from "@/lib/accounting-slip-access"
+import { getRequesterInfo } from "@/lib/accounting-slip-requester"
+import { buildApprovalSteps, STAGE_REQUESTER, STATUS_REQUESTER_APPROVING, STATUS_ACCOUNTING_APPROVING } from "@/lib/accounting-slip-approval"
+import { SLIP_TYPES } from "@/lib/accounting-slip-types"
+import { parseMealAdvance } from "@/lib/accounting-meal-advance"
+import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
+
+const MEAL = SLIP_TYPES.find(t => t.value === "meal_advance")!
+
+export async function POST(req: NextRequest) {
+  const viewer = await getAccountingViewer()
+  if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const b = await req.json()
+  const submit = b.submit === true
+  const sendMail = b.send_mail === true
+
+  const parsed = parseMealAdvance(b, submit)
+  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const v = parsed.value
+
+  const info = await getRequesterInfo(viewer.userId)
+  if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  // 部門コードも部署名も空のときは、ユーザーマスタの値で補う
+  const noDept = !v.departmentCode && !v.departmentName
+  const departmentCode = (noDept ? info.departmentCode : v.departmentCode) || null
+  const departmentName = (noDept ? info.departmentName : v.departmentName) || null
+  const title = `${MEAL.label} ${v.dateText.replace(/-/g, "/")}`
+
+  // 申請のときだけ、承認ステップを作る
+  let steps: Awaited<ReturnType<typeof buildApprovalSteps>>["steps"] = []
+  if (submit) {
+    const built = await buildApprovalSteps(viewer.userId, MEAL.routeServiceType)
+    if (built.error) return NextResponse.json({ error: built.error }, { status: 400 })
+    steps = built.steps
+  }
+  const status = !submit
+    ? DRAFT_STATUS
+    : steps.some(s => s.stage === STAGE_REQUESTER) ? STATUS_REQUESTER_APPROVING : STATUS_ACCOUNTING_APPROVING
+
+  const record = await prisma.acctSlip.create({
+    data: {
+      slip_type: MEAL.value,
+      title,
+      status,
+      slip_date: v.slipDate,
+      amount: v.meal.subtotal,
+      requester_id: viewer.userId,
+      requester_name: info.name,
+      department_code: departmentCode,
+      department_name: departmentName,
+      submitted_at: submit ? new Date() : null,
+      meal_advance: { create: v.meal },
+      approval_steps: submit ? { create: steps } : undefined,
+      histories: submit ? { create: { action: "申請", actor_id: viewer.userId, actor_name: info.name } } : undefined,
+    },
+    select: { id: true, slip_no: true, status: true },
+  })
+  if (submit && sendMail) await sendApprovalRequestMail(record.id)
+  return NextResponse.json(record)
+}

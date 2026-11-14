@@ -8,6 +8,13 @@ export const SLIP_TYPES = [
     // 経理側の承認者（電子申請マスタ）のサービス名
     routeServiceType: "accounting_trip_expense",
   },
+  {
+    value: "meal_advance",
+    label: "飲食費及び仮払精算書",
+    description: "飲食費などの精算と、仮払金の精算",
+    href: "/dashboard/eapp/accounting/new/meal-advance",
+    routeServiceType: "accounting_meal_advance",
+  },
 ] as const
 
 export const SLIP_STATUSES = ["下書き", "起案部承認中", "経理承認中", "承認完了", "差戻し", "却下"] as const

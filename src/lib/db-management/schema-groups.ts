@@ -88,6 +88,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "t_eapp_regulation_versions", label: "規定等の版" },
       { tableName: "t_eapp_trip_areas", label: "出張区域マスタ" },
       { tableName: "t_acct_trip_expenses", label: "出張旅費精算書（国内）" },
+      { tableName: "t_acct_meal_advances", label: "飲食費及び仮払精算書" },
       { tableName: "t_pc_takeout_requests", label: "PC持ち出し申請" },
       { tableName: "t_pc_takeout_approval_steps", label: "PC持ち出し申請承認ステップ" },
       { tableName: "t_pc_takeout_histories", label: "PC持ち出し申請履歴" },

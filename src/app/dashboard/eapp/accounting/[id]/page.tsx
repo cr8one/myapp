@@ -19,11 +19,21 @@ type Trip = {
   allowance_items: { days: number; amount: number }[] | null
   transport_subtotal: number; lodging_subtotal: number; allowance_subtotal: number; total_amount: number
 }
+type MealItemView = {
+  type?: string; payee?: string; address?: string; meal_date?: string; tel?: string; kind?: string
+  headcount?: number; participants?: string; item?: string; amount: number
+  account_name?: string; account_code?: string; tax_category?: string
+}
+type Meal = {
+  purpose: string | null; remarks: string | null; items: MealItemView[] | null
+  subtotal: number; advance_amount: number; shortage_amount: number; balance_amount: number
+  shortage_account_name: string | null
+}
 type Slip = {
   id: string; slip_no: number; slip_type: string; title: string; status: string
   slip_date: string; amount: number; requester_name: string; department_code: string | null; department_name: string | null
   submitted_at: string | null; created_at: string
-  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null
+  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
   is_owner: boolean; approvable_step_id: string | null
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
@@ -138,6 +148,10 @@ export default function AccountingSlipDetailPage() {
   }
 
   const t = slip.trip_expense
+  const m = slip.meal_advance
+  const mealItems = (m?.items ?? []).filter(x => x.type !== "other")
+  const otherItems = (m?.items ?? []).filter(x => x.type === "other")
+  const acct = (x: MealItemView) => [x.account_name, x.account_code, x.tax_category].filter(Boolean).join("　") || "—"
   const lastDecision = [...slip.histories].reverse().find(h => h.action === "差戻し" || h.action === "却下")
   const showReason = (slip.status === "差戻し" || slip.status === "却下") && !!lastDecision?.comment
   const cardClass = "bg-white border rounded-lg p-4 mb-4 shadow-sm"
@@ -255,6 +269,58 @@ export default function AccountingSlipDetailPage() {
           <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mb-4 flex items-center justify-between">
             <span className="font-bold text-gray-700">精算合計</span>
             <span className="text-xl font-bold">{yen(t.total_amount)}</span>
+          </div>
+        </>
+      )}
+
+      {m && (
+        <>
+          <div className={cardClass}>
+            <p className={headClass}>使途内容</p>
+            <p className="text-sm whitespace-pre-wrap">{m.purpose || dash}</p>
+          </div>
+          <div className={cardClass}>
+            <p className={headClass}>飲食費</p>
+            {mealItems.length === 0 ? dash : mealItems.map((r, i) => (
+              <div key={i} className="border rounded-md p-3 mb-3 text-sm">
+                <p className="font-bold text-gray-700 mb-1">飲食費{["A", "B"][i]}</p>
+                <div className={rowClass}><span className="text-gray-500">支払先名</span><span>{r.payee || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">種別</span><span>{r.kind || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">住所</span><span>{r.address || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">飲食日</span><span>{fmtDate(r.meal_date ?? null)}</span></div>
+                <div className={rowClass}><span className="text-gray-500">TEL</span><span>{r.tel || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">参加人数</span><span>{r.headcount ? `${r.headcount}名` : "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">参加者名</span><span>{r.participants || "—"}</span></div>
+                <div className={rowClass}><span className="text-gray-500">金額</span><span className="font-bold">{yen(r.amount)}</span></div>
+                <div className={rowClass}><span className="text-gray-500">勘定科目・区分</span><span>{acct(r)}</span></div>
+              </div>
+            ))}
+          </div>
+          <div className={cardClass}>
+            <p className={headClass}>その他の精算</p>
+            {otherItems.length === 0 ? dash : otherItems.map((r, i) => (
+              <div key={i} className={rowClass}>
+                <span>{["C", "D", "E"][i]}　{r.item || "—"}<span className="text-gray-400 text-xs ml-3">{acct(r)}</span></span>
+                <span className="font-bold">{yen(r.amount)}</span>
+              </div>
+            ))}
+          </div>
+          {m.remarks && (
+            <div className={cardClass}>
+              <p className={headClass}>備考</p>
+              <p className="text-sm whitespace-pre-wrap">{m.remarks}</p>
+            </div>
+          )}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-gray-700">小計</span>
+              <span className="text-xl font-bold">{yen(m.subtotal)}</span>
+            </div>
+            <div className="flex gap-6 justify-end mt-2 text-sm text-gray-600">
+              <span>仮払金　<span className="font-bold">{yen(m.advance_amount)}</span></span>
+              <span>不足金　<span className="font-bold">{yen(m.shortage_amount)}</span></span>
+              <span>残金　<span className="font-bold">{yen(m.balance_amount)}</span></span>
+            </div>
           </div>
         </>
       )}

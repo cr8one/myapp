@@ -2040,6 +2040,7 @@ model AcctSlip {
   approval_steps   AcctSlipApprovalStep[]
   files            AcctSlipFile[]
   trip_expense     AcctTripExpense?
+  meal_advance     AcctMealAdvance?
   histories        AcctSlipHistory[]
   @@index([requester_id])
   @@index([slip_type])
@@ -2099,6 +2100,23 @@ model AcctTripExpense {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
   @@map("t_acct_trip_expenses")
+}
+
+model AcctMealAdvance {
+  id                    String   @id @default(cuid())
+  slip_id               String   @unique
+  slip                  AcctSlip @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  purpose               String?  @db.Text
+  remarks               String?  @db.Text
+  items                 Json?
+  subtotal              Int      @default(0)
+  advance_amount        Int      @default(0)
+  shortage_amount       Int      @default(0)
+  balance_amount        Int      @default(0)
+  shortage_account_name String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  @@map("t_acct_meal_advances")
 }
 
 model AcctSlipHistory {
