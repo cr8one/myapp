@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SendMailDialog from "@/components/accounting/send-mail-dialog"
+import AccountingInputPanel from "@/components/accounting/AccountingInputPanel"
 import { openAccountingFile } from "@/lib/accounting-slip-files-client"
 import { slipTypeLabel, statusBadgeClass } from "@/lib/accounting-slip-types"
 
@@ -23,6 +24,7 @@ type MealItemView = {
   type?: string; payee?: string; address?: string; meal_date?: string; tel?: string; kind?: string
   headcount?: number; participants?: string; item?: string; amount: number
   account_name?: string; account_code?: string; tax_category?: string
+  splits?: { name: string; amount: number; tax_category: string }[]
 }
 type Meal = {
   purpose: string | null; remarks: string | null; items: MealItemView[] | null
@@ -35,7 +37,7 @@ type Slip = {
   submitted_at: string | null; created_at: string
   approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
-  is_owner: boolean; approvable_step_id: string | null
+  is_owner: boolean; approvable_step_id: string | null; accounting_step_id: string | null; can_see_accounting: boolean
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
 }
 
@@ -292,7 +294,10 @@ export default function AccountingSlipDetailPage() {
                 <div className={rowClass}><span className="text-gray-500">参加人数</span><span>{r.headcount ? `${r.headcount}名` : "—"}</span></div>
                 <div className={rowClass}><span className="text-gray-500">参加者名</span><span>{r.participants || "—"}</span></div>
                 <div className={rowClass}><span className="text-gray-500">金額</span><span className="font-bold">{yen(r.amount)}</span></div>
-                <div className={rowClass}><span className="text-gray-500">勘定科目・区分</span><span>{acct(r)}</span></div>
+                {slip.can_see_accounting && <div className={rowClass}><span className="text-gray-500">勘定科目・区分</span><span>{acct(r)}</span></div>}
+                {slip.can_see_accounting && (r.splits ?? []).map((sp, k) => (
+                  <div key={k} className={rowClass}><span className="text-gray-400 pl-4">内訳　{sp.name || "—"}　{sp.tax_category}</span><span>{yen(sp.amount)}</span></div>
+                ))}
               </div>
             ))}
           </div>
@@ -300,7 +305,7 @@ export default function AccountingSlipDetailPage() {
             <p className={headClass}>その他の精算</p>
             {otherItems.length === 0 ? dash : otherItems.map((r, i) => (
               <div key={i} className={rowClass}>
-                <span>{["C", "D", "E"][i]}　{r.item || "—"}<span className="text-gray-400 text-xs ml-3">{acct(r)}</span></span>
+                <span>{["C", "D", "E"][i]}　{r.item || "—"}{slip.can_see_accounting && <span className="text-gray-400 text-xs ml-3">{acct(r)}</span>}</span>
                 <span className="font-bold">{yen(r.amount)}</span>
               </div>
             ))}
@@ -322,6 +327,10 @@ export default function AccountingSlipDetailPage() {
               <span>残金　<span className="font-bold">{yen(m.balance_amount)}</span></span>
             </div>
           </div>
+          {slip.accounting_step_id && (
+            <AccountingInputPanel slipId={id} stepId={slip.accounting_step_id}
+              items={m.items ?? []} shortageAccount={m.shortage_account_name ?? ""} onSaved={() => load()} />
+          )}
         </>
       )}
 

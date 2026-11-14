@@ -31,6 +31,7 @@ export type MealPdfMeal = {
   accountName: string
   accountCode: string
   taxCategory: string
+  splits: { name: string; amount: number; taxCategory: string }[] // 経理が分けた内訳（最大4つ）
 }
 
 export type MealPdfOther = {
@@ -172,6 +173,13 @@ function MealBlockView({ blk, letter, row }: { blk: MealBlock; letter: string; r
           <Cell b={blk.category} text={row.taxCategory} />
           <Cell b={{ x: hc.x + mw(118), y: hc.y, w: mw(60), h: hc.h }} text={row.headcount ? String(row.headcount) : ""} align="right" pad={0} />
           <Para b={{ x: pr.x + mw(118), y: pr.y, w: pr.w - mw(124), h: pr.h }} text={row.participants} pad={0.5} />
+          {row.splits.slice(0, 4).map((sp, k) => {
+            const region = { x: hc.x + mw(215), y: hc.y, w: hc.w - mw(215) - 1, h: hc.h }
+            const cw = region.w / 2
+            const ch = region.h / 2
+            const b: Box = { x: region.x + Math.floor(k / 2) * cw, y: region.y + (k % 2) * ch, w: cw, h: ch }
+            return <Cell key={`sp${k}`} b={b} text={`${sp.name} ${yen(sp.amount)} ${sp.taxCategory}`.trim()} max={7} min={4} align="left" pad={0.5} />
+          })}
         </>
       )}
     </View>

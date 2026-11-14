@@ -32,6 +32,7 @@ type MealItemJson = {
   headcount?: number; participants?: string
   item?: string; amount?: number
   account_name?: string; account_code?: string; tax_category?: string
+  splits?: { name?: string; amount?: number; tax_category?: string }[]
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -120,6 +121,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         accountName: x.account_name ?? "",
         accountCode: x.account_code ?? "",
         taxCategory: x.tax_category ?? "",
+        splits: (x.splits ?? []).map(sp => ({ name: sp.name ?? "", amount: sp.amount ?? 0, taxCategory: sp.tax_category ?? "" })),
       })),
       others: items.filter(x => x.type === "other").map(x => ({
         item: x.item ?? "",

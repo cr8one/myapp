@@ -93,8 +93,27 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     id: s.id, stage: s.stage, step_order: s.step_order, position_name: s.position_name,
     approver_name: s.approver_name, status: s.status, approved_at: s.approved_at,
   }))
+  // 勘定科目・区分・内訳は、経理側の人（経理担当・システム管理者、経理側の承認者）にだけ返す。起案者には、サーバー側で外す
+  const canSeeAccounting = viewer.canViewAll || slip.approval_steps.some(s => s.approver_id === viewer.userId && s.stage !== STAGE_REQUESTER)
+  const meal = slip.meal_advance && !canSeeAccounting
+    ? {
+        ...slip.meal_advance,
+        shortage_account_name: null,
+        items: ((slip.meal_advance.items as unknown as Record<string, unknown>[] | null) ?? []).map(x => {
+          const y = { ...x }
+          delete y.account_name
+          delete y.account_code
+          delete y.tax_category
+          delete y.splits
+          return y
+        }),
+      }
+    : slip.meal_advance
+  // 勘定科目と区分を入れる欄は、経理承認中に、承認できる番の経理側の承認者にだけ出す
+  const canAccountingInput = slip.slip_type === "meal_advance" && slip.status === "経理承認中" && !!approvable && approvable.stage !== STAGE_REQUESTER
   return NextResponse.json({
     ...slip,
+    meal_advance: meal,
     approval_steps: steps,
     is_owner: isOwner,
     can_edit: editable,
@@ -103,6 +122,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_withdraw: isOwner && inApproval,
     can_pdf: slip.status === "承認完了" && (slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance"),
     approvable_step_id: approvable?.id ?? null,
+    accounting_step_id: canAccountingInput ? approvable!.id : null,
+    can_see_accounting: canSeeAccounting,
   })
 }
 
