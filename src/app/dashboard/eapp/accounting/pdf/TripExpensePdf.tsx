@@ -65,12 +65,12 @@ function Cell({ b, text, max = FONT.body, min = 6, align = "center", pad = 1.2 }
   )
 }
 
-// 承認欄の枠の位置。最初の承認者がグループの右端に来て、右から左へ詰める
-function approvalSlots(list: TripPdfApproval[], group: { left: number; right: number }) {
-  const n = list.length
-  if (n === 0) return []
+// 承認欄の枠の位置。紙の様式と同じ数の枠を、最低限、いつも描く（承認者がいない下書きでも、空の枠が出る）。
+// 最初の承認者がグループの右端に来て、右から左へ詰める。承認者が多いときは、人数に合わせて枠を狭める
+function approvalSlots(list: TripPdfApproval[], group: { left: number; right: number; slots: number }) {
+  const n = Math.max(list.length, group.slots)
   const w = Math.min(APPROVAL_SLOT_W, (group.right - group.left) / n)
-  return list.map((item, i) => ({ item, x: group.right - (i + 1) * w, w }))
+  return Array.from({ length: n }, (_, i) => ({ item: list[i] ?? null, x: group.right - (i + 1) * w, w }))
 }
 
 export default function TripExpensePdf({ data }: { data: TripPdfData }) {
@@ -185,6 +185,7 @@ export default function TripExpensePdf({ data }: { data: TripPdfData }) {
 
         {/* 承認欄：役職名は常に表示。氏名または承認印は、承認済みのときだけ */}
         {slots.map((s, i) => {
+          if (!s.item) return null
           const head: Box = { x: s.x, y: APPROVAL_Y0, w: s.w, h: APPROVAL_HEADER_H }
           const body: Box = { x: s.x, y: APPROVAL_Y0 + APPROVAL_HEADER_H, w: s.w, h: APPROVAL_H - APPROVAL_HEADER_H }
           const stampSize = stampSizeMm(s.w, body.h)
