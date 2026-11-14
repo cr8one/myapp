@@ -12,6 +12,7 @@ import {
   APPROVAL_Y0, APPROVAL_H, APPROVAL_SLOT_W, APPROVAL_GROUP_REQUESTER, APPROVAL_GROUP_ACCOUNTING, APPROVAL_HEADER_H,
   fitText, fitParagraph, yen, fmtMD, fmtYMD, fmtTime,
 } from "@/lib/accounting-trip-layout"
+import { stampSizeMm } from "@/lib/pdf-stamp"
 
 const P = (mm: number) => (mm * 72) / 25.4 // mm → pt
 const PT_MM = 25.4 / 72
@@ -186,21 +187,18 @@ export default function TripExpensePdf({ data }: { data: TripPdfData }) {
         {slots.map((s, i) => {
           const head: Box = { x: s.x, y: APPROVAL_Y0, w: s.w, h: APPROVAL_HEADER_H }
           const body: Box = { x: s.x, y: APPROVAL_Y0 + APPROVAL_HEADER_H, w: s.w, h: APPROVAL_H - APPROVAL_HEADER_H }
-          const stampSize = Math.min(s.w - 3, body.h - 5)
+          const stampSize = stampSizeMm(s.w, body.h)
           return (
             <View key={`ap${i}`}>
               <Cell b={head} text={s.item.positionName ?? s.item.stage} max={FONT.approvalHead} min={5} />
               {s.item.approved && s.item.stampUrl && (
                 <Image src={s.item.stampUrl} style={{
-                  position: "absolute", left: P(body.x + (body.w - stampSize) / 2), top: P(body.y + 0.8),
+                  position: "absolute", left: P(body.x + (body.w - stampSize) / 2), top: P(body.y + (body.h - stampSize) / 2),
                   width: P(stampSize), height: P(stampSize), objectFit: "contain",
                 }} />
               )}
               {s.item.approved && !s.item.stampUrl && (
-                <Cell b={{ ...body, h: body.h - 4.5 }} text={s.item.approverName ?? ""} max={FONT.approvalName} min={5} />
-              )}
-              {s.item.approved && s.item.dateText && (
-                <Cell b={{ x: body.x, y: body.y + body.h - 4.5, w: body.w, h: 4.5 }} text={s.item.dateText} max={FONT.approvalDate} min={5} />
+                <Cell b={body} text={s.item.approverName ?? ""} max={FONT.approvalName} min={5} />
               )}
             </View>
           )

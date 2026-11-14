@@ -120,7 +120,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_edit_files: editable,
     can_delete: isOwner && slip.status === DRAFT_STATUS && slip.histories.length === 0,
     can_withdraw: isOwner && inApproval,
-    can_pdf: slip.status === "承認完了" && (slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance"),
+    can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance",
     approvable_step_id: approvable?.id ?? null,
     accounting_step_id: canAccountingInput ? approvable!.id : null,
     can_see_accounting: canSeeAccounting,

@@ -5,8 +5,8 @@ import { renderToBuffer, Font } from "@react-pdf/renderer"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { prisma } from "@/lib/prisma"
-import { getAccountingViewer, slipVisibilityWhere } from "@/lib/accounting-slip-access"
-import { STATUS_COMPLETED } from "@/lib/accounting-slip-approval"
+import { getAccountingViewer, slipVisibilityWhere, DRAFT_STATUS } from "@/lib/accounting-slip-access"
+import { STAGE_REQUESTER } from "@/lib/accounting-slip-approval"
 import TripExpensePdf, { TripPdfData } from "@/app/dashboard/eapp/accounting/pdf/TripExpensePdf"
 import MealAdvancePdf, { MealPdfData } from "@/app/dashboard/eapp/accounting/pdf/MealAdvancePdf"
 
@@ -48,6 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       slip_type: true,
       status: true,
       slip_date: true,
+      requester_id: true,
       requester_name: true,
       department_code: true,
       department_name: true,
@@ -60,9 +61,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     },
   })
   if (!slip) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (slip.status !== STATUS_COMPLETED) {
-    return NextResponse.json({ error: "承認が完了した伝票だけ、PDFに出力できます" }, { status: 400 })
-  }
+  // PDFは、見てよい人なら、下書き・承認の途中でも、いつでも出力できる
   const t = slip.trip_expense
   const m = slip.meal_advance
   if (!((slip.slip_type === "trip_expense" && t) || (slip.slip_type === "meal_advance" && m))) {
@@ -95,6 +94,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       stampUrl: approved && s.approver_id ? stampUrlById[s.approver_id] ?? null : null,
     }
   })
+
+  // 本人印：起案者の印影画像（下書きのときは載せない）
+  let requesterStampUrl: string | null = null
+  if (slip.status !== DRAFT_STATUS) {
+    const owner = await prisma.user.findUnique({ where: { id: slip.requester_id }, select: { inkanImageKey: true } })
+    if (owner?.inkanImageKey) {
+      requesterStampUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: owner.inkanImageKey }), { expiresIn: 300 })
+    }
+  }
+  // 勘定科目・区分・内訳は、経理側の人にだけ載せる（画面と同じ決まり）
+  const canSeeAccounting = viewer.canViewAll || slip.approval_steps.some(s => s.approver_id === viewer.userId && s.stage !== STAGE_REQUESTER)
 
   let element: any
   let fileLabel: string
@@ -135,7 +145,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       shortage: m.shortage_amount,
       balance: m.balance_amount,
       shortageAccountName: m.shortage_account_name,
+      requesterStampUrl,
       approvals,
+    }
+    if (!canSeeAccounting) {
+      for (const r of data.meals) { r.accountName = ""; r.accountCode = ""; r.taxCategory = ""; r.splits = [] }
+      for (const r of data.others) { r.accountName = ""; r.accountCode = ""; r.taxCategory = "" }
+      data.shortageAccountName = null
     }
     element = createElement(MealAdvancePdf, { data })
     fileLabel = "飲食費及び仮払精算書"

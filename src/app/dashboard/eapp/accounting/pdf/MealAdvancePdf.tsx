@@ -2,7 +2,7 @@ import { Document, Page, View, Text, Image, Svg, Line, Rect, G } from "@react-pd
 import {
   PAGE_W_MM, PAGE_H_MM, LINES, LINE_WIDTH_MM, FONT, MEAL_KINDS, mw,
   TITLE, SLIP_NO, DATE_LABEL, DATE_VALUE, DEPT_LABEL, DEPT_VALUE, CODE_LABEL, CODE_VALUE, NAME_LABEL, NAME_VALUE,
-  SEAL_LABEL, PURPOSE_LABEL, PURPOSE_VALUE,
+  SEAL_LABEL, SEAL_BOX, PURPOSE_LABEL, PURPOSE_VALUE,
   APPROVAL_Y0, APPROVAL_H, APPROVAL_HEADER_H, APPROVAL_SLOT_W,
   APPROVAL_TITLE_ACCOUNTING, APPROVAL_TITLE_REQUESTER, APPROVAL_GROUP_ACCOUNTING, APPROVAL_GROUP_REQUESTER,
   MEAL_A, MEAL_B, OTHER_HEAD, OTHER_HEAD_AMOUNT, OTHER_HEAD_ACCOUNT, OTHER_HEAD_CATEGORY, OTHER_ROWS,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/accounting-meal-advance-layout"
 import { fitText, fitParagraph, yen } from "@/lib/accounting-trip-layout"
 import type { Box } from "@/lib/accounting-trip-layout"
+import { stampSizeMm } from "@/lib/pdf-stamp"
 import type { TripPdfApproval } from "./TripExpensePdf"
 
 const P = (mm: number) => (mm * 72) / 25.4 // mm → pt
@@ -57,6 +58,7 @@ export type MealPdfData = {
   shortage: number
   balance: number
   shortageAccountName: string | null
+  requesterStampUrl: string | null // 起案者の印影（本人印）
   approvals: MealPdfApproval[] // 承認の順（最初の承認者が先頭）
 }
 
@@ -149,15 +151,15 @@ function MealBlockView({ blk, letter, row }: { blk: MealBlock; letter: string; r
   return (
     <View>
       <Cell b={blk.legend} text={LEGEND} max={7} min={4.5} align="left" pad={1} />
-      <Cell b={blk.headAmount} text="金額" max={FONT.label} />
-      <Cell b={blk.headAccount} text="勘定科目" max={FONT.label} />
-      <Cell b={blk.headCategory} text="区分" max={FONT.label} />
+      <Cell b={blk.headAmount} text="金額" max={9} />
+      <Cell b={blk.headAccount} text="勘定科目" max={9} />
+      <Cell b={blk.headCategory} text="区分" max={9} />
       <VLabel b={blk.sideLabel} chars={["飲", "食", "費", letter]} />
       <Cell b={blk.payeeLabel} text="支払先名" max={FONT.label} />
-      <Cell b={blk.kindLabel} text="種別" max={FONT.label} />
+      <Cell b={blk.kindLabel} text="種別" max={FONT.label} min={4} pad={0.3} />
       <Cell b={blk.addressLabel} text="住　所" max={FONT.label} />
       <Cell b={blk.dateLabel} text="飲食日" max={FONT.label} />
-      <Cell b={blk.telLabel} text="TEL" max={7} />
+      <Cell b={blk.telLabel} text="TEL" max={7} min={4} pad={0.3} />
       <Cell b={{ x: hc.x, y: hc.y, w: mw(112), h: hc.h }} text="参加人数" max={FONT.label} align="left" pad={1} />
       <Cell b={{ x: hc.x + mw(182), y: hc.y, w: mw(30), h: hc.h }} text="名" max={FONT.label} align="left" pad={0.5} />
       <Cell b={{ x: pr.x, y: pr.y, w: mw(112), h: pr.h }} text="参加者名" max={FONT.label} align="left" pad={1} />
@@ -221,22 +223,30 @@ export default function MealAdvancePdf({ data }: { data: MealPdfData }) {
         <Cell b={NAME_LABEL} text="氏　名" max={FONT.label} />
         <Cell b={NAME_VALUE} text={d.requesterName} max={FONT.label + 1} />
         <Cell b={SEAL_LABEL} text="本人印" max={FONT.label} />
+        {d.requesterStampUrl && (
+          <Image src={d.requesterStampUrl} style={{
+            position: "absolute",
+            left: P(SEAL_BOX.x + (SEAL_BOX.w - stampSizeMm(SEAL_BOX.w, SEAL_BOX.h)) / 2),
+            top: P(SEAL_BOX.y + (SEAL_BOX.h - stampSizeMm(SEAL_BOX.w, SEAL_BOX.h)) / 2),
+            width: P(stampSizeMm(SEAL_BOX.w, SEAL_BOX.h)), height: P(stampSizeMm(SEAL_BOX.w, SEAL_BOX.h)), objectFit: "contain",
+          }} />
+        )}
         <Cell b={PURPOSE_LABEL} text="使途内容" max={FONT.label} align="left" pad={1.5} />
         <Para b={PURPOSE_VALUE} text={d.purpose ?? ""} max={12} min={6} />
 
         {/* 承認欄の見出し */}
-        <Cell b={APPROVAL_TITLE_ACCOUNTING} text="総務経理課" max={FONT.label} />
-        <Cell b={APPROVAL_TITLE_REQUESTER} text="当該部" max={FONT.label} />
+        <Cell b={APPROVAL_TITLE_ACCOUNTING} text="総務経理課" max={9} />
+        <Cell b={APPROVAL_TITLE_REQUESTER} text="当該部" max={9} />
 
         {/* 飲食費A・B */}
         <MealBlockView blk={MEAL_A} letter="A" row={d.meals[0]} />
         <MealBlockView blk={MEAL_B} letter="B" row={d.meals[1]} />
 
         {/* その他精算C・D・E */}
-        <Cell b={OTHER_HEAD} text="その他　精算" max={FONT.label} />
-        <Cell b={OTHER_HEAD_AMOUNT} text="金額" max={FONT.label} />
-        <Cell b={OTHER_HEAD_ACCOUNT} text="勘定科目" max={FONT.label} />
-        <Cell b={OTHER_HEAD_CATEGORY} text="区分" max={FONT.label} />
+        <Cell b={OTHER_HEAD} text="その他　精算" max={9} />
+        <Cell b={OTHER_HEAD_AMOUNT} text="金額" max={9} />
+        <Cell b={OTHER_HEAD_ACCOUNT} text="勘定科目" max={9} />
+        <Cell b={OTHER_HEAD_CATEGORY} text="区分" max={9} />
         {OTHER_ROWS.map((r, i) => {
           const o = d.others[i]
           return (
@@ -271,21 +281,18 @@ export default function MealAdvancePdf({ data }: { data: MealPdfData }) {
         {slots.map((s, i) => {
           const head: Box = { x: s.x, y: APPROVAL_Y0, w: s.w, h: APPROVAL_HEADER_H }
           const body: Box = { x: s.x, y: APPROVAL_Y0 + APPROVAL_HEADER_H, w: s.w, h: APPROVAL_H - APPROVAL_HEADER_H }
-          const stampSize = Math.min(s.w - 3, body.h - 5)
+          const stampSize = stampSizeMm(s.w, body.h)
           return (
             <View key={`ap${i}`}>
               <Cell b={head} text={s.item.positionName ?? s.item.stage} max={FONT.approvalHead} min={5} />
               {s.item.approved && s.item.stampUrl && (
                 <Image src={s.item.stampUrl} style={{
-                  position: "absolute", left: P(body.x + (body.w - stampSize) / 2), top: P(body.y + 0.8),
+                  position: "absolute", left: P(body.x + (body.w - stampSize) / 2), top: P(body.y + (body.h - stampSize) / 2),
                   width: P(stampSize), height: P(stampSize), objectFit: "contain",
                 }} />
               )}
               {s.item.approved && !s.item.stampUrl && (
-                <Cell b={{ ...body, h: body.h - 4.5 }} text={s.item.approverName ?? ""} max={FONT.approvalName} min={5} />
-              )}
-              {s.item.approved && s.item.dateText && (
-                <Cell b={{ x: body.x, y: body.y + body.h - 4.5, w: body.w, h: 4.5 }} text={s.item.dateText} max={FONT.approvalDate} min={5} />
+                <Cell b={body} text={s.item.approverName ?? ""} max={FONT.approvalName} min={5} />
               )}
             </View>
           )
