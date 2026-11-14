@@ -6,7 +6,6 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { prisma } from "@/lib/prisma"
 import { getAccountingViewer, slipVisibilityWhere, DRAFT_STATUS } from "@/lib/accounting-slip-access"
-import { STAGE_REQUESTER } from "@/lib/accounting-slip-approval"
 import TripExpensePdf, { TripPdfData } from "@/app/dashboard/eapp/accounting/pdf/TripExpensePdf"
 import MealAdvancePdf, { MealPdfData } from "@/app/dashboard/eapp/accounting/pdf/MealAdvancePdf"
 
@@ -103,9 +102,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       requesterStampUrl = await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: owner.inkanImageKey }), { expiresIn: 300 })
     }
   }
-  // 勘定科目・区分・内訳は、経理側の人にだけ載せる（画面と同じ決まり）
-  const canSeeAccounting = viewer.canViewAll || slip.approval_steps.some(s => s.approver_id === viewer.userId && s.stage !== STAGE_REQUESTER)
-
   let element: any
   let fileLabel: string
 
@@ -147,11 +143,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       shortageAccountName: m.shortage_account_name,
       requesterStampUrl,
       approvals,
-    }
-    if (!canSeeAccounting) {
-      for (const r of data.meals) { r.accountName = ""; r.accountCode = ""; r.taxCategory = ""; r.splits = [] }
-      for (const r of data.others) { r.accountName = ""; r.accountCode = ""; r.taxCategory = "" }
-      data.shortageAccountName = null
     }
     element = createElement(MealAdvancePdf, { data })
     fileLabel = "飲食費及び仮払精算書"
