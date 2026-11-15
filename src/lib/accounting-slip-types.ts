@@ -15,6 +15,13 @@ export const SLIP_TYPES = [
     href: "/dashboard/eapp/accounting/new/meal-advance",
     routeServiceType: "accounting_meal_advance",
   },
+  {
+    value: "advance_request",
+    label: "仮払金請求受領書",
+    description: "仮払金の請求と、支払・受領の記録",
+    href: "/dashboard/eapp/accounting/new/advance-request",
+    routeServiceType: "accounting_advance_request",
+  },
 ] as const
 
 export const SLIP_STATUSES = ["下書き", "起案部承認中", "経理承認中", "承認完了", "差戻し", "却下"] as const

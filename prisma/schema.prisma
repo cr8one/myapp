@@ -2041,6 +2041,7 @@ model AcctSlip {
   files            AcctSlipFile[]
   trip_expense     AcctTripExpense?
   meal_advance     AcctMealAdvance?
+  advance_request  AcctAdvanceRequest?
   histories        AcctSlipHistory[]
   @@index([requester_id])
   @@index([slip_type])
@@ -2117,6 +2118,26 @@ model AcctMealAdvance {
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
   @@map("t_acct_meal_advances")
+}
+
+model AcctAdvanceRequest {
+  id                String    @id @default(cuid())
+  slip_id           String    @unique
+  slip              AcctSlip  @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  purpose           String?   @db.Text
+  due_date          DateTime? @db.Date
+  advance_amount    Int       @default(0)
+  paid_date         DateTime? @db.Date
+  paid_method       String?
+  paid_amount       Int?
+  paid_by_id        String?
+  paid_by_name      String?
+  received_date     DateTime? @db.Date
+  received_by_id    String?
+  received_by_name  String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  @@map("t_acct_advance_requests")
 }
 
 model AcctSlipHistory {

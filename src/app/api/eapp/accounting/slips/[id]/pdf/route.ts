@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma"
 import { getAccountingViewer, slipVisibilityWhere, DRAFT_STATUS } from "@/lib/accounting-slip-access"
 import TripExpensePdf, { TripPdfData } from "@/app/dashboard/eapp/accounting/pdf/TripExpensePdf"
 import MealAdvancePdf, { MealPdfData } from "@/app/dashboard/eapp/accounting/pdf/MealAdvancePdf"
+import AdvanceRequestPdf, { AdvancePdfData } from "@/app/dashboard/eapp/accounting/pdf/AdvanceRequestPdf"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -57,13 +58,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
       trip_expense: true,
       meal_advance: true,
+      advance_request: true,
     },
   })
   if (!slip) return NextResponse.json({ error: "Not found" }, { status: 404 })
   // PDFは、見てよい人なら、下書き・承認の途中でも、いつでも出力できる
   const t = slip.trip_expense
   const m = slip.meal_advance
-  if (!((slip.slip_type === "trip_expense" && t) || (slip.slip_type === "meal_advance" && m))) {
+  const ad = slip.advance_request
+  if (!((slip.slip_type === "trip_expense" && t) || (slip.slip_type === "meal_advance" && m) || (slip.slip_type === "advance_request" && ad))) {
     return NextResponse.json({ error: "この種類の伝票は、まだPDFに出力できません" }, { status: 400 })
   }
 
@@ -105,7 +108,27 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   let element: any
   let fileLabel: string
 
-  if (slip.slip_type === "meal_advance" && m) {
+  if (slip.slip_type === "advance_request" && ad) {
+    const data: AdvancePdfData = {
+      slipNo: slip.slip_no,
+      slipDate: slip.slip_date.toISOString().slice(0, 10),
+      requesterName: slip.requester_name,
+      departmentName: slip.department_name,
+      purpose: ad.purpose,
+      dueDate: ad.due_date ? ad.due_date.toISOString().slice(0, 10) : null,
+      amount: ad.advance_amount,
+      paidDate: ad.paid_date ? ad.paid_date.toISOString().slice(0, 10) : null,
+      paidMethod: ad.paid_method,
+      paidAmount: ad.paid_amount,
+      receivedDate: ad.received_date ? ad.received_date.toISOString().slice(0, 10) : null,
+      requestStampUrl: requesterStampUrl,
+      paidStampUrl: null,
+      receiptStampUrl: null,
+      approvals,
+    }
+    element = createElement(AdvanceRequestPdf, { data })
+    fileLabel = "仮払金請求受領書"
+  } else if (slip.slip_type === "meal_advance" && m) {
     const items = (m.items as unknown as MealItemJson[] | null) ?? []
     const data: MealPdfData = {
       slipNo: slip.slip_no,

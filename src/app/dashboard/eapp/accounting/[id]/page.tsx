@@ -31,11 +31,16 @@ type Meal = {
   subtotal: number; advance_amount: number; shortage_amount: number; balance_amount: number
   shortage_account_name: string | null
 }
+type AdvanceView = {
+  purpose: string | null; due_date: string | null; advance_amount: number
+  paid_date: string | null; paid_method: string | null; paid_amount: number | null; paid_by_name: string | null
+  received_date: string | null; received_by_name: string | null
+}
 type Slip = {
   id: string; slip_no: number; slip_type: string; title: string; status: string
   slip_date: string; amount: number; requester_name: string; department_code: string | null; department_name: string | null
   submitted_at: string | null; created_at: string
-  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null
+  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null; advance_request: AdvanceView | null
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
   is_owner: boolean; approvable_step_id: string | null; accounting_step_id: string | null
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
@@ -151,6 +156,7 @@ export default function AccountingSlipDetailPage() {
 
   const t = slip.trip_expense
   const m = slip.meal_advance
+  const a = slip.advance_request
   const mealItems = (m?.items ?? []).filter(x => x.type !== "other")
   const otherItems = (m?.items ?? []).filter(x => x.type === "other")
   const acct = (x: MealItemView) => [x.account_name, x.account_code, x.tax_category].filter(Boolean).join("　") || "—"
@@ -272,6 +278,28 @@ export default function AccountingSlipDetailPage() {
             <span className="font-bold text-gray-700">精算合計</span>
             <span className="text-xl font-bold">{yen(t.total_amount)}</span>
           </div>
+        </>
+      )}
+
+      {a && (
+        <>
+          <div className={cardClass}>
+            <p className={headClass}>請求内容</p>
+            <div className={rowClass}><span className="text-gray-500">使途内容</span><span className="whitespace-pre-wrap text-right">{a.purpose || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">精算予定日</span><span>{fmtDate(a.due_date)}</span></div>
+            <div className={rowClass}><span className="text-gray-500">仮払金額</span><span className="font-bold">{yen(a.advance_amount)}</span></div>
+          </div>
+          {(a.paid_date || a.received_date) && (
+            <div className={cardClass}>
+              <p className={headClass}>支払と受領の記録</p>
+              <div className={rowClass}><span className="text-gray-500">支払日</span><span>{fmtDate(a.paid_date)}</span></div>
+              <div className={rowClass}><span className="text-gray-500">支払方法</span><span>{a.paid_method || "—"}</span></div>
+              <div className={rowClass}><span className="text-gray-500">支払額</span><span>{a.paid_amount != null ? yen(a.paid_amount) : "—"}</span></div>
+              <div className={rowClass}><span className="text-gray-500">支払を記録した人</span><span>{a.paid_by_name || "—"}</span></div>
+              <div className={rowClass}><span className="text-gray-500">受領日</span><span>{fmtDate(a.received_date)}</span></div>
+              <div className={rowClass}><span className="text-gray-500">受領を記録した人</span><span>{a.received_by_name || "—"}</span></div>
+            </div>
+          )}
         </>
       )}
 
