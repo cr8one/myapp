@@ -11,7 +11,7 @@ import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
 import AuditHistory from "@/components/audit-history"
 import AddressMap from "@/components/address-map"
 
-type TypeMaster = { id: string; name: string }
+type TypeMaster = { id: string; name: string; furigana?: string | null }
 type Contact = { id?: string; name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
 type DevCompany = {
   id: string; name: string; nameKana?: string; industry?: string; status: string
@@ -113,7 +113,7 @@ export default function DevCompanyDetailPage() {
   }
 
   // SelectOption形式に変換
-  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name }))
+  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name, kana: t.furigana ?? "" }))
 
   if (!company) return <div className="p-8">読み込み中...</div>
 
@@ -197,7 +197,7 @@ export default function DevCompanyDetailPage() {
                 options={typeOptions}
                 values={selectedTypeIds}
                 onChange={setSelectedTypeIds}
-                placeholder="種別を選択..."
+                placeholder="種別を選択..." indexFilter
               />
             </CardContent>
           </Card>

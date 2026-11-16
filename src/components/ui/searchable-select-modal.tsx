@@ -141,24 +141,32 @@ type MultiSelectModalProps = {
   values: string[]
   onChange: (ids: string[]) => void
   placeholder?: string
+  indexFilter?: boolean
 }
 
 export function MultiSelectModal({
-  label, options, values, onChange, placeholder = "選択してください（複数可）",
+  label, options, values, onChange, placeholder = "選択してください（複数可）", indexFilter = false,
 }: MultiSelectModalProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useState<string[]>([])
+  const [kanaGroup, setKanaGroup] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const selectedOptions = options.filter((o) => values.includes(o.id))
-  const filtered = options.filter((o) =>
+  const textFiltered = options.filter((o) =>
     query === "" ||
     o.label.toLowerCase().includes(query.toLowerCase()) ||
     (o.sublabel ?? "").toLowerCase().includes(query.toLowerCase())
   )
+  const matchesKana = (o: SelectOption) => {
+    if (!kanaGroup) return true
+    const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
+    return group ? group.chars.some((c) => toHiragana(o.kana ?? "").startsWith(c)) : true
+  }
+  const filtered = textFiltered.filter(matchesKana)
   const toggleDraft = (id: string) =>
     setDraft((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
-  const handleOpen = () => { setDraft([...values]); setQuery(""); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
+  const handleOpen = () => { setDraft([...values]); setQuery(""); setKanaGroup(null); setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }
   const handleConfirm = () => { onChange(draft); setOpen(false) }
   const handleCancel = () => { setDraft([]); setOpen(false) }
   useEffect(() => {
@@ -183,7 +191,7 @@ export function MultiSelectModal({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={handleCancel} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[75vh]">
+          <div className={`relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col ${indexFilter ? "h-[75vh]" : "max-h-[75vh]"}`}>
             <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
               <h2 className="font-semibold text-gray-800">{label}を選択</h2>
               <div className="flex items-center gap-2">
@@ -196,6 +204,20 @@ export function MultiSelectModal({
             <div className="px-4 py-3 border-b">
               <input ref={inputRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                 placeholder="検索..." className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              {indexFilter && (
+                <div className="pt-2 flex flex-wrap gap-1">
+                  <button type="button" onClick={() => setKanaGroup(null)}
+                    className={`text-xs px-2 py-1 rounded ${kanaGroup === null ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    全
+                  </button>
+                  {KANA_INDEX_GROUPS.map((g) => (
+                    <button key={g.label} type="button" onClick={() => setKanaGroup(g.label)}
+                      className={`text-xs px-2 py-1 rounded ${kanaGroup === g.label ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {draft.length > 0 && (
               <div className="px-4 py-2 border-b bg-blue-50 flex flex-wrap gap-1.5">

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
 
-type TypeMaster = { id: string; name: string }
+type TypeMaster = { id: string; name: string; furigana?: string | null }
 type ContactForm = { name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
 
 const STATUSES = ["登録のみ", "面識あり", "相談済", "見積り済", "受注済"]
@@ -62,7 +62,7 @@ export default function NewDevCompanyPage() {
     router.push(`/dashboard/dev/companies/${data.id}`)
   }
 
-  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name }))
+  const typeOptions = typeMasters.map((t) => ({ id: t.id, label: t.name, kana: t.furigana ?? "" }))
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
@@ -132,7 +132,7 @@ export default function NewDevCompanyPage() {
               options={typeOptions}
               values={selectedTypeIds}
               onChange={setSelectedTypeIds}
-              placeholder="種別を選択..."
+              placeholder="種別を選択..." indexFilter
             />
           </CardContent>
         </Card>
