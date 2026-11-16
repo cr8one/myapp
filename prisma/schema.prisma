@@ -242,7 +242,6 @@ model DevCompanyTypeMaster {
   name        String           @unique
   description String?
   furigana    String?
-  sortOrder   Int              @default(0) @map("sort_order") @ignore
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
   companies   DevCompanyType[]
