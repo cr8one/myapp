@@ -241,7 +241,8 @@ model DevCompanyTypeMaster {
   id          String           @id @default(cuid())
   name        String           @unique
   description String?
-  sortOrder   Int              @default(0) @map("sort_order")
+  furigana    String?
+  sortOrder   Int              @default(0) @map("sort_order") @ignore
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
   companies   DevCompanyType[]

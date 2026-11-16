@@ -24,7 +24,7 @@ type SingleSelectModalProps = {
   indexFilter?: boolean
 }
 
-const KANA_INDEX_GROUPS: { label: string; chars: string[] }[] = [
+export const KANA_INDEX_GROUPS: { label: string; chars: string[] }[] = [
   { label: "あ", chars: ["あ", "い", "う", "え", "お"] },
   { label: "か", chars: ["か", "き", "く", "け", "こ", "が", "ぎ", "ぐ", "げ", "ご"] },
   { label: "さ", chars: ["さ", "し", "す", "せ", "そ", "ざ", "じ", "ず", "ぜ", "ぞ"] },
@@ -37,7 +37,7 @@ const KANA_INDEX_GROUPS: { label: string; chars: string[] }[] = [
   { label: "わ", chars: ["わ", "を", "ん"] },
 ]
 
-function toHiragana(str: string): string {
+export function toHiragana(str: string): string {
   return str.replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
 }
 

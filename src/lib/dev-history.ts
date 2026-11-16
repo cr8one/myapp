@@ -40,7 +40,7 @@ export const DEV_EXHIBITION_LABELS: Record<string, string> = {
 export const DEV_COMPANY_TYPE_MASTER_LABELS: Record<string, string> = {
   name: "種別名",
   description: "説明",
-  sortOrder: "表示順",
+  furigana: "フリガナ",
 }
 
 type Base = { userId?: string | null; targetModel: string; targetId: string; targetLabel: string }
