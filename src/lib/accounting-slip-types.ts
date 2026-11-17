@@ -1,4 +1,7 @@
 // 経理精算の書類の種類と状態の定義（画面・API共通）。画面専用の部品は含めない。
+// 経理側の承認者の設定は、経理精算のすべての書類で共通。電子申請マスタの「経理精算共通承認者設定」に、1回登録すれば、どの種類にも効く
+export const ACCOUNTING_ROUTE_SERVICE_TYPE = "accounting_trip_expense"
+
 export const SLIP_TYPES = [
   {
     value: "trip_expense",
@@ -6,21 +9,21 @@ export const SLIP_TYPES = [
     description: "出張の交通費・宿泊費・日当の精算",
     href: "/dashboard/eapp/accounting/new/trip-expense",
     // 経理側の承認者（電子申請マスタ）のサービス名
-    routeServiceType: "accounting_trip_expense",
+    routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
   },
   {
     value: "meal_advance",
     label: "飲食費及び仮払精算書",
     description: "飲食費などの精算と、仮払金の精算",
     href: "/dashboard/eapp/accounting/new/meal-advance",
-    routeServiceType: "accounting_meal_advance",
+    routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
   },
   {
     value: "advance_request",
     label: "仮払金請求受領書",
     description: "仮払金の請求と、支払・受領の記録",
     href: "/dashboard/eapp/accounting/new/advance-request",
-    routeServiceType: "accounting_advance_request",
+    routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
   },
 ] as const
 

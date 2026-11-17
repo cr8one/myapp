@@ -24,10 +24,9 @@ const TAB_SERVICE_TYPE: Record<string, string> = {
   "ringi-approval-routes": "ringi",
   "pctakeout-approval-routes": "pc_takeout",
 }
+// 経理側の承認者は、経理精算のすべての書類で共通（種類ごとには分けない）
 const ACCOUNTING_TYPES = [
-  { value: "accounting_trip_expense", label: "出張旅費精算書（国内）" },
-  { value: "accounting_meal_advance", label: "飲食費及び仮払精算書" },
-  { value: "accounting_advance_request", label: "仮払金請求受領書" },
+  { value: "accounting_trip_expense", label: "経理精算（全書類共通）" },
 ]
 const serviceTypeOf = (tab: string, acctType: string) => tab === "accounting-routes" ? acctType : TAB_SERVICE_TYPE[tab]
 const ACCOUNTING_DESCRIPTION = "選んだ書類の種類に共通で適用される、経理側の承認ステップです（経理担当・経理マネージャー・専務・社長など）。起案者ごとの承認者（課長・部長など）の承認が終わったあと、ここでの順序で承認が進みます。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。"
@@ -222,13 +221,7 @@ export default function EappMastersPage() {
             </button>
           </div>
           {activeTab === "accounting-routes" && (
-            <div className="mb-4 flex items-center gap-2">
-              <span className="text-sm text-gray-600">書類の種類</span>
-              <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={accountingType}
-                onChange={e => { setAccountingType(e.target.value); setShowRouteForm(false); setEditRoute(null); fetchRoutes("accounting-routes", e.target.value) }}>
-                {ACCOUNTING_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
+            <p className="mb-4 text-sm text-gray-600">出張旅費精算書・飲食費及び仮払精算書・仮払金請求受領書のすべてに、共通で適用されます。</p>
           )}
           {showRouteForm && (
             <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
