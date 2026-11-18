@@ -25,6 +25,13 @@ export const SLIP_TYPES = [
     href: "/dashboard/eapp/accounting/new/advance-request",
     routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
   },
+  {
+    value: "entertainment_expense",
+    label: "交際費精算書（ゴルフなど）",
+    description: "ゴルフなどに関連するプレイ代・飲食・高速道路料金などの精算",
+    href: "/dashboard/eapp/accounting/new/entertainment-expense",
+    routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
+  },
 ] as const
 
 export const SLIP_STATUSES = ["下書き", "起案部承認中", "経理承認中", "承認完了", "差戻し", "却下"] as const

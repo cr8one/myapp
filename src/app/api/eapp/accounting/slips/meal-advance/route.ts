@@ -6,8 +6,10 @@ import { buildApprovalSteps, STAGE_REQUESTER, STATUS_REQUESTER_APPROVING, STATUS
 import { SLIP_TYPES } from "@/lib/accounting-slip-types"
 import { parseMealAdvance } from "@/lib/accounting-meal-advance"
 import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
+import { checkAdvanceLink } from "@/lib/accounting-advance-link"
 
-const MEAL = SLIP_TYPES.find(t => t.value === "meal_advance")!
+// 飲食費及び仮払精算書と交際費精算書は、同じ作りで、種類だけが違う。種類の指定がないときは、飲食費及び仮払精算書として扱う
+const MEAL_TYPES = ["meal_advance", "entertainment_expense"] as const
 
 export async function POST(req: NextRequest) {
   const viewer = await getAccountingViewer()
@@ -19,6 +21,18 @@ export async function POST(req: NextRequest) {
   const parsed = parseMealAdvance(b, submit)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const v = parsed.value
+
+  const slipType = MEAL_TYPES.find(t => t === b.slip_type) ?? "meal_advance"
+  const MEAL = SLIP_TYPES.find(t => t.value === slipType)!
+
+  // 仮払金請求受領書との紐づけがあるときは、請求を確認して、仮払金・不足金・残金を、請求の金額で計算し直す
+  if (v.meal.advance_request_id) {
+    const link = await checkAdvanceLink(viewer.userId, v.meal.advance_request_id, null)
+    if ("error" in link) return NextResponse.json({ error: link.error }, { status: 400 })
+    v.meal.advance_amount = link.amount
+    v.meal.shortage_amount = Math.max(v.meal.subtotal - link.amount, 0)
+    v.meal.balance_amount = Math.max(link.amount - v.meal.subtotal, 0)
+  }
 
   const info = await getRequesterInfo(viewer.userId)
   if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -41,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const record = await prisma.acctSlip.create({
     data: {
-      slip_type: MEAL.value,
+      slip_type: slipType,
       title,
       status,
       slip_date: v.slipDate,

@@ -59,6 +59,8 @@ export type MealPdfData = {
   balance: number
   shortageAccountName: string | null
   requesterStampUrl: string | null // 起案者の印影（本人印）
+  variant: "meal" | "entertainment" // 飲食費及び仮払精算書か、交際費精算書か（表記の切り替え）
+  linked: boolean // 仮払金請求受領書に紐づいているか（交際費精算書は、紐づいたときだけ、題名が「交際費及び仮払精算書」になる）
   approvals: MealPdfApproval[] // 承認の順（最初の承認者が先頭）
 }
 
@@ -145,7 +147,7 @@ function approvalSlots(list: MealPdfApproval[], group: { left: number; right: nu
 const acctText = (name: string, code: string) => [name, code].filter(Boolean).join("　")
 
 // 飲食費A・Bの1件分
-function MealBlockView({ blk, letter, row }: { blk: MealBlock; letter: string; row: MealPdfMeal | undefined }) {
+function MealBlockView({ blk, letter, noun, row }: { blk: MealBlock; letter: string; noun: string[]; row: MealPdfMeal | undefined }) {
   const hc = blk.headcountRow
   const pr = blk.participantsRow
   const kindIdx = row ? MEAL_KINDS.indexOf(row.kind) : -1
@@ -155,7 +157,7 @@ function MealBlockView({ blk, letter, row }: { blk: MealBlock; letter: string; r
       <Cell b={blk.headAmount} text="金額" max={9} />
       <Cell b={blk.headAccount} text="勘定科目" max={9} />
       <Cell b={blk.headCategory} text="区分" max={9} />
-      <VLabel b={blk.sideLabel} chars={["飲", "食", "費", letter]} />
+      <VLabel b={blk.sideLabel} chars={[...noun, letter]} />
       <Cell b={blk.payeeLabel} text="支払先名" max={FONT.label} />
       <Cell b={blk.kindLabel} text="種別" max={FONT.label} min={4} pad={0.3} />
       <Cell b={blk.addressLabel} text="住　所" max={FONT.label} />
@@ -191,6 +193,7 @@ function MealBlockView({ blk, letter, row }: { blk: MealBlock; letter: string; r
 
 export default function MealAdvancePdf({ data }: { data: MealPdfData }) {
   const d = data
+  const noun = d.variant === "entertainment" ? ["交", "際", "費"] : ["飲", "食", "費"]
   const slots = [
     ...approvalSlots(d.approvals.filter(a => a.stage === "起案部"), APPROVAL_GROUP_REQUESTER),
     ...approvalSlots(d.approvals.filter(a => a.stage !== "起案部"), APPROVAL_GROUP_ACCOUNTING),
@@ -211,7 +214,7 @@ export default function MealAdvancePdf({ data }: { data: MealPdfData }) {
         </Svg>
 
         {/* タイトルと伝票番号 */}
-        <Cell b={TITLE} text="飲食費及び仮払精算書" max={16} min={11} pad={0.5} />
+        <Cell b={TITLE} text={d.variant === "entertainment" ? (d.linked ? "交際費及び仮払精算書" : "交際費精算書") : "飲食費及び仮払精算書"} max={16} min={11} pad={0.5} />
         <Cell b={SLIP_NO} text={`伝票番号 ${d.slipNo}`} max={FONT.small} align="right" pad={0} />
 
         {/* 上の枠 */}
@@ -240,8 +243,8 @@ export default function MealAdvancePdf({ data }: { data: MealPdfData }) {
         <Cell b={APPROVAL_TITLE_REQUESTER} text="当該部" max={9} />
 
         {/* 飲食費A・B */}
-        <MealBlockView blk={MEAL_A} letter="A" row={d.meals[0]} />
-        <MealBlockView blk={MEAL_B} letter="B" row={d.meals[1]} />
+        <MealBlockView blk={MEAL_A} letter="A" noun={noun} row={d.meals[0]} />
+        <MealBlockView blk={MEAL_B} letter="B" noun={noun} row={d.meals[1]} />
 
         {/* その他精算C・D・E */}
         <Cell b={OTHER_HEAD} text="その他　精算" max={9} />

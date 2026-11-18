@@ -2115,8 +2115,11 @@ model AcctMealAdvance {
   shortage_amount       Int      @default(0)
   balance_amount        Int      @default(0)
   shortage_account_name String?
+  advance_request_id    String?
+  advance_request       AcctAdvanceRequest? @relation(fields: [advance_request_id], references: [id], onDelete: SetNull)
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
+  @@index([advance_request_id])
   @@map("t_acct_meal_advances")
 }
 
@@ -2135,6 +2138,7 @@ model AcctAdvanceRequest {
   received_date     DateTime? @db.Date
   received_by_id    String?
   received_by_name  String?
+  meal_advances     AcctMealAdvance[]
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
   @@map("t_acct_advance_requests")

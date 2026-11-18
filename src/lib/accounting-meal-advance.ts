@@ -53,6 +53,7 @@ export type MealAdvanceData = {
   advance_amount: number
   shortage_amount: number
   balance_amount: number
+  advance_request_id: string | null // 紐づける仮払金請求（仮払金請求受領書）のID。紐づけがあるときの仮払金は、APIが請求の金額に差し替える
 }
 
 export type ParsedMeal = {
@@ -126,6 +127,7 @@ export function parseMealAdvance(b: any, submit: boolean): { error: string } | {
   // 飲食費を先に、その他を後に並べる（紙の様式のA・B・C・D・Eの並びと同じ）
   const items: MealAdvanceItem[] = [...meals, ...others]
 
+  const advanceRequestId = text(b.advance_request_id, 50)
   const advance = blank(b.advance_amount) ? 0 : parseNum(b.advance_amount)
   if (advance === null) return { error: "仮払金が正しくありません" }
 
@@ -160,6 +162,7 @@ export function parseMealAdvance(b: any, submit: boolean): { error: string } | {
         advance_amount: advance,
         shortage_amount: shortage,
         balance_amount: balance,
+        advance_request_id: advanceRequestId || null,
       },
     },
   }

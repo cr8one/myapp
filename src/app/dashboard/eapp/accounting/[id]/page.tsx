@@ -30,6 +30,8 @@ type Meal = {
   purpose: string | null; remarks: string | null; items: MealItemView[] | null
   subtotal: number; advance_amount: number; shortage_amount: number; balance_amount: number
   shortage_account_name: string | null
+  advance_request_id: string | null
+  advance_request: { advance_amount: number; slip: { id: string; slip_no: number; slip_date: string } } | null
 }
 type AdvanceView = {
   purpose: string | null; due_date: string | null; advance_amount: number
@@ -156,6 +158,7 @@ export default function AccountingSlipDetailPage() {
 
   const t = slip.trip_expense
   const m = slip.meal_advance
+  const noun = slip.slip_type === "entertainment_expense" ? "交際費" : "飲食費"
   const a = slip.advance_request
   const mealItems = (m?.items ?? []).filter(x => x.type !== "other")
   const otherItems = (m?.items ?? []).filter(x => x.type === "other")
@@ -305,15 +308,26 @@ export default function AccountingSlipDetailPage() {
 
       {m && (
         <>
+          {m.advance_request && (
+            <div className={cardClass}>
+              <p className={headClass}>仮払金請求の紐づけ</p>
+              <div className={rowClass}>
+                <span className="text-gray-500">紐づけ先</span>
+                <Link href={`/dashboard/eapp/accounting/${m.advance_request.slip.id}`} className="text-blue-700 hover:underline">
+                  仮払金請求受領書 No.{m.advance_request.slip.slip_no}（{yen(m.advance_request.advance_amount)}）
+                </Link>
+              </div>
+            </div>
+          )}
           <div className={cardClass}>
             <p className={headClass}>使途内容</p>
             <p className="text-sm whitespace-pre-wrap">{m.purpose || dash}</p>
           </div>
           <div className={cardClass}>
-            <p className={headClass}>飲食費</p>
+            <p className={headClass}>{noun}</p>
             {mealItems.length === 0 ? dash : mealItems.map((r, i) => (
               <div key={i} className="border rounded-md p-3 mb-3 text-sm">
-                <p className="font-bold text-gray-700 mb-1">飲食費{["A", "B"][i]}</p>
+                <p className="font-bold text-gray-700 mb-1">{noun}{["A", "B"][i]}</p>
                 <div className={rowClass}><span className="text-gray-500">支払先名</span><span>{r.payee || "—"}</span></div>
                 <div className={rowClass}><span className="text-gray-500">種別</span><span>{r.kind || "—"}</span></div>
                 <div className={rowClass}><span className="text-gray-500">住所</span><span>{r.address || "—"}</span></div>

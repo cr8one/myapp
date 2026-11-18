@@ -66,7 +66,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const t = slip.trip_expense
   const m = slip.meal_advance
   const ad = slip.advance_request
-  if (!((slip.slip_type === "trip_expense" && t) || (slip.slip_type === "meal_advance" && m) || (slip.slip_type === "advance_request" && ad))) {
+  if (!((slip.slip_type === "trip_expense" && t) || ((slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && m) || (slip.slip_type === "advance_request" && ad))) {
     return NextResponse.json({ error: "この種類の伝票は、まだPDFに出力できません" }, { status: 400 })
   }
 
@@ -128,7 +128,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
     element = createElement(AdvanceRequestPdf, { data })
     fileLabel = "仮払金請求受領書"
-  } else if (slip.slip_type === "meal_advance" && m) {
+  } else if ((slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && m) {
     const items = (m.items as unknown as MealItemJson[] | null) ?? []
     const data: MealPdfData = {
       slipNo: slip.slip_no,
@@ -165,10 +165,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       balance: m.balance_amount,
       shortageAccountName: m.shortage_account_name,
       requesterStampUrl,
+      variant: slip.slip_type === "entertainment_expense" ? "entertainment" : "meal",
+      linked: !!m.advance_request_id,
       approvals,
     }
     element = createElement(MealAdvancePdf, { data })
-    fileLabel = "飲食費及び仮払精算書"
+    fileLabel = slip.slip_type === "entertainment_expense" ? (m.advance_request_id ? "交際費及び仮払精算書" : "交際費精算書") : "飲食費及び仮払精算書"
   } else if (slip.slip_type === "trip_expense" && t) {
     const data: TripPdfData = {
       slipNo: slip.slip_no,

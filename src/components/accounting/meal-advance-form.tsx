@@ -27,6 +27,7 @@ export type MealFormValues = {
   purpose: string
   remarks: string
   advance: string
+  advanceRequestId: string // 紐づける仮払金請求（仮払金請求受領書）のID。空なら紐づけなし
   meals: MealRowValues[]
   others: OtherRowValues[]
 }
@@ -48,6 +49,7 @@ export const emptyMealForm = (): MealFormValues => ({
   purpose: "",
   remarks: "",
   advance: "",
+  advanceRequestId: "",
   meals: [emptyMeal()],
   others: [],
 })
@@ -74,6 +76,7 @@ type SlipForForm = {
     remarks: string | null
     items: ApiItem[] | null
     advance_amount: number
+    advance_request_id?: string | null
   } | null
 }
 
@@ -101,21 +104,24 @@ export function mealFormFromSlip(slip: SlipForForm): MealFormValues {
     purpose: m?.purpose ?? "",
     remarks: m?.remarks ?? "",
     advance: numStr(m?.advance_amount),
+    advanceRequestId: m?.advance_request_id ?? "",
     meals: meals.length > 0 || others.length > 0 ? meals : [emptyMeal()],
     others,
   }
 }
 
 // 画面の値を、APIに送る形にする（飲食費を先に、その他を後に並べる）
-export function mealFormPayload(v: MealFormValues, submit: boolean) {
+export function mealFormPayload(v: MealFormValues, submit: boolean, slipType: "meal_advance" | "entertainment_expense" = "meal_advance") {
   return {
     submit,
+    slip_type: slipType,
     slip_date: v.slipDate,
     department_code: v.departmentCode,
     department_name: v.departmentName,
     purpose: v.purpose,
     remarks: v.remarks,
     advance_amount: v.advance,
+    advance_request_id: v.advanceRequestId,
     items: [
       ...v.meals.map(r => ({
         type: "meal",
@@ -142,7 +148,11 @@ const CIRCLED = ["①", "②", "③", "④", "⑤", "⑥", "⑦"]
 const MEAL_LETTERS = ["A", "B"]
 const OTHER_LETTERS = ["C", "D", "E"]
 
+type LinkOption = { id: string; slip_no: number; slip_date: string; amount: number; purpose: string | null }
+
 type Props = {
+  kind?: "meal" | "entertainment" // 表記の切り替え（飲食費／交際費）。省略は飲食費
+  slipId?: string // 編集中の精算書のID（紐づけの候補に、すでに紐づけている請求を残すため）
   initial: MealFormValues
   saving: boolean
   error: string
@@ -153,9 +163,15 @@ type Props = {
   attachments?: ReactNode // 添付ファイルの欄（新規作成と編集で、中身が違う）
 }
 
-export default function MealAdvanceForm({ initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel, attachments }: Props) {
+export default function MealAdvanceForm({ kind = "meal", slipId, initial, saving, error, saveLabel = "下書き保存", submitLabel = "申請する", onSave, onCancel, attachments }: Props) {
   const [v, setV] = useState<MealFormValues>(initial)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const noun = kind === "entertainment" ? "交際費" : "飲食費"
+  // 紐づけできる仮払金請求の候補
+  const [links, setLinks] = useState<LinkOption[]>([])
+  useEffect(() => {
+    fetch(`/api/eapp/accounting/advance-links${slipId ? `?slip_id=${slipId}` : ""}`).then(r => (r.ok ? r.json() : [])).then(setLinks).catch(() => {})
+  }, [slipId])
   // 部署は、開いた時点で、本人のユーザーマスタの値を入れておく（すでに入っている伝票は、そのまま）
   useEffect(() => {
     fetch("/api/eapp/accounting/requester-info").then(r => (r.ok ? r.json() : null)).then(d => {
@@ -164,6 +180,11 @@ export default function MealAdvanceForm({ initial, saving, error, saveLabel = "�
     }).catch(() => {})
   }, [])
   const set = (patch: Partial<MealFormValues>) => setV(prev => ({ ...prev, ...patch }))
+  // 紐づけを選ぶと、仮払金は請求の金額になる。外すと、空に戻る
+  const pickLink = (id: string) => {
+    const l = links.find(x => x.id === id)
+    set({ advanceRequestId: id, advance: l ? String(l.amount) : "" })
+  }
 
   const subtotal = v.meals.reduce((a, r) => a + num(r.amount), 0) + v.others.reduce((a, r) => a + num(r.amount), 0)
   const advance = num(v.advance)
@@ -203,11 +224,11 @@ export default function MealAdvanceForm({ initial, saving, error, saveLabel = "�
       </div>
 
       <div className={cardClass}>
-        <p className={headClass}>飲食費（最大{MAX_MEAL_ROWS}行）</p>
+        <p className={headClass}>{noun}（最大{MAX_MEAL_ROWS}行）</p>
         {v.meals.map((r, i) => (
           <div key={i} className="border rounded-md p-3 mb-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-gray-700">飲食費{MEAL_LETTERS[i]}</span>
+              <span className="text-sm font-bold text-gray-700">{noun}{MEAL_LETTERS[i]}</span>
               <Button variant="outline" className="h-7 px-2 text-xs" disabled={saving}
                 onClick={() => set({ meals: v.meals.filter((_, j) => j !== i) })}>この行を削除</Button>
             </div>
@@ -256,7 +277,7 @@ export default function MealAdvanceForm({ initial, saving, error, saveLabel = "�
           </div>
         ))}
         {v.meals.length < MAX_MEAL_ROWS && (
-          <Button variant="outline" disabled={saving} onClick={() => set({ meals: [...v.meals, emptyMeal()] })}>＋ 飲食費を追加</Button>
+          <Button variant="outline" disabled={saving} onClick={() => set({ meals: [...v.meals, emptyMeal()] })}>＋ {noun}を追加</Button>
         )}
       </div>
 
@@ -287,9 +308,16 @@ export default function MealAdvanceForm({ initial, saving, error, saveLabel = "�
       <div className={cardClass}>
         <p className={headClass}>仮払金・備考</p>
         <div className="flex flex-wrap gap-3 mb-3">
+          <div className="min-w-[18rem]">
+            <label className={labelClass}>仮払金請求の紐づけ（承認が完了した、自分の仮払金請求から選びます）</label>
+            <select className="h-9 w-full border rounded px-2 text-sm bg-white" value={v.advanceRequestId} onChange={e => pickLink(e.target.value)}>
+              <option value="">紐づけない</option>
+              {links.map(l => <option key={l.id} value={l.id}>No.{l.slip_no}　{l.slip_date.replace(/-/g, "/")}　{l.amount.toLocaleString()}円</option>)}
+            </select>
+          </div>
           <div className="w-44">
-            <label className={labelClass}>仮払金（仮払いがないときは、空欄か0）</label>
-            <Input className="text-right" inputMode="numeric" placeholder="0" value={v.advance} autoComplete="off"
+            <label className={labelClass}>仮払金{v.advanceRequestId ? "（請求の金額）" : "（仮払いがないときは、空欄か0）"}</label>
+            <Input className="text-right" inputMode="numeric" placeholder="0" value={v.advance} autoComplete="off" readOnly={!!v.advanceRequestId}
               onChange={e => set({ advance: digits(e.target.value) })} />
           </div>
         </div>

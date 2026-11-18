@@ -7,6 +7,7 @@ import { SLIP_TYPES } from "@/lib/accounting-slip-types"
 import { parseTripExpense } from "@/lib/accounting-trip-expense"
 import { parseMealAdvance } from "@/lib/accounting-meal-advance"
 import { parseAdvanceRequest } from "@/lib/accounting-advance-request"
+import { checkAdvanceLink } from "@/lib/accounting-advance-link"
 import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
 import { STATE_CHANGED, STATE_CHANGED_MESSAGE } from "@/lib/accounting-slip-step"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
@@ -70,6 +71,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           shortage_amount: true,
           balance_amount: true,
           shortage_account_name: true,
+          advance_request_id: true,
+          advance_request: {
+            select: {
+              advance_amount: true,
+              slip: { select: { id: true, slip_no: true, slip_date: true } },
+            },
+          },
         },
       },
       trip_expense: {
@@ -108,7 +116,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     approver_name: s.approver_name, status: s.status, approved_at: s.approved_at,
   }))
   // 勘定科目と区分を入れる欄は、経理承認中に、承認できる番の経理側の承認者にだけ出す
-  const canAccountingInput = slip.slip_type === "meal_advance" && slip.status === "経理承認中" && !!approvable && approvable.stage !== STAGE_REQUESTER
+  const canAccountingInput = (slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && slip.status === "経理承認中" && !!approvable && approvable.stage !== STAGE_REQUESTER
   return NextResponse.json({
     ...slip,
     approval_steps: steps,
@@ -117,7 +125,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_edit_files: editable,
     can_delete: isOwner && slip.status === DRAFT_STATUS && slip.histories.length === 0,
     can_withdraw: isOwner && inApproval,
-    can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance" || slip.slip_type === "advance_request",
+    can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense" || slip.slip_type === "advance_request",
     approvable_step_id: approvable?.id ?? null,
     accounting_step_id: canAccountingInput ? approvable!.id : null,
   })
@@ -139,7 +147,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "下書きまたは差戻しの伝票だけ編集できます" }, { status: 400 })
   }
   const type = SLIP_TYPES.find(t => t.value === slip.slip_type)
-  if (!type || (type.value !== "trip_expense" && type.value !== "meal_advance" && type.value !== "advance_request")) {
+  if (!type || (type.value !== "trip_expense" && type.value !== "meal_advance" && type.value !== "entertainment_expense" && type.value !== "advance_request")) {
     return NextResponse.json({ error: "この種類の伝票は、まだ編集できません" }, { status: 400 })
   }
 
@@ -147,10 +155,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const submit = b.submit === true
   const sendMail = b.send_mail === true
   const parsed = type.value === "advance_request" ? parseAdvanceRequest(b, submit)
-    : type.value === "meal_advance" ? parseMealAdvance(b, submit)
+    : (type.value === "meal_advance" || type.value === "entertainment_expense") ? parseMealAdvance(b, submit)
     : parseTripExpense(b, submit)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const v = parsed.value
+
+  // 仮払金請求受領書との紐づけがあるときは、請求を確認して、仮払金・不足金・残金を、請求の金額で計算し直す（編集中の精算書自身との紐づけは、ほかの精算書として数えない）
+  if ("meal" in v && v.meal.advance_request_id) {
+    const link = await checkAdvanceLink(viewer.userId, v.meal.advance_request_id, id)
+    if ("error" in link) return NextResponse.json({ error: link.error }, { status: 400 })
+    v.meal.advance_amount = link.amount
+    v.meal.shortage_amount = Math.max(v.meal.subtotal - link.amount, 0)
+    v.meal.balance_amount = Math.max(link.amount - v.meal.subtotal, 0)
+  }
 
   const info = await getRequesterInfo(viewer.userId)
   if (!info) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -30,12 +30,12 @@ export default function AccountingEditPage() {
         setBlocked("伝票が見つかりません。")
       } else if (res.ok) {
         const data = await res.json()
-        if (data.slip_type !== "trip_expense" && data.slip_type !== "meal_advance" && data.slip_type !== "advance_request") setBlocked("この種類の伝票は、まだ編集できません。")
+        if (data.slip_type !== "trip_expense" && data.slip_type !== "meal_advance" && data.slip_type !== "entertainment_expense" && data.slip_type !== "advance_request") setBlocked("この種類の伝票は、まだ編集できません。")
         else if (!data.can_edit) setBlocked("この伝票は、今は編集できません。")
         else {
           setSlipType(data.slip_type)
           if (data.slip_type === "advance_request") setAdvanceInitial(advanceFormFromSlip(data))
-          else if (data.slip_type === "meal_advance") setMealInitial(mealFormFromSlip(data))
+          else if (data.slip_type === "meal_advance" || data.slip_type === "entertainment_expense") setMealInitial(mealFormFromSlip(data))
           else setTripInitial(tripFormFromSlip(data))
           setAttached(data.files ?? [])
           const last = [...(data.histories ?? [])].reverse().find((h: any) => h.action === "差戻し")
@@ -68,7 +68,7 @@ export default function AccountingEditPage() {
     }
   }
   const saveTrip = (v: TripFormValues, submit: boolean, sendMail: boolean) => put(tripFormPayload(v, submit), sendMail)
-  const saveMeal = (v: MealFormValues, submit: boolean, sendMail: boolean) => put(mealFormPayload(v, submit), sendMail)
+  const saveMeal = (v: MealFormValues, submit: boolean, sendMail: boolean) => put(mealFormPayload(v, submit, slipType === "entertainment_expense" ? "entertainment_expense" : "meal_advance"), sendMail)
   const saveAdvance = (v: AdvanceFormValues, submit: boolean, sendMail: boolean) => put(advanceFormPayload(v, submit), sendMail)
 
   const back = (
@@ -89,7 +89,7 @@ export default function AccountingEditPage() {
     <div className="p-6 max-w-4xl mx-auto">
       {back}
       <h1 className="text-2xl font-bold mb-6">
-        {slipType === "advance_request" ? "仮払金請求受領書を編集" : slipType === "meal_advance" ? "飲食費及び仮払精算書を編集" : "出金伝票（出張旅費精算書（国内））を編集"}
+        {slipType === "advance_request" ? "仮払金請求受領書を編集" : slipType === "entertainment_expense" ? "交際費精算書（ゴルフなど）を編集" : slipType === "meal_advance" ? "飲食費及び仮払精算書を編集" : "出金伝票（出張旅費精算書（国内））を編集"}
       </h1>
       {returnReason && (
         <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
@@ -101,8 +101,8 @@ export default function AccountingEditPage() {
         <AdvanceRequestForm initial={advanceInitial} saving={saving} error={error}
           saveLabel="保存" submitLabel="申請する"
           attachments={attachments} onSave={saveAdvance} onCancel={cancel} />
-      ) : slipType === "meal_advance" && mealInitial ? (
-        <MealAdvanceForm initial={mealInitial} saving={saving} error={error}
+      ) : (slipType === "meal_advance" || slipType === "entertainment_expense") && mealInitial ? (
+        <MealAdvanceForm kind={slipType === "entertainment_expense" ? "entertainment" : "meal"} slipId={id} initial={mealInitial} saving={saving} error={error}
           saveLabel="保存" submitLabel="申請する"
           attachments={attachments} onSave={saveMeal} onCancel={cancel} />
       ) : tripInitial ? (
