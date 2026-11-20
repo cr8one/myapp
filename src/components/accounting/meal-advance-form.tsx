@@ -309,7 +309,7 @@ export default function MealAdvanceForm({ kind = "meal", slipId, initial, saving
         <p className={headClass}>仮払金・備考</p>
         <div className="flex flex-wrap gap-3 mb-3">
           <div className="min-w-[18rem]">
-            <label className={labelClass}>仮払金請求の紐づけ（承認が完了した、自分の仮払金請求から選びます）</label>
+            <label className={labelClass}>仮払金請求の紐づけ（受領済みの、自分の仮払金請求から選びます）</label>
             <select className="h-9 w-full border rounded px-2 text-sm bg-white" value={v.advanceRequestId} onChange={e => pickLink(e.target.value)}>
               <option value="">紐づけない</option>
               {links.map(l => <option key={l.id} value={l.id}>No.{l.slip_no}　{l.slip_date.replace(/-/g, "/")}　{l.amount.toLocaleString()}円</option>)}

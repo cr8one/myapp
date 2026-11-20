@@ -116,6 +116,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     approver_name: s.approver_name, status: s.status, approved_at: s.approved_at,
   }))
   // 勘定科目と区分を入れる欄は、経理承認中に、承認できる番の経理側の承認者にだけ出す
+  // 仮払金請求受領書の、支払と受領の記録（承認とは別の、事実の記録）
+  const advDone = slip.slip_type === "advance_request" && slip.status === "承認完了" && !!slip.advance_request
+  const canRecordPayment = advDone && viewer.canViewAll && !slip.advance_request!.paid_date
+  const canCancelPayment = advDone && viewer.canViewAll && !!slip.advance_request!.paid_date && !slip.advance_request!.received_date
+  const canRecordReceipt = advDone && isOwner && !!slip.advance_request!.paid_date && !slip.advance_request!.received_date
   const canAccountingInput = (slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && slip.status === "経理承認中" && !!approvable && approvable.stage !== STAGE_REQUESTER
   return NextResponse.json({
     ...slip,
@@ -128,6 +133,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense" || slip.slip_type === "advance_request",
     approvable_step_id: approvable?.id ?? null,
     accounting_step_id: canAccountingInput ? approvable!.id : null,
+    can_record_payment: canRecordPayment,
+    can_cancel_payment: canCancelPayment,
+    can_record_receipt: canRecordReceipt,
   })
 }
 

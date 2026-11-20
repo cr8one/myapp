@@ -98,6 +98,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   // 本人印：起案者の印影画像（下書きのときは載せない）
+  // 支払済印・受領印：支払を記録した経理と、受領を記録した起案者の印影（記録があるときだけ）
+  let paidStampUrl: string | null = null
+  let receiptStampUrl: string | null = null
+  if (ad) {
+    const ids = [ad.paid_by_id, ad.received_by_id].filter((x): x is string => !!x)
+    const recorders = ids.length > 0
+      ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, inkanImageKey: true } })
+      : []
+    const urlOf = async (uid: string | null) => {
+      const key = recorders.find(u => u.id === uid)?.inkanImageKey
+      return key ? await getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: 300 }) : null
+    }
+    paidStampUrl = await urlOf(ad.paid_by_id)
+    receiptStampUrl = await urlOf(ad.received_by_id)
+  }
   let requesterStampUrl: string | null = null
   if (slip.status !== DRAFT_STATUS) {
     const owner = await prisma.user.findUnique({ where: { id: slip.requester_id }, select: { inkanImageKey: true } })
@@ -122,8 +137,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       paidAmount: ad.paid_amount,
       receivedDate: ad.received_date ? ad.received_date.toISOString().slice(0, 10) : null,
       requestStampUrl: requesterStampUrl,
-      paidStampUrl: null,
-      receiptStampUrl: null,
+      paidStampUrl,
+      receiptStampUrl,
       approvals,
     }
     element = createElement(AdvanceRequestPdf, { data })

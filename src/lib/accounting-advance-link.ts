@@ -1,7 +1,7 @@
 // 仮払金請求受領書と、精算書（飲食費及び仮払精算書・交際費精算書）の紐づけの確認。
 // 作成APIと編集APIの両方から呼ぶ。紐づけできる請求は、次のすべてを満たすもの。
 // - 自分が起案した仮払金請求受領書
-// - 承認が完了している（支払と受領の記録ができたら、「受領済み」に絞り込む）
+// - 承認が完了していて、受領の記録がある（受領済み）
 // - ほかの精算書に紐づいていない（却下された精算書は、紐づきを持たないものとして数える）
 import { prisma } from "@/lib/prisma"
 import { STATUS_COMPLETED } from "@/lib/accounting-slip-approval"
@@ -19,13 +19,14 @@ export async function checkAdvanceLink(
     where: { id: advanceRequestId },
     select: {
       advance_amount: true,
+      received_date: true,
       slip: { select: { slip_type: true, status: true, requester_id: true } },
       meal_advances: { select: { slip_id: true, slip: { select: { status: true } } } },
     },
   })
   if (!target || target.slip.slip_type !== "advance_request") return { error: "紐づける仮払金請求が見つかりません" }
   if (target.slip.requester_id !== userId) return { error: "自分が起案した仮払金請求だけ、紐づけできます" }
-  if (target.slip.status !== STATUS_COMPLETED) return { error: "承認が完了した仮払金請求だけ、紐づけできます" }
+  if (target.slip.status !== STATUS_COMPLETED || !target.received_date) return { error: "受領済みの仮払金請求だけ、紐づけできます" }
   const taken = target.meal_advances.some(m => m.slip_id !== currentSlipId && m.slip.status !== STATUS_REJECTED_FOR_LINK)
   if (taken) return { error: "この仮払金請求は、すでにほかの精算書に紐づいています" }
   return { amount: target.advance_amount }
@@ -34,7 +35,7 @@ export async function checkAdvanceLink(
 // 紐づけの候補（画面の選択欄に出す一覧）。自分の、承認が完了した、紐づいていない請求。currentSlipId は、編集中の精算書のID
 export async function listLinkableAdvances(userId: string, currentSlipId: string | null) {
   const rows = await prisma.acctAdvanceRequest.findMany({
-    where: { slip: { requester_id: userId, slip_type: "advance_request", status: STATUS_COMPLETED } },
+    where: { received_date: { not: null }, slip: { requester_id: userId, slip_type: "advance_request", status: STATUS_COMPLETED } },
     select: {
       id: true,
       advance_amount: true,

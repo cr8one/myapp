@@ -46,6 +46,7 @@ type Slip = {
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
   is_owner: boolean; approvable_step_id: string | null; accounting_step_id: string | null
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
+  can_record_payment: boolean; can_cancel_payment: boolean; can_record_receipt: boolean
 }
 
 const yen = (n: number) => `${n.toLocaleString()}円`
@@ -135,6 +136,27 @@ export default function AccountingSlipDetailPage() {
     if (!confirm("取り下げると、承認の進み具合は消えて、下書きに戻ります。取り下げますか？")) return
     if (await run(`/api/eapp/accounting/slips/${id}/withdraw`, "POST")) await load()
   }
+  // 仮払金請求受領書の、支払と受領の記録（承認とは別の、事実の記録）
+  const [paidDate, setPaidDate] = useState(() => {
+    const d = new Date()
+    const p = (n: number) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  })
+  const [paidMethod, setPaidMethod] = useState("")
+  const recordPayment = async () => {
+    if (!paidMethod.trim()) { setActionError("支払方法を入力してください"); return }
+    if (!confirm("この内容で、支払を記録しますか？")) return
+    if (await run(`/api/eapp/accounting/slips/${id}/payment`, "PUT", { paid_date: paidDate, paid_method: paidMethod })) await load()
+  }
+  const cancelPayment = async () => {
+    if (!confirm("支払の記録を取り消しますか？")) return
+    if (await run(`/api/eapp/accounting/slips/${id}/payment`, "DELETE")) await load()
+  }
+  const recordReceipt = async () => {
+    if (!confirm("受領を記録しますか？受領日は今日になります。記録したあとは、取り消せません。")) return
+    if (await run(`/api/eapp/accounting/slips/${id}/receipt`, "POST")) await load()
+  }
+
   const remove = async () => {
     if (!confirm("この下書きを削除しますか？元に戻せません。")) return
     if (await run(`/api/eapp/accounting/slips/${id}`, "DELETE")) router.push("/dashboard/eapp/accounting")
@@ -292,15 +314,39 @@ export default function AccountingSlipDetailPage() {
             <div className={rowClass}><span className="text-gray-500">精算予定日</span><span>{fmtDate(a.due_date)}</span></div>
             <div className={rowClass}><span className="text-gray-500">仮払金額</span><span className="font-bold">{yen(a.advance_amount)}</span></div>
           </div>
-          {(a.paid_date || a.received_date) && (
+          {slip.status === "承認完了" && (
             <div className={cardClass}>
-              <p className={headClass}>支払と受領の記録</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-700">支払と受領の記録</p>
+                <span className={`text-xs px-2 py-1 rounded ${a.received_date ? "bg-green-50 text-green-700" : a.paid_date ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
+                  {a.received_date ? "受領済" : a.paid_date ? "受領待ち" : "支払待ち"}
+                </span>
+              </div>
               <div className={rowClass}><span className="text-gray-500">支払日</span><span>{fmtDate(a.paid_date)}</span></div>
               <div className={rowClass}><span className="text-gray-500">支払方法</span><span>{a.paid_method || "—"}</span></div>
               <div className={rowClass}><span className="text-gray-500">支払額</span><span>{a.paid_amount != null ? yen(a.paid_amount) : "—"}</span></div>
               <div className={rowClass}><span className="text-gray-500">支払を記録した人</span><span>{a.paid_by_name || "—"}</span></div>
               <div className={rowClass}><span className="text-gray-500">受領日</span><span>{fmtDate(a.received_date)}</span></div>
               <div className={rowClass}><span className="text-gray-500">受領を記録した人</span><span>{a.received_by_name || "—"}</span></div>
+              {slip.can_record_payment && (
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <div className="w-44 shrink-0">
+                    <label className="block text-xs text-gray-500 mb-1">支払日</label>
+                    <input type="date" className="h-9 w-full border rounded px-2 text-sm" value={paidDate} onChange={e => setPaidDate(e.target.value)} />
+                  </div>
+                  <div className="w-52">
+                    <label className="block text-xs text-gray-500 mb-1">支払方法（20文字まで）</label>
+                    <input className="h-9 w-full border rounded px-2 text-sm" value={paidMethod} maxLength={20} autoComplete="off" onChange={e => setPaidMethod(e.target.value)} />
+                  </div>
+                  <Button size="sm" disabled={busy} onClick={recordPayment}>支払を記録する</Button>
+                </div>
+              )}
+              {slip.can_cancel_payment && (
+                <div className="mt-3"><Button variant="outline" size="sm" disabled={busy} onClick={cancelPayment}>支払の記録を取り消す</Button></div>
+              )}
+              {slip.can_record_receipt && (
+                <div className="mt-3"><Button size="sm" disabled={busy} onClick={recordReceipt}>受領を記録する</Button></div>
+              )}
             </div>
           )}
         </>
