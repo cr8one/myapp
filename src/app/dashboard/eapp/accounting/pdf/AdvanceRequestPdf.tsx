@@ -13,6 +13,8 @@ const P = (mm: number) => (mm * 72) / 25.4 // mm → pt
 const PT_MM = 25.4 / 72
 // Noto Sans CJK JP は、行の上端から約0.8em下に漢字の絵の中心が来る（TripExpensePdf.tsx と同じ補正値）
 const INK_CENTER = 0.81
+// 罫線の図を、用紙の高さちょうどにすると、「ページに収まらない大きさ」と判定されて、2ページに分かれる。1pt小さくして、1mmの長さは変えない
+const SVG_SHRINK_PT = 1
 
 export type AdvancePdfData = {
   slipNo: number
@@ -88,7 +90,7 @@ export default function AdvanceRequestPdf({ data }: { data: AdvancePdfData }) {
     <Document>
       <Page size={[P(PAGE_W_MM), P(PAGE_H_MM)]} style={{ fontFamily: "NotoSansJP", color: "#000" }}>
         {/* 罫線と承認欄の枠 */}
-        <Svg viewBox={`0 0 ${PAGE_W_MM} ${PAGE_H_MM}`} width={P(PAGE_W_MM)} height={P(PAGE_H_MM)} style={{ position: "absolute", left: 0, top: 0 }}>
+        <Svg viewBox={`0 0 ${PAGE_W_MM} ${PAGE_H_MM - SVG_SHRINK_PT * PT_MM}`} width={P(PAGE_W_MM)} height={P(PAGE_H_MM) - SVG_SHRINK_PT} style={{ position: "absolute", left: 0, top: 0 }}>
           {[...REQUEST.lines, ...RECEIPT.lines].map((l, i) => (
             <Line key={`l${i}`} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#000" strokeWidth={LINE_WIDTH_MM} strokeLinecap="square" />
           ))}
