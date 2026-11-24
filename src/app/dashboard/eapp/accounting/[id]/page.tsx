@@ -33,6 +33,12 @@ type Meal = {
   advance_request_id: string | null
   advance_request: { advance_amount: number; slip: { id: string; slip_no: number; slip_date: string } } | null
 }
+type ReceptionView = {
+  client_name: string | null; contact_name: string | null; reception_date: string | null
+  content: string | null; place: string | null; reason: string | null
+  budget_amount: number; advance_needed: boolean
+  actual_amount: number | null; actual_recorded_at: string | null; actual_recorded_by_name: string | null
+}
 type AdvanceView = {
   purpose: string | null; due_date: string | null; advance_amount: number
   paid_date: string | null; paid_method: string | null; paid_amount: number | null; paid_by_name: string | null
@@ -42,11 +48,11 @@ type Slip = {
   id: string; slip_no: number; slip_type: string; title: string; status: string
   slip_date: string; amount: number; requester_name: string; department_code: string | null; department_name: string | null
   submitted_at: string | null; created_at: string
-  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null; advance_request: AdvanceView | null
+  approval_steps: Step[]; histories: History[]; trip_expense: Trip | null; meal_advance: Meal | null; advance_request: AdvanceView | null; reception_approval: ReceptionView | null
   files: { id: string; file_name: string; file_type: string; uploaded_at: string }[]
   is_owner: boolean; approvable_step_id: string | null; accounting_step_id: string | null
   can_edit: boolean; can_delete: boolean; can_withdraw: boolean; can_pdf: boolean
-  can_record_payment: boolean; can_cancel_payment: boolean; can_record_receipt: boolean
+  can_record_payment: boolean; can_cancel_payment: boolean; can_record_receipt: boolean; can_record_actual: boolean
 }
 
 const yen = (n: number) => `${n.toLocaleString()}円`
@@ -157,6 +163,14 @@ export default function AccountingSlipDetailPage() {
     if (await run(`/api/eapp/accounting/slips/${id}/receipt`, "POST")) await load()
   }
 
+  // 御得意先接待承認書の、実際額の記録（承認が完了したあと、接待のあとに、起案者本人が、1回だけ記録する）
+  const [actualAmount, setActualAmount] = useState("")
+  const recordActual = async () => {
+    if (actualAmount === "") { setActionError("実際額を入力してください"); return }
+    if (!confirm(`実際額を ${Number(actualAmount).toLocaleString()}円 で記録しますか？記録したあとは、直せません。`)) return
+    if (await run(`/api/eapp/accounting/slips/${id}/actual-amount`, "POST", { actual_amount: actualAmount })) await load()
+  }
+
   const remove = async () => {
     if (!confirm("この下書きを削除しますか？元に戻せません。")) return
     if (await run(`/api/eapp/accounting/slips/${id}`, "DELETE")) router.push("/dashboard/eapp/accounting")
@@ -182,6 +196,7 @@ export default function AccountingSlipDetailPage() {
   const m = slip.meal_advance
   const noun = slip.slip_type === "entertainment_expense" ? "交際費" : "飲食費"
   const a = slip.advance_request
+  const r = slip.reception_approval
   const mealItems = (m?.items ?? []).filter(x => x.type !== "other")
   const otherItems = (m?.items ?? []).filter(x => x.type === "other")
   const acct = (x: MealItemView) => [x.account_name, x.account_code, x.tax_category].filter(Boolean).join("　") || "—"
@@ -303,6 +318,51 @@ export default function AccountingSlipDetailPage() {
             <span className="font-bold text-gray-700">精算合計</span>
             <span className="text-xl font-bold">{yen(t.total_amount)}</span>
           </div>
+        </>
+      )}
+
+      {r && (
+        <>
+          <div className={cardClass}>
+            <p className={headClass}>接待の内容</p>
+            <div className={rowClass}><span className="text-gray-500">得意先名</span><span>{r.client_name || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">氏名</span><span>{r.contact_name || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">接待日</span><span>{fmtDate(r.reception_date)}</span></div>
+            <div className={rowClass}><span className="text-gray-500">内容</span><span className="whitespace-pre-wrap text-right">{r.content || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">場所</span><span className="whitespace-pre-wrap text-right">{r.place || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">理由</span><span className="whitespace-pre-wrap text-right">{r.reason || "—"}</span></div>
+            <div className={rowClass}><span className="text-gray-500">予算額</span><span className="font-bold">{yen(r.budget_amount)}</span></div>
+            <div className={rowClass}><span className="text-gray-500">仮払</span><span>{r.advance_needed ? "要" : "不要"}</span></div>
+          </div>
+          {slip.status === "承認完了" && (
+            <div className={cardClass}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-700">実際額</p>
+                <span className={`text-xs px-2 py-1 rounded ${r.actual_recorded_at ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                  {r.actual_recorded_at ? "実際額記録済" : "実際額待ち"}
+                </span>
+              </div>
+              {r.actual_recorded_at ? (
+                <>
+                  <div className={rowClass}><span className="text-gray-500">実際額</span><span className="font-bold">{r.actual_amount != null ? yen(r.actual_amount) : "—"}</span></div>
+                  <div className={rowClass}><span className="text-gray-500">記録した人</span><span>{r.actual_recorded_by_name || "—"}</span></div>
+                  <div className={rowClass}><span className="text-gray-500">記録した日時</span><span>{fmtDateTime(r.actual_recorded_at)}</span></div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">接待が終わったあとに、起案者が、実際額を記録します。</p>
+              )}
+              {slip.can_record_actual && (
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <div className="w-44">
+                    <label className="block text-xs text-gray-500 mb-1">実際額（円）</label>
+                    <input className="h-9 w-full border rounded px-2 text-sm text-right" inputMode="numeric" value={actualAmount} autoComplete="off"
+                      onChange={e => setActualAmount(e.target.value.replace(/\D/g, "").slice(0, 8))} />
+                  </div>
+                  <Button size="sm" disabled={busy} onClick={recordActual}>実際額を記録する</Button>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

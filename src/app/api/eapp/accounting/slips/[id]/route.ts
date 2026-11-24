@@ -8,6 +8,7 @@ import { parseTripExpense } from "@/lib/accounting-trip-expense"
 import { parseMealAdvance } from "@/lib/accounting-meal-advance"
 import { parseAdvanceRequest } from "@/lib/accounting-advance-request"
 import { checkAdvanceLink } from "@/lib/accounting-advance-link"
+import { parseReception } from "@/lib/accounting-reception"
 import { sendApprovalRequestMail } from "@/lib/accounting-slip-mail"
 import { STATE_CHANGED, STATE_CHANGED_MESSAGE } from "@/lib/accounting-slip-step"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
@@ -47,6 +48,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       files: {
         orderBy: { uploaded_at: "asc" },
         select: { id: true, file_name: true, file_type: true, uploaded_at: true },
+      },
+      reception_approval: {
+        select: {
+          client_name: true,
+          contact_name: true,
+          reception_date: true,
+          content: true,
+          place: true,
+          reason: true,
+          budget_amount: true,
+          advance_needed: true,
+          actual_amount: true,
+          actual_recorded_at: true,
+          actual_recorded_by_name: true,
+        },
       },
       advance_request: {
         select: {
@@ -121,6 +137,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const canRecordPayment = advDone && viewer.canViewAll && !slip.advance_request!.paid_date
   const canCancelPayment = advDone && viewer.canViewAll && !!slip.advance_request!.paid_date && !slip.advance_request!.received_date
   const canRecordReceipt = advDone && isOwner && !!slip.advance_request!.paid_date && !slip.advance_request!.received_date
+  // 御得意先接待承認書の、実際額の記録（承認が完了したあと、接待のあとに、起案者本人が、1回だけ記録する）
+  const canRecordActual = slip.slip_type === "reception_approval" && slip.status === "承認完了" && isOwner && !!slip.reception_approval && !slip.reception_approval.actual_recorded_at
   const canAccountingInput = (slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && slip.status === "経理承認中" && !!approvable && approvable.stage !== STAGE_REQUESTER
   return NextResponse.json({
     ...slip,
@@ -130,12 +148,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     can_edit_files: editable,
     can_delete: isOwner && slip.status === DRAFT_STATUS && slip.histories.length === 0,
     can_withdraw: isOwner && inApproval,
-    can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense" || slip.slip_type === "advance_request",
+    can_pdf: slip.slip_type === "trip_expense" || slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense" || slip.slip_type === "advance_request" || slip.slip_type === "reception_approval",
     approvable_step_id: approvable?.id ?? null,
     accounting_step_id: canAccountingInput ? approvable!.id : null,
     can_record_payment: canRecordPayment,
     can_cancel_payment: canCancelPayment,
     can_record_receipt: canRecordReceipt,
+    can_record_actual: canRecordActual,
   })
 }
 
@@ -155,14 +174,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "下書きまたは差戻しの伝票だけ編集できます" }, { status: 400 })
   }
   const type = SLIP_TYPES.find(t => t.value === slip.slip_type)
-  if (!type || (type.value !== "trip_expense" && type.value !== "meal_advance" && type.value !== "entertainment_expense" && type.value !== "advance_request")) {
+  if (!type || (type.value !== "trip_expense" && type.value !== "meal_advance" && type.value !== "entertainment_expense" && type.value !== "advance_request" && type.value !== "reception_approval")) {
     return NextResponse.json({ error: "この種類の伝票は、まだ編集できません" }, { status: 400 })
   }
 
   const b = await req.json()
   const submit = b.submit === true
   const sendMail = b.send_mail === true
-  const parsed = type.value === "advance_request" ? parseAdvanceRequest(b, submit)
+  const parsed = type.value === "reception_approval" ? parseReception(b, submit)
+    : type.value === "advance_request" ? parseAdvanceRequest(b, submit)
     : (type.value === "meal_advance" || type.value === "entertainment_expense") ? parseMealAdvance(b, submit)
     : parseTripExpense(b, submit)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
@@ -201,14 +221,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: {
           title,
           slip_date: v.slipDate,
-          amount: "advance" in v ? v.advance.advance_amount : "meal" in v ? v.meal.subtotal : v.expense.total_amount,
+          amount: "reception" in v ? v.reception.budget_amount : "advance" in v ? v.advance.advance_amount : "meal" in v ? v.meal.subtotal : v.expense.total_amount,
           department_code: departmentCode,
           department_name: departmentName,
           ...(submit ? { status: nextStatus, submitted_at: new Date(), completed_at: null } : {}),
         },
       })
       if (updated.count === 0) throw new Error(STATE_CHANGED)
-      if ("advance" in v) await tx.acctAdvanceRequest.update({ where: { slip_id: id }, data: v.advance })
+      if ("reception" in v) await tx.acctReceptionApproval.update({ where: { slip_id: id }, data: v.reception })
+      else if ("advance" in v) await tx.acctAdvanceRequest.update({ where: { slip_id: id }, data: v.advance })
       else if ("meal" in v) await tx.acctMealAdvance.update({ where: { slip_id: id }, data: v.meal })
       else await tx.acctTripExpense.update({ where: { slip_id: id }, data: v.expense })
       if (submit) {

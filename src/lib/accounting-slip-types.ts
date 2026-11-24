@@ -1,6 +1,8 @@
 // 経理精算の書類の種類と状態の定義（画面・API共通）。画面専用の部品は含めない。
 // 経理側の承認者の設定は、経理精算のすべての書類で共通。電子申請マスタの「経理精算共通承認者設定」に、1回登録すれば、どの種類にも効く
 export const ACCOUNTING_ROUTE_SERVICE_TYPE = "accounting_trip_expense"
+// 御得意先接待承認書だけは、当該部のあと、社長だけが承認する。経理側の共通設定は使わず、専用の設定（電子申請マスタの「御得意先接待承認書（社長承認）」）を使う
+export const RECEPTION_ROUTE_SERVICE_TYPE = "accounting_reception_approval"
 
 export const SLIP_TYPES = [
   {
@@ -31,6 +33,13 @@ export const SLIP_TYPES = [
     description: "ゴルフなどに関連するプレイ代・飲食・高速道路料金などの精算",
     href: "/dashboard/eapp/accounting/new/entertainment-expense",
     routeServiceType: ACCOUNTING_ROUTE_SERVICE_TYPE,
+  },
+  {
+    value: "reception_approval",
+    label: "御得意先接待承認書",
+    description: "寄附金・慶弔費を含む、お得意先の接待の事前承認",
+    href: "/dashboard/eapp/accounting/new/reception-approval",
+    routeServiceType: RECEPTION_ROUTE_SERVICE_TYPE,
   },
 ] as const
 

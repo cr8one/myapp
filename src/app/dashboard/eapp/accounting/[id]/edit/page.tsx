@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react"
 import TripExpenseForm, { TripFormValues, tripFormFromSlip, tripFormPayload } from "@/components/accounting/trip-expense-form"
 import MealAdvanceForm, { MealFormValues, mealFormFromSlip, mealFormPayload } from "@/components/accounting/meal-advance-form"
 import AdvanceRequestForm, { AdvanceFormValues, advanceFormFromSlip, advanceFormPayload } from "@/components/accounting/advance-request-form"
+import ReceptionForm, { ReceptionFormValues, receptionFormFromSlip, receptionFormPayload } from "@/components/accounting/reception-form"
 import AttachmentsEditor from "@/components/accounting/attachments-editor"
 import { AttachedFile } from "@/lib/accounting-slip-files-client"
 
@@ -16,6 +17,7 @@ export default function AccountingEditPage() {
   const [tripInitial, setTripInitial] = useState<TripFormValues | null>(null)
   const [mealInitial, setMealInitial] = useState<MealFormValues | null>(null)
   const [advanceInitial, setAdvanceInitial] = useState<AdvanceFormValues | null>(null)
+  const [receptionInitial, setReceptionInitial] = useState<ReceptionFormValues | null>(null)
   const [returnReason, setReturnReason] = useState("")
   const [attached, setAttached] = useState<AttachedFile[]>([])
   const [blocked, setBlocked] = useState("")
@@ -30,11 +32,12 @@ export default function AccountingEditPage() {
         setBlocked("伝票が見つかりません。")
       } else if (res.ok) {
         const data = await res.json()
-        if (data.slip_type !== "trip_expense" && data.slip_type !== "meal_advance" && data.slip_type !== "entertainment_expense" && data.slip_type !== "advance_request") setBlocked("この種類の伝票は、まだ編集できません。")
+        if (data.slip_type !== "trip_expense" && data.slip_type !== "meal_advance" && data.slip_type !== "entertainment_expense" && data.slip_type !== "advance_request" && data.slip_type !== "reception_approval") setBlocked("この種類の伝票は、まだ編集できません。")
         else if (!data.can_edit) setBlocked("この伝票は、今は編集できません。")
         else {
           setSlipType(data.slip_type)
-          if (data.slip_type === "advance_request") setAdvanceInitial(advanceFormFromSlip(data))
+          if (data.slip_type === "reception_approval") setReceptionInitial(receptionFormFromSlip(data))
+          else if (data.slip_type === "advance_request") setAdvanceInitial(advanceFormFromSlip(data))
           else if (data.slip_type === "meal_advance" || data.slip_type === "entertainment_expense") setMealInitial(mealFormFromSlip(data))
           else setTripInitial(tripFormFromSlip(data))
           setAttached(data.files ?? [])
@@ -70,6 +73,7 @@ export default function AccountingEditPage() {
   const saveTrip = (v: TripFormValues, submit: boolean, sendMail: boolean) => put(tripFormPayload(v, submit), sendMail)
   const saveMeal = (v: MealFormValues, submit: boolean, sendMail: boolean) => put(mealFormPayload(v, submit, slipType === "entertainment_expense" ? "entertainment_expense" : "meal_advance"), sendMail)
   const saveAdvance = (v: AdvanceFormValues, submit: boolean, sendMail: boolean) => put(advanceFormPayload(v, submit), sendMail)
+  const saveReception = (v: ReceptionFormValues, submit: boolean, sendMail: boolean) => put(receptionFormPayload(v, submit), sendMail)
 
   const back = (
     <Link href={`/dashboard/eapp/accounting/${id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
@@ -78,7 +82,7 @@ export default function AccountingEditPage() {
   )
 
   if (loading) return <div className="p-6"><p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p></div>
-  if (blocked || (!tripInitial && !mealInitial && !advanceInitial)) {
+  if (blocked || (!tripInitial && !mealInitial && !advanceInitial && !receptionInitial)) {
     return <div className="p-6 max-w-4xl mx-auto">{back}<p className="text-center text-gray-500 py-8">{blocked || "伝票を取得できませんでした。"}</p></div>
   }
 
@@ -89,7 +93,7 @@ export default function AccountingEditPage() {
     <div className="p-6 max-w-4xl mx-auto">
       {back}
       <h1 className="text-2xl font-bold mb-6">
-        {slipType === "advance_request" ? "仮払金請求受領書を編集" : slipType === "entertainment_expense" ? "交際費精算書（ゴルフなど）を編集" : slipType === "meal_advance" ? "飲食費及び仮払精算書を編集" : "出金伝票（出張旅費精算書（国内））を編集"}
+        {slipType === "reception_approval" ? "御得意先接待承認書を編集" : slipType === "advance_request" ? "仮払金請求受領書を編集" : slipType === "entertainment_expense" ? "交際費精算書（ゴルフなど）を編集" : slipType === "meal_advance" ? "飲食費及び仮払精算書を編集" : "出金伝票（出張旅費精算書（国内））を編集"}
       </h1>
       {returnReason && (
         <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
@@ -97,7 +101,11 @@ export default function AccountingEditPage() {
           <p className="whitespace-pre-wrap">{returnReason}</p>
         </div>
       )}
-      {slipType === "advance_request" && advanceInitial ? (
+      {slipType === "reception_approval" && receptionInitial ? (
+        <ReceptionForm initial={receptionInitial} saving={saving} error={error}
+          saveLabel="保存" submitLabel="申請する"
+          attachments={attachments} onSave={saveReception} onCancel={cancel} />
+      ) : slipType === "advance_request" && advanceInitial ? (
         <AdvanceRequestForm initial={advanceInitial} saving={saving} error={error}
           saveLabel="保存" submitLabel="申請する"
           attachments={attachments} onSave={saveAdvance} onCancel={cancel} />

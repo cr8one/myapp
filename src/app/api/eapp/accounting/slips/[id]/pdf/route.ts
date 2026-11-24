@@ -9,6 +9,7 @@ import { getAccountingViewer, slipVisibilityWhere, DRAFT_STATUS } from "@/lib/ac
 import TripExpensePdf, { TripPdfData } from "@/app/dashboard/eapp/accounting/pdf/TripExpensePdf"
 import MealAdvancePdf, { MealPdfData } from "@/app/dashboard/eapp/accounting/pdf/MealAdvancePdf"
 import AdvanceRequestPdf, { AdvancePdfData } from "@/app/dashboard/eapp/accounting/pdf/AdvanceRequestPdf"
+import ReceptionPdf, { ReceptionPdfData } from "@/app/dashboard/eapp/accounting/pdf/ReceptionPdf"
 
 const s3 = new S3Client({
   region: "ap-northeast-1",
@@ -59,6 +60,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       trip_expense: true,
       meal_advance: true,
       advance_request: true,
+      reception_approval: true,
     },
   })
   if (!slip) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -66,7 +68,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const t = slip.trip_expense
   const m = slip.meal_advance
   const ad = slip.advance_request
-  if (!((slip.slip_type === "trip_expense" && t) || ((slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && m) || (slip.slip_type === "advance_request" && ad))) {
+  const rc = slip.reception_approval
+  if (!((slip.slip_type === "trip_expense" && t) || ((slip.slip_type === "meal_advance" || slip.slip_type === "entertainment_expense") && m) || (slip.slip_type === "advance_request" && ad) || (slip.slip_type === "reception_approval" && rc))) {
     return NextResponse.json({ error: "この種類の伝票は、まだPDFに出力できません" }, { status: 400 })
   }
 
@@ -123,7 +126,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   let element: any
   let fileLabel: string
 
-  if (slip.slip_type === "advance_request" && ad) {
+  if (slip.slip_type === "reception_approval" && rc) {
+    const data: ReceptionPdfData = {
+      slipNo: slip.slip_no,
+      slipDate: slip.slip_date.toISOString().slice(0, 10),
+      requesterName: slip.requester_name,
+      clientName: rc.client_name,
+      contactName: rc.contact_name,
+      receptionDate: rc.reception_date ? rc.reception_date.toISOString().slice(0, 10) : null,
+      content: rc.content,
+      place: rc.place,
+      reason: rc.reason,
+      budgetAmount: rc.budget_amount,
+      advanceNeeded: rc.advance_needed,
+      actualAmount: rc.actual_amount,
+      requesterStampUrl,
+      approvals,
+    }
+    element = createElement(ReceptionPdf, { data })
+    fileLabel = "御得意先接待承認書"
+  } else if (slip.slip_type === "advance_request" && ad) {
     const data: AdvancePdfData = {
       slipNo: slip.slip_no,
       slipDate: slip.slip_date.toISOString().slice(0, 10),

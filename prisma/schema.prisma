@@ -2042,6 +2042,7 @@ model AcctSlip {
   trip_expense     AcctTripExpense?
   meal_advance     AcctMealAdvance?
   advance_request  AcctAdvanceRequest?
+  reception_approval AcctReceptionApproval?
   histories        AcctSlipHistory[]
   @@index([requester_id])
   @@index([slip_type])
@@ -2142,6 +2143,27 @@ model AcctAdvanceRequest {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
   @@map("t_acct_advance_requests")
+}
+
+model AcctReceptionApproval {
+  id                      String    @id @default(cuid())
+  slip_id                 String    @unique
+  slip                    AcctSlip  @relation(fields: [slip_id], references: [id], onDelete: Cascade)
+  client_name             String?
+  contact_name            String?
+  reception_date          DateTime? @db.Date
+  content                 String?   @db.Text
+  place                   String?   @db.Text
+  reason                  String?   @db.Text
+  budget_amount           Int       @default(0)
+  advance_needed          Boolean   @default(false)
+  actual_amount           Int?
+  actual_recorded_at      DateTime?
+  actual_recorded_by_id   String?
+  actual_recorded_by_name String?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+  @@map("t_acct_reception_approvals")
 }
 
 model AcctSlipHistory {
@@ -2286,6 +2308,7 @@ model EstStandard {
   values      EstStandardValue[]
   tiers       EstStandardTier[]
   estimates   Estimate[]
+  default_categories EstCategory[]
   @@map("m_est_standards")
 }
 
@@ -2415,10 +2438,16 @@ model Estimate {
   deleted_at            DateTime?
   created_at            DateTime    @default(now())
   updated_at            DateTime    @updatedAt
+  category_id           String?
+  category              EstCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  contact_name          String?
+  due_date              DateTime?   @db.Date
+  result                Json?
   lines                 EstimateLine[]
   @@index([customer_name])
   @@index([product_code])
   @@index([issue_date])
+  @@index([category_id])
   @@map("t_estimates")
 }
 
@@ -2442,4 +2471,22 @@ model EstimateLine {
   updated_at   DateTime @updatedAt
   @@index([estimate_id, section, sort_order])
   @@map("t_estimate_lines")
+}
+
+// 見積区分（客先・部署）。番号の接頭辞と、次の番号を持つ
+model EstCategory {
+  id                  String       @id @default(cuid())
+  name                String       @unique
+  code                String       @unique
+  next_serial         Int          @default(1)
+  default_standard_id String?
+  default_standard    EstStandard? @relation(fields: [default_standard_id], references: [id], onDelete: SetNull)
+  customer_name       String?
+  remarks             String?
+  is_active           Boolean      @default(true)
+  sort_order          Int          @default(0)
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
+  estimates           Estimate[]
+  @@map("m_est_categories")
 }

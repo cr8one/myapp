@@ -234,6 +234,7 @@ export const DB_SERVICE_GROUPS: DbServiceGroup[] = [
       { tableName: "m_est_standard_cells", label: "見積基準の単価" },
       { tableName: "t_estimates", label: "見積書" },
       { tableName: "t_estimate_lines", label: "見積書明細" },
+      { tableName: "m_est_categories", label: "見積区分" },
     ],
   },
   {
