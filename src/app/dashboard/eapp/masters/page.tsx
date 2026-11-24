@@ -23,6 +23,7 @@ const TAB_SERVICE_TYPE: Record<string, string> = {
   "tokui-approval-routes": "tokui_credit",
   "ringi-approval-routes": "ringi",
   "pctakeout-approval-routes": "pc_takeout",
+  "reception-routes": "accounting_reception_approval",
 }
 // 経理側の承認者は、経理精算のすべての書類で共通（種類ごとには分けない）
 const ACCOUNTING_TYPES = [
@@ -33,11 +34,12 @@ const ACCOUNTING_DESCRIPTION = "選んだ書類の種類に共通で適用され
 const TAB_DESCRIPTION: Record<string, string> = {
   "tokui-approval-routes": "全ての得意先申請に共通で適用される固定の承認ステップです（経理部・社長など）。ユーザーごとの可変ステップの後に、ここでの並び順で承認が進みます。",
   "ringi-approval-routes": "全ての稟議書に共通で適用される固定の承認ステップです（関連部・役員・社長など）。同じ順序番号の承認者は順不同で承認でき、全員承認した時点で次の順序に進みます。",
+  "reception-routes": "御得意先接待承認書の承認ステップです。起案者ごとの承認者（課長・部長など）の承認が終わったあと、ここに登録した人が承認します。社長を登録してください。",
   "pctakeout-approval-routes": "全てのPC持ち出し申請に共通で適用される、ISMS責任者の承認ステップです。起案者ごとの承認者（確認者）の承認が終わったあと、ここでの順序で承認が進みます。",
 }
 
 export default function EappMastersPage() {
-  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "pctakeout-approval-routes" | "regulations" | "trip-areas" | "system-staff">("tokui-approval-routes")
+  const [activeTab, setActiveTab] = useState<"tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "reception-routes" | "pctakeout-approval-routes" | "regulations" | "trip-areas" | "system-staff">("tokui-approval-routes")
 
   // 共通承認者設定（得意先申請・稟議書）
   const [routes, setRoutes] = useState<ApprovalRoute[]>([])
@@ -84,7 +86,7 @@ export default function EappMastersPage() {
   }
   useEffect(() => { fetchRoutes(activeTab); fetchStaff() }, [])
 
-  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "pctakeout-approval-routes" | "regulations" | "trip-areas" | "system-staff") => {
+  const switchTab = (tab: "tokui-approval-routes" | "ringi-approval-routes" | "accounting-routes" | "reception-routes" | "pctakeout-approval-routes" | "regulations" | "trip-areas" | "system-staff") => {
     setActiveTab(tab)
     setShowRouteForm(false)
     setEditRoute(null)
@@ -142,7 +144,7 @@ export default function EappMastersPage() {
     fetchStaff()
   }
 
-  const isRouteTab = activeTab === "tokui-approval-routes" || activeTab === "ringi-approval-routes" || activeTab === "accounting-routes" || activeTab === "pctakeout-approval-routes"
+  const isRouteTab = activeTab === "tokui-approval-routes" || activeTab === "ringi-approval-routes" || activeTab === "accounting-routes" || activeTab === "reception-routes" || activeTab === "pctakeout-approval-routes"
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -172,6 +174,14 @@ export default function EappMastersPage() {
           }`}
         >
           経理精算共通承認者設定
+        </button>
+        <button
+          onClick={() => switchTab("reception-routes")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "reception-routes" ? "border-slate-700 text-slate-900" : "border-transparent text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          御得意先接待承認書（社長承認）
         </button>
         <button
           onClick={() => switchTab("pctakeout-approval-routes")}
