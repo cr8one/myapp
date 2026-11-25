@@ -69,7 +69,11 @@ export const baseMenuItems = [
     { label: "パーツ一覧", href: "/dashboard/parts" },
   ]},
   { label: "見積書", icon: "estimate", children: [
+    { label: "見積一覧", href: "/dashboard/estimates" },
+    { label: "見積区分", href: "/dashboard/estimates/categories" },
     { label: "見積書マスタ", href: "/dashboard/estimates/standards" },
+    { label: "基準の一覧表", href: "/dashboard/estimates/standards/grid" },
+    { label: "基準の取り込み", href: "/dashboard/estimates/standards/import" },
   ]},
   { label: "電子申請", href: "/dashboard/eapp", icon: "eapp", children: [
     { label: "経理精算", href: "/dashboard/eapp/accounting" },
