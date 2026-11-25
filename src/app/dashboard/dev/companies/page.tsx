@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import JSZip from "jszip"
+import { KANA_INDEX_GROUPS, toHiragana } from "@/components/ui/searchable-select-modal"
 type Contact = { id: string; name: string; isPrimary: boolean }
 type TypeMaster = { id: string; name: string }
 type DevCompanyType = { typeMaster: TypeMaster }
@@ -49,6 +50,7 @@ export default function DevCompaniesPage() {
   const [companies, setCompanies] = useState<DevCompany[]>([])
   const [fetching, setFetching] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [kanaGroup, setKanaGroup] = useState<string | null>(null)
   const [importMessage, setImportMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fetchCompanies = async () => {
@@ -142,7 +144,15 @@ export default function DevCompaniesPage() {
     }
     e.target.value = ""
   }
-  const filtered = companies.filter((c) => {
+  const KANA_TABS = ["全", ...KANA_INDEX_GROUPS.map((g) => g.label), "他"]
+  const matchesKana = (c: DevCompany) => {
+    if (!kanaGroup) return true
+    const kana = toHiragana(c.nameKana ?? "")
+    if (kanaGroup === "他") return !KANA_INDEX_GROUPS.some((g) => g.chars.some((ch) => kana.startsWith(ch)))
+    const group = KANA_INDEX_GROUPS.find((g) => g.label === kanaGroup)
+    return group ? group.chars.some((ch) => kana.startsWith(ch)) : true
+  }
+  const filtered = companies.filter(matchesKana).filter((c) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -180,11 +190,27 @@ export default function DevCompaniesPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+      <div className="-mt-2 mb-4 flex flex-wrap gap-1">
+        {KANA_TABS.map((tab) => {
+          const active = tab === "全" ? kanaGroup === null : kanaGroup === tab
+          return (
+            <Button
+              key={tab}
+              variant={active ? "default" : "outline"}
+              size="sm"
+              className="px-3"
+              onClick={() => setKanaGroup(tab === "全" ? null : tab)}
+            >
+              {tab}
+            </Button>
+          )
+        })}
+      </div>
       {fetching ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : filtered.length === 0 ? (
         <p className="text-center text-gray-500 py-8">
-          {searchQuery ? "検索結果がありません" : "会社が登録されていません"}
+          {searchQuery || kanaGroup ? "該当する会社がありません" : "会社が登録されていません"}
         </p>
       ) : (
         <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
