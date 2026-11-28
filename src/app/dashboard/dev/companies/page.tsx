@@ -208,6 +208,11 @@ export default function DevCompaniesPage() {
           )
         })}
       </div>
+      {!fetching && (
+        <p className="mb-2 text-xs text-gray-500">
+          {filtered.length === companies.length ? `全${companies.length}件` : `全${companies.length}件中 ${filtered.length}件を表示`}
+        </p>
+      )}
       {fetching ? (
         <p className="text-center text-gray-400 py-8 animate-pulse">読み込み中...</p>
       ) : filtered.length === 0 ? (
