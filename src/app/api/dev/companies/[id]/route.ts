@@ -10,6 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     include: {
       contacts: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
       types: { include: { typeMaster: { select: { id: true, name: true } } } },
+      targetYears: { include: { targetYear: { select: { id: true, name: true } } } },
       primaryProjects: { select: { id: true, title: true, status: true } },
     },
   })
@@ -19,7 +20,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { name, nameKana, industry, status, postalCode, address, phone, url, notes, contacts, typeIds } = await req.json()
+  const { name, nameKana, industry, status, postalCode, address, phone, url, notes, contacts, typeIds, targetYearIds } = await req.json()
 
   const session = await auth()
   const before = await prisma.devCompany.findUnique({ where: { id } })
@@ -27,6 +28,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // 担当者・種別は一旦削除して再作成
   await prisma.devCompanyContact.deleteMany({ where: { companyId: id } })
   await prisma.devCompanyType.deleteMany({ where: { companyId: id } })
+  // 年度は、targetYearIds が送られてきたときだけ入れ替える（送られなければ今の年度を残す）
+  if (Array.isArray(targetYearIds)) await prisma.devCompanyTargetYear.deleteMany({ where: { companyId: id } })
 
   const company = await prisma.devCompany.update({
     where: { id },
@@ -38,10 +41,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       types: typeIds?.length
         ? { create: typeIds.map((tid: string) => ({ typeMasterId: tid })) }
         : undefined,
+      targetYears: Array.isArray(targetYearIds) && targetYearIds.length
+        ? { create: targetYearIds.map((yid: string) => ({ targetYearId: yid })) }
+        : undefined,
     },
     include: {
       contacts: true,
       types: { include: { typeMaster: true } },
+      targetYears: { include: { targetYear: true } },
     },
   })
   if (before) {

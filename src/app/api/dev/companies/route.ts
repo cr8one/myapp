@@ -9,13 +9,14 @@ export async function GET() {
     include: {
       contacts: true,  // 全担当者取得（検索・主担当表示のため）
       types: { include: { typeMaster: true } },
+      targetYears: { include: { targetYear: true } },
     },
   })
   return NextResponse.json(companies)
 }
 
 export async function POST(req: Request) {
-  const { name, nameKana, industry, status, postalCode, address, phone, url, notes, contacts, typeIds } = await req.json()
+  const { name, nameKana, industry, status, postalCode, address, phone, url, notes, contacts, typeIds, targetYearIds } = await req.json()
   if (!name) return NextResponse.json({ error: "会社名は必須です" }, { status: 400 })
   const company = await prisma.devCompany.create({
     data: {
@@ -28,10 +29,14 @@ export async function POST(req: Request) {
       types: typeIds?.length
         ? { create: typeIds.map((id: string) => ({ typeMasterId: id })) }
         : undefined,
+      targetYears: targetYearIds?.length
+        ? { create: targetYearIds.map((yid: string) => ({ targetYearId: yid })) }
+        : undefined,
     },
     include: {
       contacts: true,
       types: { include: { typeMaster: true } },
+      targetYears: { include: { targetYear: true } },
     },
   })
   const session = await auth()

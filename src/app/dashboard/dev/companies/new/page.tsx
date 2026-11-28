@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
+import { ToggleChips } from "@/components/ui/toggle-chips"
 
 type TypeMaster = { id: string; name: string; furigana?: string | null }
+type TargetYear = { id: string; name: string }
 type ContactForm = { name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
 
 const STATUSES = ["登録のみ", "面識あり", "相談済", "見積り済", "受注済"]
@@ -31,10 +33,13 @@ export default function NewDevCompanyPage() {
   const [url, setUrl] = useState("")
   const [notes, setNotes] = useState("")
   const [selectedTypeIds, setSelectedTypeIds] = useState<string[]>([])
+  const [targetYears, setTargetYears] = useState<TargetYear[]>([])
+  const [selectedTargetYearIds, setSelectedTargetYearIds] = useState<string[]>([])
   const [contacts, setContacts] = useState<ContactForm[]>([emptyContact()])
 
   useEffect(() => {
     fetch("/api/dev/company-type-masters").then((r) => r.json()).then(setTypeMasters)
+    fetch("/api/dev/target-year-masters").then((r) => r.json()).then(setTargetYears)
   }, [])
 
   const updateContact = (index: number, field: keyof ContactForm, value: string | boolean) => {
@@ -54,6 +59,7 @@ export default function NewDevCompanyPage() {
       body: JSON.stringify({
         name, nameKana, industry, status, postalCode, address, phone, url, notes,
         typeIds: selectedTypeIds,
+        targetYearIds: selectedTargetYearIds,
         contacts: contacts.filter((c) => c.name),
       }),
     })
@@ -133,6 +139,18 @@ export default function NewDevCompanyPage() {
               values={selectedTypeIds}
               onChange={setSelectedTypeIds}
               placeholder="種別を選択..." indexFilter
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>対象年度</CardTitle></CardHeader>
+          <CardContent>
+            <ToggleChips
+              options={targetYears.map((y) => ({ id: y.id, label: y.name }))}
+              values={selectedTargetYearIds}
+              onChange={setSelectedTargetYearIds}
+              emptyText="対象年度が登録されていません"
             />
           </CardContent>
         </Card>

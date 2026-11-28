@@ -150,6 +150,7 @@ model DevCompany {
   exhibitions     DevExhibitionContact[]
   contacts        DevCompanyContact[]
   types           DevCompanyType[]
+  targetYears     DevCompanyTargetYear[]
   @@map("dev_companies")
 }
 model DevProject {
@@ -256,6 +257,24 @@ model DevCompanyType {
   createdAt    DateTime             @default(now()) @map("created_at")
   @@unique([companyId, typeMasterId])
   @@map("dev_company_types")
+}
+model DevTargetYearMaster {
+  id        String                 @id @default(cuid())
+  name      String                 @unique
+  createdAt DateTime               @default(now()) @map("created_at")
+  updatedAt DateTime               @updatedAt @map("updated_at")
+  companies DevCompanyTargetYear[]
+  @@map("dev_target_year_masters")
+}
+model DevCompanyTargetYear {
+  id           String              @id @default(cuid())
+  companyId    String              @map("company_id")
+  targetYearId String              @map("target_year_id")
+  company      DevCompany          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  targetYear   DevTargetYearMaster @relation(fields: [targetYearId], references: [id], onDelete: Cascade)
+  createdAt    DateTime            @default(now()) @map("created_at")
+  @@unique([companyId, targetYearId])
+  @@map("dev_company_target_years")
 }
 model DevProjectAssignee {
   id        String     @id @default(cuid())

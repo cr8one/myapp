@@ -43,6 +43,10 @@ export const DEV_COMPANY_TYPE_MASTER_LABELS: Record<string, string> = {
   furigana: "フリガナ",
 }
 
+export const DEV_TARGET_YEAR_MASTER_LABELS: Record<string, string> = {
+  name: "年度名",
+}
+
 type Base = { userId?: string | null; targetModel: string; targetId: string; targetLabel: string }
 
 export async function logDevCreate(p: Base & { classification?: string }) {

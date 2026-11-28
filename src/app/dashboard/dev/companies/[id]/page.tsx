@@ -8,16 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelectModal } from "@/components/ui/searchable-select-modal"
+import { ToggleChips } from "@/components/ui/toggle-chips"
 import AuditHistory from "@/components/audit-history"
 import AddressMap from "@/components/address-map"
 
 type TypeMaster = { id: string; name: string; furigana?: string | null }
+type TargetYear = { id: string; name: string }
 type Contact = { id?: string; name: string; nameKana: string; email: string; phone: string; department: string; position: string; isPrimary: boolean; notes: string }
 type DevCompany = {
   id: string; name: string; nameKana?: string; industry?: string; status: string
   postalCode?: string; address?: string; phone?: string; url?: string; notes?: string
   contacts: Contact[]
   types: { typeMaster: TypeMaster }[]
+  targetYears: { targetYear: TargetYear }[]
   primaryProjects: { id: string; title: string; status: string }[]
 }
 
@@ -53,6 +56,8 @@ export default function DevCompanyDetailPage() {
   const [url, setUrl] = useState("")
   const [notes, setNotes] = useState("")
   const [selectedTypeIds, setSelectedTypeIds] = useState<string[]>([])
+  const [targetYears, setTargetYears] = useState<TargetYear[]>([])
+  const [selectedTargetYearIds, setSelectedTargetYearIds] = useState<string[]>([])
   const [contacts, setContacts] = useState<Contact[]>([emptyContact()])
 
   const fetchCompany = async () => {
@@ -64,6 +69,7 @@ export default function DevCompanyDetailPage() {
   useEffect(() => {
     fetchCompany()
     fetch("/api/dev/company-type-masters").then((r) => r.json()).then(setTypeMasters)
+    fetch("/api/dev/target-year-masters").then((r) => r.json()).then(setTargetYears)
   }, [id])
 
   const startEdit = () => {
@@ -78,6 +84,7 @@ export default function DevCompanyDetailPage() {
     setUrl(company.url ?? "")
     setNotes(company.notes ?? "")
     setSelectedTypeIds(company.types.map((t) => t.typeMaster.id))
+    setSelectedTargetYearIds(company.targetYears.map((t) => t.targetYear.id))
     setContacts(company.contacts.length > 0 ? company.contacts : [emptyContact()])
     setEditing(true)
   }
@@ -96,6 +103,7 @@ export default function DevCompanyDetailPage() {
       body: JSON.stringify({
         name, nameKana, industry, status, postalCode, address, phone, url, notes,
         typeIds: selectedTypeIds,
+        targetYearIds: selectedTargetYearIds,
         contacts: contacts.filter((c) => c.name),
       }),
     })
@@ -203,6 +211,18 @@ export default function DevCompanyDetailPage() {
           </Card>
 
           <Card>
+            <CardHeader><CardTitle>対象年度</CardTitle></CardHeader>
+            <CardContent>
+              <ToggleChips
+                options={targetYears.map((y) => ({ id: y.id, label: y.name }))}
+                values={selectedTargetYearIds}
+                onChange={setSelectedTargetYearIds}
+                emptyText="対象年度が登録されていません"
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>担当者</CardTitle>
@@ -285,6 +305,16 @@ export default function DevCompanyDetailPage() {
             <CardContent>
               {company.types.length > 0
                 ? <div className="flex gap-2 flex-wrap">{company.types.map((t) => <Badge key={t.typeMaster.id} variant="secondary">{t.typeMaster.name}</Badge>)}</div>
+                : <p className="text-sm text-gray-500">設定なし</p>
+              }
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>対象年度</CardTitle></CardHeader>
+            <CardContent>
+              {company.targetYears.length > 0
+                ? <div className="flex gap-2 flex-wrap">{company.targetYears.map((t) => <Badge key={t.targetYear.id} variant="secondary">{t.targetYear.name}</Badge>)}</div>
                 : <p className="text-sm text-gray-500">設定なし</p>
               }
             </CardContent>

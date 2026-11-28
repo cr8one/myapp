@@ -9,12 +9,14 @@ import { KANA_INDEX_GROUPS, toHiragana } from "@/components/ui/searchable-select
 type Contact = { id: string; name: string; isPrimary: boolean }
 type TypeMaster = { id: string; name: string }
 type DevCompanyType = { typeMaster: TypeMaster }
+type DevCompanyTargetYear = { targetYear: { id: string; name: string } }
 type DevCompany = {
   id: string; name: string; nameKana?: string; industry?: string; status: string
   phone?: string; address?: string; postalCode?: string; url?: string; notes?: string
   createdAt: string
   contacts: Contact[]
   types: DevCompanyType[]
+  targetYears: DevCompanyTargetYear[]
 }
 const STATUS_COLORS: Record<string, string> = {
   "登録のみ":  "bg-gray-100 text-gray-600",
@@ -214,15 +216,16 @@ export default function DevCompaniesPage() {
         </p>
       ) : (
         <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
-          <table className="w-full table-fixed text-sm min-w-[900px]">
+          <table className="w-full table-fixed text-sm min-w-[980px]">
             <colgroup>
-              <col style={{ width: "22%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "14%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "9%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "16%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "11%" }} />
               <col style={{ width: "14%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "11%" }} />
             </colgroup>
             <thead>
               <tr className="bg-gray-50 border-b text-xs text-gray-500">
@@ -232,6 +235,7 @@ export default function DevCompaniesPage() {
                 <th className="px-3 py-2 text-left font-medium">主担当</th>
                 <th className="px-3 py-2 text-left font-medium">TEL</th>
                 <th className="px-3 py-2 text-left font-medium">取扱種別</th>
+                <th className="px-3 py-2 text-left font-medium">対象年度</th>
                 <th className="px-3 py-2 text-right font-medium">操作</th>
               </tr>
             </thead>
@@ -270,6 +274,16 @@ export default function DevCompaniesPage() {
                           </Badge>
                         ))}
                         {company.types.length === 0 && <span className="text-xs text-gray-300">-</span>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 flex-wrap">
+                        {company.targetYears.map((t) => (
+                          <Badge key={t.targetYear.id} variant="secondary" className="text-xs">
+                            {t.targetYear.name}
+                          </Badge>
+                        ))}
+                        {company.targetYears.length === 0 && <span className="text-xs text-gray-300">-</span>}
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
