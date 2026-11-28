@@ -152,6 +152,7 @@ export default function UsersPage() {
     step_order: number
     position: { id: string; name: string } | null
     approver: { id: string; name: string | null; email: string } | null
+    min_amount: number
   }
   const [approverServiceType, setApproverServiceType] = useState<"tokui_credit" | "ringi" | "tray_usage_plan" | "voucher" | "accounting" | "pc_takeout">("tokui_credit")
   const [approverSettings, setApproverSettings] = useState<ApproverSetting[]>([])
@@ -160,6 +161,7 @@ export default function UsersPage() {
   const [approverStepOrder, setApproverStepOrder] = useState(0)
   const [approverPositionId, setApproverPositionId] = useState("")
   const [approverUserId, setApproverUserId] = useState("")
+  const [approverMinAmount, setApproverMinAmount] = useState("") // 申請の金額が、この金額以上のときだけ、このステップを通す（経理精算のみ）
 
   const [sort, setSort] = useState("org")
 
@@ -652,7 +654,7 @@ const handleInkanDelete = async () => {
                     >PC持ち出し</button>
                   </div>
                   <button
-                    onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setShowApproverForm(true) }}
+                    onClick={() => { setEditApprover(null); setApproverStepOrder(approverSettings.length + 1); setApproverPositionId(""); setApproverUserId(""); setApproverMinAmount(""); setShowApproverForm(true) }}
                     className="text-xs px-2 py-1 bg-slate-700 text-white rounded hover:bg-slate-800"
                   >
                     + ステップ追加
@@ -671,9 +673,16 @@ const handleInkanDelete = async () => {
                       <option value="">-- 承認者(氏名) --</option>
                       {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
+                    {approverServiceType === "accounting" && (
+                      <div className="flex items-center gap-1">
+                        <Input autoComplete="off" inputMode="numeric" className="w-28 h-8 text-sm text-right" placeholder="0" value={approverMinAmount}
+                          onChange={e => setApproverMinAmount(e.target.value.replace(/\D/g, "").slice(0, 8))} />
+                        <span className="text-xs text-gray-500">円以上のとき承認（御得意先接待承認書）</span>
+                      </div>
+                    )}
                     <button
                       onClick={async () => {
-                        const body = JSON.stringify({ service_type: approverServiceType, step_order: approverStepOrder, position_id: approverPositionId || null, approver_user_id: approverUserId || null })
+                        const body = JSON.stringify({ service_type: approverServiceType, step_order: approverStepOrder, position_id: approverPositionId || null, approver_user_id: approverUserId || null, min_amount: approverMinAmount === "" ? 0 : Number(approverMinAmount) })
                         if (editApprover) {
                           await fetch(`/api/users/${editUser.id}/approver-settings/${editApprover.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
                         } else {
@@ -696,8 +705,9 @@ const handleInkanDelete = async () => {
                         <span className="text-xs text-slate-500 w-6">{s.step_order}</span>
                         <span className="text-xs text-gray-400 w-20">{approverServiceType === "voucher" ? (s.step_order === 1 ? "精査" : s.step_order === 2 ? "検印" : "-") : (s.position?.name ?? "-")}</span>
                         <span className="flex-1">{s.approver?.name ?? "-"}</span>
+                        {approverServiceType === "accounting" && s.min_amount > 0 && <span className="text-xs text-amber-700">{s.min_amount.toLocaleString()}円以上</span>}
                         <button
-                          onClick={() => { setEditApprover(s); setApproverStepOrder(s.step_order); setApproverPositionId(s.position?.id ?? ""); setApproverUserId(s.approver?.id ?? ""); setShowApproverForm(true) }}
+                          onClick={() => { setEditApprover(s); setApproverStepOrder(s.step_order); setApproverPositionId(s.position?.id ?? ""); setApproverUserId(s.approver?.id ?? ""); setApproverMinAmount(s.min_amount ? String(s.min_amount) : ""); setShowApproverForm(true) }}
                           className="text-xs text-blue-500 hover:text-blue-700"
                         >編集</button>
                         <button

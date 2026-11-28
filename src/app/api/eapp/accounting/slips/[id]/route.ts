@@ -207,7 +207,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   let steps: Awaited<ReturnType<typeof buildApprovalSteps>>["steps"] = []
   if (submit) {
-    const built = await buildApprovalSteps(viewer.userId, type.routeServiceType)
+    // 御得意先接待承認書は、経理の承認が要らない。予算額に応じて、起案側の承認者（ユーザーマスタの、金額ごとの設定）を分ける。ほかの種類は、今までどおり
+    const built = "reception" in v
+      ? await buildApprovalSteps(viewer.userId, type.routeServiceType, { amount: v.reception.budget_amount, skipAccounting: true })
+      : await buildApprovalSteps(viewer.userId, type.routeServiceType)
     if (built.error) return NextResponse.json({ error: built.error }, { status: 400 })
     steps = built.steps
   }

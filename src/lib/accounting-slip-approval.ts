@@ -24,9 +24,12 @@ export type NewApprovalStep = {
 // 起案側：起案者のユーザーマスタの承認者設定（経理精算）
 // 経理側：電子申請マスタの、書類の種類ごとの共通承認者設定
 // 承認者が決まっていないステップや、経理側が空の場合は、誰も承認できない伝票になるので、エラーを返す。
+// options.amount：申請の金額。渡したときだけ、金額が「必要になる金額（min_amount）」に満たない起案側のステップを外す（金額で承認者を分ける種類用）。渡さないときは、全ステップを通す
+// options.skipAccounting：経理側の段階を作らない（経理の承認が要らない種類用）。起案側のステップだけで、申請を通す
 export async function buildApprovalSteps(
   requesterId: string,
-  routeServiceType: string
+  routeServiceType: string,
+  options: { amount?: number; skipAccounting?: boolean } = {}
 ): Promise<{ steps: NewApprovalStep[]; error: string | null }> {
   const [settings, routes] = await Promise.all([
     prisma.userApproverSetting.findMany({
@@ -49,6 +52,8 @@ export async function buildApprovalSteps(
 
   const requesterSteps: NewApprovalStep[] = []
   for (const s of settings) {
+    // 金額が渡されているときは、「必要になる金額」に満たないステップを外す
+    if (options.amount !== undefined && options.amount < s.min_amount) continue
     if (!s.approver) {
       return { steps: [], error: "あなたの承認者設定（経理精算）に、承認者が決まっていないステップがあります。ユーザーマスタで確認してください。" }
     }
@@ -62,6 +67,12 @@ export async function buildApprovalSteps(
     })
   }
 
+  if (options.skipAccounting) {
+    if (requesterSteps.length === 0) {
+      return { steps: [], error: "あなたの承認者設定（経理精算）に、この金額で承認するステップがありません。ユーザーマスタで確認してください。" }
+    }
+    return { steps: requesterSteps, error: null }
+  }
   if (routes.length === 0) {
     return { steps: [], error: "経理側の承認者が設定されていません。電子申請マスタの「経理精算共通承認者設定」で設定してください。" }
   }

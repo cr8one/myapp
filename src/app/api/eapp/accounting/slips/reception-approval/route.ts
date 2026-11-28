@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
   // 申請のときだけ、承認ステップを作る（起案側のあと、この書類専用の設定に登録した社長）
   let steps: Awaited<ReturnType<typeof buildApprovalSteps>>["steps"] = []
   if (submit) {
-    const built = await buildApprovalSteps(viewer.userId, REC.routeServiceType)
+    // 経理の承認は要らない。予算額に応じて、起案側の承認者（ユーザーマスタの、金額ごとの設定）を分ける
+    const built = await buildApprovalSteps(viewer.userId, REC.routeServiceType, { amount: v.reception.budget_amount, skipAccounting: true })
     if (built.error) return NextResponse.json({ error: built.error }, { status: 400 })
     steps = built.steps
   }

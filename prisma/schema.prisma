@@ -1684,6 +1684,7 @@ model UserApproverSetting {
   position          MPosition? @relation("UserApproverPosition", fields: [position_id], references: [id])
   approver_user_id  String?
   approver          User?    @relation("UserApproverTarget", fields: [approver_user_id], references: [id])
+  min_amount        Int      @default(0)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
   @@map("t_user_approver_settings")

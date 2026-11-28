@@ -26,7 +26,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const denied = await requireAdmin()
   if (denied) return denied
   const { id } = await params
-  const { service_type, step_order, position_id, approver_user_id } = await req.json()
+  const { service_type, step_order, position_id, approver_user_id, min_amount } = await req.json()
+  // 申請の金額が、この金額以上のときだけ、このステップを通す（経理精算の金額ごとの承認者用）。0は、金額に関係なく通す
+  const minAmount = Number.isInteger(Number(min_amount)) && Number(min_amount) >= 0 && Number(min_amount) <= 99999999 ? Number(min_amount) : 0
   const setting = await prisma.userApproverSetting.create({
     data: {
       user_id: id,
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       step_order: step_order ?? 0,
       position_id: position_id || null,
       approver_user_id: approver_user_id || null,
+      min_amount: minAmount,
     },
     include: {
       position: { select: { id: true, name: true } },
